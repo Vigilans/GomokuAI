@@ -4,3 +4,10 @@
 //
 
 #include "pch.h"
+#include <ctime>
+
+// seed random generator
+int rndSeed = []() {
+    srand(time(nullptr));
+    return 0;
+}();

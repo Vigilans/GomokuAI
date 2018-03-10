@@ -18,7 +18,7 @@ TEST(PlayerTest, FinalScore) {
     for (auto player : players) {
         for (auto winner : players) {
             if (player == Player::None) {
-                continue; // ATTENTION
+                continue; // ATTENTION: potential bug
             }
             if (player == winner) {
                 ASSERT_GT(getFinalScore(player, winner), 0);
