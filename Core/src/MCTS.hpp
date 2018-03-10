@@ -84,14 +84,14 @@ private:
 
     Node* expand(Node* node, Board& board) {
         // 随机选取一个元素作为新结点
-        auto newPos = getRandomMove(board);
+        auto newPos = board.getRandomMove();
         node->children.emplace_back(new Node{ node, {}, newPos });
         return node->children.back().get(); // 返回新增的结点
     }
 
     float simulate(Node* node, Board& board) {
         while (true) {
-            auto move = getRandomMove(board);
+            auto move = board.getRandomMove();
             auto result = board.applyMove(move);
             m_moveStack.push(move);
             if (result == Player::None) {
@@ -115,23 +115,6 @@ private:
             board.revertMove(m_moveStack.top());
             m_moveStack.pop();
         }
-    }
-
-    // a hack way to get a random move
-    // referto: https://stackoverflow.com/questions/12761315/random-element-from-unordered-set-in-o1/31522686#31522686
-    Position getRandomMove(Board& board) {
-        if (board.m_availableMoves.empty()) {
-            throw overflow_error("board is already full");
-        }
-        int divisor = (RAND_MAX + 1) / width * height;
-        auto rnd = Position(rand() % divisor);
-        if (!board.m_availableMoves.count(rnd)) {
-            board.m_availableMoves.insert(rnd);
-            auto iter = board.m_availableMoves.find(rnd);
-            rnd = *(next(iter) == board.m_availableMoves.end() ? board.m_availableMoves.begin() : next(iter));
-            board.m_availableMoves.erase(iter);
-        }
-        return rnd;
     }
 
 private:

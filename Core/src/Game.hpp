@@ -31,6 +31,7 @@ struct Position {
 
     Position(int id = -1) : id(id) { }
     Position(int x, int y) : id(y * width + x) {}
+    Position(std::pair<int, int> pose) : id(pose.second * width + pose.first) {}
 
     operator int() const { return id; }
 
@@ -105,6 +106,24 @@ public:
         return status;
     }
 
+    // a hack way to get a random move
+    // referto: https://stackoverflow.com/questions/12761315/random-element-from-unordered-set-in-o1/31522686#31522686
+    Position getRandomMove() const {
+        if (m_availableMoves.empty()) {
+            throw overflow_error("board is already full");
+        }
+        int divisor = (RAND_MAX + 1) / (width * height);
+        auto rnd = Position(rand() % divisor);
+        while (!m_availableMoves.count(rnd)) {
+            rnd.id = rand() % divisor;
+            //board.m_availableMoves.insert(rnd);
+            //auto iter = board.m_availableMoves.find(rnd);
+            //rnd = *(next(iter) == board.m_availableMoves.end() ? board.m_availableMoves.begin() : next(iter));
+            //board.m_availableMoves.erase(iter);
+        }
+        return rnd;
+    }
+
 private:
     bool checkMove(Position move) {
         // 暂无特殊规则
@@ -118,9 +137,10 @@ private:
         // 沿不同方向的搜索方法复用
         const auto search = [&](int dx, int dy) {
             // 判断坐标的格子是否未越界且归属为当前棋子
-            const auto isCurrentPlayer = [&](int x, int y) {
-                const Position pose(x, y);
-                return (x >= 0 && x < width) && (y >= 0 && y < height) && m_appliedMoves.count(pose) && m_appliedMoves[pose] == m_curPlayer;
+            // TODO: Profiler test
+            const auto isCurrentPlayer = [&](Position pose) {
+                return (pose.x() >= 0 && pose.x() < width) && (pose.y() >= 0 && pose.y() < height) 
+                    && (m_appliedMoves.count(pose) && m_appliedMoves[pose] == m_curPlayer);
             };
 
             int renju = 1; // 当前落子构成的最大连珠数
@@ -130,7 +150,7 @@ private:
                 int x = curX, y = curY;
                 for (int i = 1; i < 4; ++i) {
                     x += sgn*dx, y += sgn*dy;
-                    if (isCurrentPlayer(x, y)) ++renju;
+                    if (isCurrentPlayer({ x, y })) ++renju;
                     else break;
                 }
             }
@@ -155,11 +175,11 @@ public:
     Player m_curPlayer;
 
     /*
-    当棋局结束后，其值代表最终游戏结果:
-    - Player::Black: 黑赢
-    - Player::White: 白赢
-    - Player::None:  和局
-    当棋局还未结束时（m_curPlayer != Player::None），值始终保持为None，代表还没有赢家。
+        当棋局结束后，其值代表最终游戏结果:
+        - Player::Black: 黑赢
+        - Player::White: 白赢
+        - Player::None:  和局
+        当棋局还未结束时（m_curPlayer != Player::None），值始终保持为None，代表还没有赢家。
     */
     Player m_winner;
 
