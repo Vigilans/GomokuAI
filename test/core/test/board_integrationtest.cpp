@@ -5,8 +5,10 @@
 
 namespace Gomoku {
 inline bool operator==(const Board& lhs, const Board& rhs) {
-    // 为加快速度，只检查两个哈希表大小是否相等，就不检查元素是否一一对应了
-    auto make_tied = [](const Board& b) { return std::make_tuple(b.m_curPlayer, b.m_winner, b.m_appliedMoves.size(), b.m_availableMoves.size()); };
+    // 为加快速度，只检查两个moveStates元素个数是否相等，就不检查元素是否一一对应了
+    auto make_tied = [](const Board& b) { 
+        return std::make_tuple(b.m_curPlayer, b.m_winner, b.m_moveStates[0].size(), b.m_moveStates[1].size(), b.m_moveStates[2].size()); 
+    };
     return make_tied(lhs) == make_tied(rhs);
 }
 }
@@ -30,7 +32,7 @@ protected:
     // 对棋盘的状态进行快速检查
     ::testing::AssertionResult trivialCheck(const Board& board) {
         // 已下与未下的格子数量要互补
-        if (board.m_appliedMoves.size() + board.m_availableMoves.size() != width * height) {
+        if (board.m_moveStates[0].size() + board.m_moveStates[1].size() + board.m_moveStates[2].size() != width * height) {
             return ::testing::AssertionFailure() << "Moves size sum not compatible.";
         }
         // 游戏未结束时（m_curPlayer != Player::None），一定没有赢家（m_winner = Player::None）
@@ -71,7 +73,7 @@ TEST_F(BoardTest, MoveSymmetry) {
 }
 
 TEST_F(BoardTest, CheckVictory) {
-    
+    // TODO: 查revertMove()在游戏结束后是否能调用成功
 }
 
 // 利用一种可以和棋的下法进行检查
@@ -129,7 +131,7 @@ TEST_F(BoardTest, RandomRollout) {
         curPlayer = result; // 将当前玩家转换到原board下了一手后应下的玩家
         board_cpy.applyMove(move); // 拷贝版board跟上一手
         result = board.applyMove(move); // 在原board原位置再下一子
-        //EXPECT_EQ(board, board_cpy); // 因为该手无效，所以原board应该无变化
-        //ASSERT_EQ(result, curPlayer); // result一定得为当前玩家（当前玩家需要重下）
+        EXPECT_EQ(board, board_cpy) << "board does not remain the same after applied an invalid move"; // 因为该手无效，所以原board应该无变化
+        ASSERT_EQ(result, curPlayer); // result一定得为当前玩家（当前玩家需要重下）
     }
 }
