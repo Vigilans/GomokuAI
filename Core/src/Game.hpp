@@ -108,26 +108,41 @@ public:
 
     // a hack way to get a random move
     // referto: https://stackoverflow.com/questions/12761315/random-element-from-unordered-set-in-o1/31522686#31522686
-    Position getRandomMove() const {
+    Position getRandomMove() {
         if (m_availableMoves.empty()) {
             throw overflow_error("board is already full");
         }
-        int divisor = (RAND_MAX + 1) / (width * height);
-        auto rnd = Position(rand() % divisor);
-        while (!m_availableMoves.count(rnd)) {
-            rnd.id = rand() % divisor;
+        //int divisor = (RAND_MAX + 1) / (width * height);
+        //auto rnd = Position(rand() % divisor);
+        //while (!m_availableMoves.count(rnd)) {
+            //rnd.id = rand() % divisor;
+
+            //rnd.id = (rnd.id + 1) % (width * height);
+
             //board.m_availableMoves.insert(rnd);
             //auto iter = board.m_availableMoves.find(rnd);
             //rnd = *(next(iter) == board.m_availableMoves.end() ? board.m_availableMoves.begin() : next(iter));
             //board.m_availableMoves.erase(iter);
-        }
+        //}
+        // referto: https://stackoverflow.com/questions/27024269/
+        int bucket = rand() % m_availableMoves.bucket_count();
+        int bucketSize;
+        while ((bucketSize = m_availableMoves.bucket_size(bucket)) == 0) {
+            bucket = (bucket + 1) % m_availableMoves.bucket_count();
+        } 
+        auto rnd = *std::next(m_availableMoves.begin(bucket), rand() % bucketSize);
         return rnd;
     }
 
 private:
-    bool checkMove(Position move) {
-        // 暂无特殊规则
+    bool checkMove(Position move) {    
+        #if _DEBUG
+        // 若在调试模式下，则加一层是否越界且是否有子的检查
+        return move.id >= 0 && move.id < width * height && !m_appliedMoves.count(move);
+        #else
+        // 暂无禁手规则
         return true;
+        #endif
     }
 
     // 每下一步都进行终局检查，这样便只需对当前落子周围进行遍历即可。
@@ -137,9 +152,9 @@ private:
         // 沿不同方向的搜索方法复用
         const auto search = [&](int dx, int dy) {
             // 判断坐标的格子是否未越界且归属为当前棋子
-            // TODO: Profiler test
-            const auto isCurrentPlayer = [&](Position pose) {
-                return (pose.x() >= 0 && pose.x() < width) && (pose.y() >= 0 && pose.y() < height) 
+            const auto isCurrentPlayer = [&](int x, int y) {
+                Position pose(x, y);
+                return (x >= 0 && x < width) && (y >= 0 && y < height) 
                     && (m_appliedMoves.count(pose) && m_appliedMoves[pose] == m_curPlayer);
             };
 
@@ -150,7 +165,7 @@ private:
                 int x = curX, y = curY;
                 for (int i = 1; i < 4; ++i) {
                     x += sgn*dx, y += sgn*dy;
-                    if (isCurrentPlayer({ x, y })) ++renju;
+                    if (isCurrentPlayer(x, y)) ++renju;
                     else break;
                 }
             }

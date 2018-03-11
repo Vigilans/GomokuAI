@@ -9,10 +9,6 @@ class PositionTest : public ::testing::Test {
 protected:
     static const int caseSize = 10;
 
-    int randSgn() {
-        return 2 * (rand() % 2) - 1;
-    }
-
     virtual void SetUp() override {
         for (int i = 0; i < caseSize; ++i) {
             int sgn = randSgn(); // 每轮循环保证符号一致
@@ -20,6 +16,10 @@ protected:
             yCoords[i] = sgn * (rand() % height);
             ids[i] = sgn * (rand() % (width * height));
         }
+    }
+
+    int randSgn() {
+        return 2 * (rand() % 2) - 1;
     }
     
     int xCoords[caseSize];
