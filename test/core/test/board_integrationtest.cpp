@@ -1,7 +1,7 @@
 #include "pch.h"
+#include "core/src/Game.hpp"
 #include <algorithm>
 #include <numeric>
-#include "../../Core/src/Game.hpp"
 
 namespace Gomoku {
 inline bool operator==(const Board& lhs, const Board& rhs) {

@@ -35,17 +35,17 @@ public:
     }
 
     Position getNextMove(Board& board) {
-        for (int i = 0; i < 10000; ++i) {
-            playout(board); // Íê³ÉÒ»ÂÖÃÉÌØ¿¨ÂåÊ÷µÄÑ­»·
+        for (int i = 0; i < 100; ++i) {
+            playout(board); // å®Œæˆä¸€è½®è’™ç‰¹å¡æ´›æ ‘çš„å¾ªç¯
         }
-        stepForward(); // ¸üĞÂÃÉÌØ¿¨ÂåÊ÷£¬ÏòÑ¡³öµÄ×îºÃÊÖÍÆ½øÒ»²½
-        return m_root->position; // ·µ»ØÑ¡³öµÄ×îºÃÒ»ÊÖ
+        stepForward(); // æ›´æ–°è’™ç‰¹å¡æ´›æ ‘ï¼Œå‘é€‰å‡ºçš„æœ€å¥½æ‰‹æ¨è¿›ä¸€æ­¥
+        return m_root->position; // è¿”å›é€‰å‡ºçš„æœ€å¥½ä¸€æ‰‹
     }
 
-private:
-    // ÃÉÌØ¿¨ÂåÊ÷µÄÒ»ÂÖÑ­»·
+public:
+    // è’™ç‰¹å¡æ´›æ ‘çš„ä¸€è½®å¾ªç¯
     void playout(Board& board) {
-        Node* node = m_root.get(); // ÂãÖ¸ÕëÓÃ×÷¹Û²ìÖ¸Õë£¬²»¶ÔÊ÷½áµãÓµÓĞËùÓĞÈ¨
+        Node* node = m_root.get(); // è£¸æŒ‡é’ˆç”¨ä½œè§‚å¯ŸæŒ‡é’ˆï¼Œä¸å¯¹æ ‘ç»“ç‚¹æ‹¥æœ‰æ‰€æœ‰æƒ
         while (!node->isLeaf()) {
             node = select(node);
             board.applyMove(node->position);
@@ -54,23 +54,23 @@ private:
         float leaf_value;
         if (!board.status().end) {
             node = expand(node, board);
-            leaf_value = simulate(node, board); // ¸ù¾İÄ£ÄâÕ½Ô¤¹Àµ±Ç°½áµã¼ÛÖµ·ÖÊı
+            leaf_value = simulate(node, board); // æ ¹æ®æ¨¡æ‹Ÿæˆ˜é¢„ä¼°å½“å‰ç»“ç‚¹ä»·å€¼åˆ†æ•°
         } else {
-            leaf_value = getFinalScore(m_player, board.m_winner); // ¸ù¾İ¶Ô¾Ö½á¹û»ñÈ¡¾ø¶Ô¼ÛÖµ·ÖÊı
+            leaf_value = getFinalScore(m_player, board.m_winner); // æ ¹æ®å¯¹å±€ç»“æœè·å–ç»å¯¹ä»·å€¼åˆ†æ•°
         }
         backPropogate(node, leaf_value);
-        reset(board); // ÖØÖÃBoardµ½³õÊ¼´«ÈëµÄ×´Ì¬
+        reset(board); // é‡ç½®Boardåˆ°åˆå§‹ä¼ å…¥çš„çŠ¶æ€
     }
     
-    // AlphaZeroµÄÂÛÎÄÖĞ£¬¶ÔMCTSµÄÔÙÀûÓÃ²ßÂÔ
-    // ²Î¼ûhttps://stackoverflow.com/questions/47389700/why-does-monte-carlo-tree-search-reset-tree
+    // AlphaZeroçš„è®ºæ–‡ä¸­ï¼Œå¯¹MCTSçš„å†åˆ©ç”¨ç­–ç•¥
+    // å‚è§https://stackoverflow.com/questions/47389700/why-does-monte-carlo-tree-search-reset-tree
     void stepForward() {
-        // Ñ¡³ö×îºÃµÄÒ»ÊÖ
+        // é€‰å‡ºæœ€å¥½çš„ä¸€æ‰‹
         auto&& nextNode = std::move(*max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
             return lhs->visits < rhs->visits;
         }));
-        // ¸üĞÂÃÉÌØ¿¨ÂåÊ÷£¬½«¸ù½ÚµãÍÆ½øÖÁÑ¡Ôñ³öµÄ×îºÃÊÖµÄ¶ÔÓ¦½áµã
-        // ¸üĞÂºó£¬Ô­¸ù½ÚµãÓÉunique_ptr×Ô¶¯ÊÍ·Å£¬ÆäÓàµÄ·Ç×ÓÊ÷½áµãÒ²»á±»Á´Ê½×Ô¶¯Ïú»Ù¡£
+        // æ›´æ–°è’™ç‰¹å¡æ´›æ ‘ï¼Œå°†æ ¹èŠ‚ç‚¹æ¨è¿›è‡³é€‰æ‹©å‡ºçš„æœ€å¥½æ‰‹çš„å¯¹åº”ç»“ç‚¹
+        // æ›´æ–°åï¼ŒåŸæ ¹èŠ‚ç‚¹ç”±unique_ptrè‡ªåŠ¨é‡Šæ”¾ï¼Œå…¶ä½™çš„éå­æ ‘ç»“ç‚¹ä¹Ÿä¼šè¢«é“¾å¼è‡ªåŠ¨é”€æ¯ã€‚
         m_root = std::move(nextNode);
         m_root->parent = nullptr;
     }
@@ -83,10 +83,10 @@ private:
     }
 
     Node* expand(Node* node, Board& board) {
-        // Ëæ»úÑ¡È¡Ò»¸öÔªËØ×÷ÎªĞÂ½áµã
+        // éšæœºé€‰å–ä¸€ä¸ªå…ƒç´ ä½œä¸ºæ–°ç»“ç‚¹
         auto newPos = board.getRandomMove();
         node->children.emplace_back(new Node{ node, {}, newPos });
-        return node->children.back().get(); // ·µ»ØĞÂÔöµÄ½áµã
+        return node->children.back().get(); // è¿”å›æ–°å¢çš„ç»“ç‚¹
     }
 
     float simulate(Node* node, Board& board) {
@@ -109,7 +109,7 @@ private:
         } while (node != nullptr);
     }
 
-    // TODO: Í³Ò»ÖØÖÃµÄ¹æÔò£¨Ä¿Ç°ÓĞÕ»ºÍparent½áµã»ØËİÁ½ÖÖ·½Ê½¡­¡­£©
+    // TODO: ç»Ÿä¸€é‡ç½®çš„è§„åˆ™ï¼ˆç›®å‰æœ‰æ ˆå’Œparentç»“ç‚¹å›æº¯ä¸¤ç§æ–¹å¼â€¦â€¦ï¼‰
     void reset(Board& board) {
         while (!m_moveStack.empty()) {
             board.revertMove(m_moveStack.top());

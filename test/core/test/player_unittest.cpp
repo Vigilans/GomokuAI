@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "../../Core/src/Game.hpp"
+#include "core/src/Game.hpp"
 
 using namespace Gomoku;
 

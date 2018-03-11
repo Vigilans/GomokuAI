@@ -4,10 +4,11 @@
 #include <algorithm>
 #include <unordered_map>
 #include <unordered_set>
+#include <cmath>
 
 namespace Gomoku {
 
-using namespace std; // FIXME£º»µÏ°¹ß£¬ÔÚÎ´À´½«±»Ç¨ÒÆµ½cppÖĞ
+using namespace std; // FIXMEï¼šåä¹ æƒ¯ï¼Œåœ¨æœªæ¥å°†è¢«è¿ç§»åˆ°cppä¸­
 
 static constexpr int width = 15;
 static constexpr int height = 15;
@@ -16,16 +17,16 @@ static constexpr int max_renju = 5;
 enum class Player : char { White = -1, None = 0, Black = 1 };
 
 constexpr Player operator-(Player player) {
-    // ·µ»Ø¶ÔÊÖPlayerÖµ£»Player::NoneµÄ¶ÔÊÖÈÔÊÇPlayer::None
+    // è¿”å›å¯¹æ‰‹Playerå€¼ï¼›Player::Noneçš„å¯¹æ‰‹ä»æ˜¯Player::None
     return Player(-static_cast<char>(player));
 }
 
 constexpr float getFinalScore(Player player, Player winner) {
-    // Í¬ºÅ£¨winnerÓëplayerÏàÍ¬£©ÎªÕı£¬ÒìºÅÎª¸º£¬Æ½¾ÖÎªÁã
+    // åŒå·ï¼ˆwinnerä¸playerç›¸åŒï¼‰ä¸ºæ­£ï¼Œå¼‚å·ä¸ºè´Ÿï¼Œå¹³å±€ä¸ºé›¶
     return static_cast<float>(player) * static_cast<float>(winner);
 }
 
-// ¿ÉÓÃÀ´±íÊ¾µÚÒ»/µÚËÄÏóÏŞµÄ×ø±ê¡£Ò²¾ÍÊÇËµ£¬x/y×ø±ê±ØĞëÍ¬Õı»òÍ¬¸º¡£
+// å¯ç”¨æ¥è¡¨ç¤ºç¬¬ä¸€/ç¬¬å››è±¡é™çš„åæ ‡ã€‚ä¹Ÿå°±æ˜¯è¯´ï¼Œx/yåæ ‡å¿…é¡»åŒæ­£æˆ–åŒè´Ÿã€‚
 struct Position {
     int id;
 
@@ -38,7 +39,7 @@ struct Position {
     constexpr int x() const { return id % width; }
     constexpr int y() const { return id / width; }
 
-    // ±£Ö¤Position¿ÉÒÔ×÷Îª¹şÏ£±íµÄkeyÊ¹ÓÃ
+    // ä¿è¯Positionå¯ä»¥ä½œä¸ºå“ˆå¸Œè¡¨çš„keyä½¿ç”¨
     struct Hasher {
         std::size_t operator()(const Position& position) const {
             return position.id;
@@ -48,13 +49,13 @@ struct Position {
 
 
 /*
-    ÓÉÓÚÕâ¸ö¶ÔÏó¿ÉÄÜ»á±»Æµ·±¿½±´£¬Òò´Ë¿½±´³É±¾ĞèÒªÉè¼ÆµÃ¾¡Á¿µÍ¡£
-    ÆåÅÌµÄ´æ´¢ÓĞ¼¸ÖÖÑ¡Ôñ£º
-    1. bitset: Ê¹ÓÃbitset´æ´¢Õû¸öÆåÅÌ¡£ÓÉÓÚÃ¿¸ö¸ñ×ÓĞèÒª±ê¼ÇÈıÖÖÂä×Ó×´Ì¬£¨ºÚ/°×/ÎŞ£©£¬ÖÁÉÙĞèÒª2bit´æ´¢¡£
-       Òò´ËÒ»¸ö19*19µÄÆåÅÌĞèÒªÖÁÉÙ19*19*2=722bit=90.25Byte¡£
-    2. pos -> playerµÄmap¡£Ò»¸öunordered_map<Position, Player>ÔÚMSVCÏÂÎª>=32Byte¡£Ò»¸ö{pos, player}¶ÔÖÁÉÙÎª3×Ö½Ú¡£
-       ÓÉÓÚ²ÉÓÃHash Table»úÖÆ£¬ ¿Õ¼äĞèÇóºÜ¿ÉÄÜ¸ü´ó¡­¡­
-    3. ´æ´¢pair<pos, player>µÄvector¡£
+    ç”±äºè¿™ä¸ªå¯¹è±¡å¯èƒ½ä¼šè¢«é¢‘ç¹æ‹·è´ï¼Œå› æ­¤æ‹·è´æˆæœ¬éœ€è¦è®¾è®¡å¾—å°½é‡ä½ã€‚
+    æ£‹ç›˜çš„å­˜å‚¨æœ‰å‡ ç§é€‰æ‹©ï¼š
+    1. bitset: ä½¿ç”¨bitsetå­˜å‚¨æ•´ä¸ªæ£‹ç›˜ã€‚ç”±äºæ¯ä¸ªæ ¼å­éœ€è¦æ ‡è®°ä¸‰ç§è½å­çŠ¶æ€ï¼ˆé»‘/ç™½/æ— ï¼‰ï¼Œè‡³å°‘éœ€è¦2bitå­˜å‚¨ã€‚
+       å› æ­¤ä¸€ä¸ª19*19çš„æ£‹ç›˜éœ€è¦è‡³å°‘19*19*2=722bit=90.25Byteã€‚
+    2. pos -> playerçš„mapã€‚ä¸€ä¸ªunordered_map<Position, Player>åœ¨MSVCä¸‹ä¸º>=32Byteã€‚ä¸€ä¸ª{pos, player}å¯¹è‡³å°‘ä¸º3å­—èŠ‚ã€‚
+       ç”±äºé‡‡ç”¨Hash Tableæœºåˆ¶ï¼Œ ç©ºé—´éœ€æ±‚å¾ˆå¯èƒ½æ›´å¤§â€¦â€¦
+    3. å­˜å‚¨pair<pos, player>çš„vectorã€‚
 */
 class Board {
 public:
@@ -74,13 +75,13 @@ public:
     }
 
     /*
-        ·µ»ØÖµÀàĞÍÎªPlayer£¬´ú±íÏÂÒ»ÂÖÓ¦ÏÂµÄÍæ¼Ò¡£¾ßÌå½âÊÍ£º
-        - ÈôPlayerÎª¶ÔÊÖ£¬Ôò´ú±íÏÂÒ»²½Ó¦¶ÔÊÖÏÂ£¬Õı³£¼ÌĞø¡£
-        - ÈôPlayerÎª¼º·½£¬Ôò´ú±íÕâÒ»ÊÖÎŞĞ§£¬Ó¦¸ÃÖØÏÂ¡£
-        - ÈôPlayerÎªNone£¬Ôò´ú±íÕâÒ»²½ºóÓÎÏ·ÒÑ½áÊø¡£´ËÊ±£¬¿ÉÒÔÍ¨¹ım_winner»ñÈ¡ÓÎÏ·½á¹û¡£
+        è¿”å›å€¼ç±»å‹ä¸ºPlayerï¼Œä»£è¡¨ä¸‹ä¸€è½®åº”ä¸‹çš„ç©å®¶ã€‚å…·ä½“è§£é‡Šï¼š
+        - è‹¥Playerä¸ºå¯¹æ‰‹ï¼Œåˆ™ä»£è¡¨ä¸‹ä¸€æ­¥åº”å¯¹æ‰‹ä¸‹ï¼Œæ­£å¸¸ç»§ç»­ã€‚
+        - è‹¥Playerä¸ºå·±æ–¹ï¼Œåˆ™ä»£è¡¨è¿™ä¸€æ‰‹æ— æ•ˆï¼Œåº”è¯¥é‡ä¸‹ã€‚
+        - è‹¥Playerä¸ºNoneï¼Œåˆ™ä»£è¡¨è¿™ä¸€æ­¥åæ¸¸æˆå·²ç»“æŸã€‚æ­¤æ—¶ï¼Œå¯ä»¥é€šè¿‡m_winnerè·å–æ¸¸æˆç»“æœã€‚
     */
     Player applyMove(Position move) {
-        // ¼ì²éÓÎÏ·ÊÇ·ñÎ´½áÊøÇÒÎªÓĞĞ§µÄÒ»²½
+        // æ£€æŸ¥æ¸¸æˆæ˜¯å¦æœªç»“æŸä¸”ä¸ºæœ‰æ•ˆçš„ä¸€æ­¥
         if (m_curPlayer != Player::None && checkMove(move)) {
             m_appliedMoves[move] = m_curPlayer;
             m_availableMoves.erase(move);
@@ -137,30 +138,30 @@ public:
 private:
     bool checkMove(Position move) {    
         #if _DEBUG
-        // ÈôÔÚµ÷ÊÔÄ£Ê½ÏÂ£¬Ôò¼ÓÒ»²ãÊÇ·ñÔ½½çÇÒÊÇ·ñÓĞ×ÓµÄ¼ì²é
+        // è‹¥åœ¨è°ƒè¯•æ¨¡å¼ä¸‹ï¼Œåˆ™åŠ ä¸€å±‚æ˜¯å¦è¶Šç•Œä¸”æ˜¯å¦æœ‰å­çš„æ£€æŸ¥
         return move.id >= 0 && move.id < width * height && !m_appliedMoves.count(move);
         #else
-        // ÔİÎŞ½ûÊÖ¹æÔò
+        // æš‚æ— ç¦æ‰‹è§„åˆ™
         return true;
         #endif
     }
 
-    // Ã¿ÏÂÒ»²½¶¼½øĞĞÖÕ¾Ö¼ì²é£¬ÕâÑù±ãÖ»Ğè¶Ôµ±Ç°Âä×ÓÖÜÎ§½øĞĞ±éÀú¼´¿É¡£
+    // æ¯ä¸‹ä¸€æ­¥éƒ½è¿›è¡Œç»ˆå±€æ£€æŸ¥ï¼Œè¿™æ ·ä¾¿åªéœ€å¯¹å½“å‰è½å­å‘¨å›´è¿›è¡Œéå†å³å¯ã€‚
     bool checkVictory(Position move) {
         const int curX = move.x(), curY = move.y();
         
-        // ÑØ²»Í¬·½ÏòµÄËÑË÷·½·¨¸´ÓÃ
+        // æ²¿ä¸åŒæ–¹å‘çš„æœç´¢æ–¹æ³•å¤ç”¨
         const auto search = [&](int dx, int dy) {
-            // ÅĞ¶Ï×ø±êµÄ¸ñ×ÓÊÇ·ñÎ´Ô½½çÇÒ¹éÊôÎªµ±Ç°Æå×Ó
+            // åˆ¤æ–­åæ ‡çš„æ ¼å­æ˜¯å¦æœªè¶Šç•Œä¸”å½’å±ä¸ºå½“å‰æ£‹å­
             const auto isCurrentPlayer = [&](int x, int y) {
                 Position pose(x, y);
                 return (x >= 0 && x < width) && (y >= 0 && y < height) 
                     && (m_appliedMoves.count(pose) && m_appliedMoves[pose] == m_curPlayer);
             };
 
-            int renju = 1; // µ±Ç°Âä×Ó¹¹³ÉµÄ×î´óÁ¬ÖéÊı
+            int renju = 1; // å½“å‰è½å­æ„æˆçš„æœ€å¤§è¿ç æ•°
 
-            // ÕıÏòÓë·´ÏòËÑË÷
+            // æ­£å‘ä¸åå‘æœç´¢
             for (int sgn = 1; sgn != -1; sgn = -1) {
                 int x = curX, y = curY;
                 for (int i = 1; i < 4; ++i) {
@@ -173,12 +174,12 @@ private:
             return renju >= 5;
         };
         
-        // ´Ó ×ó->ÓÒ || ÏÂ->ÉÏ || ×óÉÏ->ÓÒÏÂ || ×óÏÂ->ÓÒÉÏ ½øĞĞËÑË÷
+        // ä» å·¦->å³ || ä¸‹->ä¸Š || å·¦ä¸Š->å³ä¸‹ || å·¦ä¸‹->å³ä¸Š è¿›è¡Œæœç´¢
         if (search(1, 0) || search(0, 1) || search(1, -1) || search(1, 1)) {
-            m_winner = m_curPlayer; // Ó®¼ÒÎªµ±Ç°Íæ¼Ò
+            m_winner = m_curPlayer; // èµ¢å®¶ä¸ºå½“å‰ç©å®¶
             return true;
         } else if (m_availableMoves.empty()) {
-            m_winner = Player::None; // ÈôÎ´Ó®£¬Ö®ºóÒ²Ã»ÓĞ¿ÉÏÂÖ®µØ£¬ÔòÎªºÍ¾Ö
+            m_winner = Player::None; // è‹¥æœªèµ¢ï¼Œä¹‹åä¹Ÿæ²¡æœ‰å¯ä¸‹ä¹‹åœ°ï¼Œåˆ™ä¸ºå’Œå±€
             return true;
         } else {
             return false;
@@ -186,22 +187,22 @@ private:
     }
 
 public:
-    // µ±ÖµÎªPlayer::NoneÊ±£¬´ú±íÓÎÏ·½áÊø¡£
+    // å½“å€¼ä¸ºPlayer::Noneæ—¶ï¼Œä»£è¡¨æ¸¸æˆç»“æŸã€‚
     Player m_curPlayer;
 
     /*
-        µ±Æå¾Ö½áÊøºó£¬ÆäÖµ´ú±í×îÖÕÓÎÏ·½á¹û:
-        - Player::Black: ºÚÓ®
-        - Player::White: °×Ó®
-        - Player::None:  ºÍ¾Ö
-        µ±Æå¾Ö»¹Î´½áÊøÊ±£¨m_curPlayer != Player::None£©£¬ÖµÊ¼ÖÕ±£³ÖÎªNone£¬´ú±í»¹Ã»ÓĞÓ®¼Ò¡£
+        å½“æ£‹å±€ç»“æŸåï¼Œå…¶å€¼ä»£è¡¨æœ€ç»ˆæ¸¸æˆç»“æœ:
+        - Player::Black: é»‘èµ¢
+        - Player::White: ç™½èµ¢
+        - Player::None:  å’Œå±€
+        å½“æ£‹å±€è¿˜æœªç»“æŸæ—¶ï¼ˆm_curPlayer != Player::Noneï¼‰ï¼Œå€¼å§‹ç»ˆä¿æŒä¸ºNoneï¼Œä»£è¡¨è¿˜æ²¡æœ‰èµ¢å®¶ã€‚
     */
     Player m_winner;
 
-    // ËùÓĞÒÑÂä×ÓÎ»ÖÃ¡£´æ´¢ { Î»ÖÃ£¬Âä×ÓÑÕÉ« } µÄ¼üÖµ¶Ô¡£
+    // æ‰€æœ‰å·²è½å­ä½ç½®ã€‚å­˜å‚¨ { ä½ç½®ï¼Œè½å­é¢œè‰² } çš„é”®å€¼å¯¹ã€‚
     unordered_map<Position, Player, Position::Hasher> m_appliedMoves;
 
-    // ËùÓĞ¿ÉÂä×ÓÎ»ÖÃ¡£ÓÉÓÚÖµ¾ùÎªPlayer::None£¬¹ÊÓÃset´æ´¢¼´¿É¡£
+    // æ‰€æœ‰å¯è½å­ä½ç½®ã€‚ç”±äºå€¼å‡ä¸ºPlayer::Noneï¼Œæ•…ç”¨setå­˜å‚¨å³å¯ã€‚
     unordered_set<Position, Position::Hasher> m_availableMoves;
 };
 
