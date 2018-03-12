@@ -30,12 +30,13 @@ struct Node {
 
 class MCTS {
 public:
-    MCTS(Player player) : m_root(new Node{}), m_player(player) {
+    MCTS(Player player, Position curMove = -1) : m_root(new Node{ nullptr, {}, curMove }), m_player(player) {
         srand(time(nullptr));
+        m_moveStack.reserve(width * height);
     }
 
     Position getNextMove(Board& board) {
-        for (int i = 0; i < 1000000; ++i) {
+        for (int i = 0; i < 500000; ++i) {
             playout(board); // 完成一轮蒙特卡洛树的循环
         }
         stepForward(); // 更新蒙特卡洛树，向选出的最好手推进一步
@@ -47,19 +48,17 @@ public:
     void playout(Board& board) {
         Node* node = m_root.get(); // 裸指针用作观察指针，不对树结点拥有所有权
         while (!node->isLeaf()) {
-            node = select(node);
-            board.applyMove(node->position);
-            m_moveStack.push(node->position);
+            node = select(node); // 根据价值公式选出下一个探索结点
+            board.applyMove(node->position, false); // 重要性能点：非叶节点无需检查是否胜利（此前已检查过了）
         }
         float leaf_value;
-        if (!board.status().end) {
+        if (!board.checkGameEnd(node->position)) { // 检查下了根节点对应一手后游戏是否结束
             node = expand(node, board);
             leaf_value = simulate(node, board); // 根据模拟战预估当前结点价值分数
         } else {
             leaf_value = getFinalScore(m_player, board.m_winner); // 根据对局结果获取绝对价值分数
         }
-        backPropogate(node, leaf_value);
-        reset(board); // 重置Board到初始传入的状态
+        backPropogate(node, board, leaf_value); // 回溯更新，同时重置Board到初始传入的状态
     }
     
     // AlphaZero的论文中，对MCTS的再利用策略
@@ -90,18 +89,27 @@ private:
     }
 
     float simulate(Node* node, Board& board) {
+        // 随机下棋直到游戏结束
         while (true) {
             auto move = board.getRandomMove();
             auto result = board.applyMove(move);
-            m_moveStack.push(move);
-            if (result == Player::None) {
+            m_moveStack.push_back(move);
+            if (result == Player::None) { 
+                // 重置棋盘至MCTS当前根节点状态
+                while (!m_moveStack.empty()) { 
+                    board.revertMove(m_moveStack.back());
+                    m_moveStack.pop_back();
+                }
                 return getFinalScore(m_player, board.m_winner);
             }
         }
     }
 
-    void backPropogate(Node* node, float value) {
+    void backPropogate(Node* node, Board& board, float value) {
         do {
+            if (node->parent != nullptr) { // 不重置根结点的一手
+                board.revertMove(node->position);
+            }
             node->visits += 1;
             node->victory_value += value >= 0 ? value : 0;
             node = node->parent;
@@ -109,18 +117,10 @@ private:
         } while (node != nullptr);
     }
 
-    // TODO: 统一重置的规则（目前有栈和parent结点回溯两种方式……）
-    void reset(Board& board) {
-        while (!m_moveStack.empty()) {
-            board.revertMove(m_moveStack.top());
-            m_moveStack.pop();
-        }
-    }
-
 private:
     unique_ptr<Node> m_root;
     Player m_player;
-    stack<Position, std::vector<Position>> m_moveStack;
+    std::vector<Position> m_moveStack;
 };
 
 }

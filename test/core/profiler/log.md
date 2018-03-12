@@ -69,9 +69,25 @@
 **可能的性能建议**：
 
 1. 由于目前版本下isCurrentPlayer()只在一处代码被调用，因此可以将其从函数封装中拆出来。
-
 2. 进一步优化胜利检查的算法，减少isCurrentPlayer()等操作的频繁嗲用
-
 3. 将std::stack的Container改为std::vector，或干脆就将std::vector作为栈使用。
 
-   ?
+
+
+### 对MCTS的playout机制进一步调优后，RELEASE下性能分析：
+
+在$10^6$次playout下，耗时约950ms。相对于上一个版本，性能提升了4倍。
+也就是说，相对于昨天的版本，性能整体提升了200倍。
+
+未禁止内联扩展时，CPU开销分布情况：
+
+* playout() -> 99.75%
+  * backPropogate() -> 43.18%
+    * 里面包含了revertMove()
+  * applyMove() ->  39.43%
+  * checkGameEnd() -> 7.86%
+  * select() -> 7.44%
+  * Node::isLeaf() -> 1.44%
+
+禁止内联扩展后，经过Profiler测试，发现applyMove()与revertMove()的大头都明显是由无内联优化而造成的。
+这就是说，就目前而言纯随机下法优化能带来的提升暂时不大了。

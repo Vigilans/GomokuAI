@@ -76,21 +76,19 @@ public:
         moveCounts(Player::None) = moveStates(Player::None).size();
     }
 
-    //template <typename _Ty>
-    //using Grids = std::array<_Ty, width* height>;
-
     /*
         返回值类型为Player，代表下一轮应下的玩家。具体解释：
         - 若Player为对手，则代表下一步应对手下，正常继续。
         - 若Player为己方，则代表这一手无效，应该重下。
         - 若Player为None，则代表这一步后游戏已结束。此时，可以通过m_winner获取游戏结果。
     */
-    Player applyMove(Position move) {
+    Player applyMove(Position move, bool checkVictory = true) {
         // 检查游戏是否未结束且为有效的一步
         if (m_curPlayer != Player::None && checkMove(move)) {
             setState(m_curPlayer, move);
             unsetState(Player::None, move);
-            m_curPlayer = checkVictory(move) ? Player::None : -m_curPlayer;
+            // 若checkVictory为false,则checkGameEnd()被短路。
+            m_curPlayer = checkVictory && checkGameEnd(move) ? Player::None : -m_curPlayer;
         }
         return m_curPlayer;
     }
@@ -131,6 +129,49 @@ public:
         return Position(rnd);
     }
 
+public:
+    bool checkMove(Position move) {
+        // 越界与无子检查。暂无禁手规则。
+        return move.id >= 0 && move.id < width * height && moveStates(Player::None)[move];
+    }
+
+    // 每下一步都进行终局检查，这样便只需对当前落子周围进行遍历即可。
+    bool checkGameEnd(Position move) {
+        const int curX = move.x(), curY = move.y();
+        
+        // 沿不同方向的搜索方法复用
+        const auto search = [&](int dx, int dy) {
+            int renju = 1; // 当前落子构成的最大连珠数
+
+            // 正向与反向搜索
+            for (int sgn = 1; ; sgn = -1) {
+                int x = curX, y = curY;
+                for (int i = 0; i < 4; ++i) {
+                    x += sgn*dx, y += sgn*dy;
+                    // 判断坐标的格子是否未越界且归属为当前棋子
+                    if ((x >= 0 && x < width) && (y >= 0 && y < height)
+                        && moveStates(m_curPlayer)[y*width + x]) ++renju;
+                    else break;
+                }
+                if (sgn == -1) break;
+            }
+
+            return renju >= max_renju;
+        };
+        
+        // 从 左上->右下 || 左下->右上 || 左->右 || 下->上  进行搜索
+        if (search(1, -1) || search(1, 1) || search(1, 0) || search(0, 1)) {
+            m_winner = m_curPlayer; // 赢家为当前玩家
+            return true;
+        } else if (moveCounts(Player::None) == 0) {
+            m_winner = Player::None; // 若未赢，之后也没有可下之地，则为和局
+            return true;
+        } else {
+            return false;
+        }
+    }
+    
+public:
     std::size_t& moveCounts(Player player) {
         return m_moveCounts[static_cast<int>(player) + 1];
     }
@@ -148,46 +189,6 @@ public:
     }
 
 private:
-    bool checkMove(Position move) {
-        // 越界与无子检查。暂无禁手规则。
-        return move.id >= 0 && move.id < width * height && moveStates(Player::None)[move];
-    }
-
-    // 每下一步都进行终局检查，这样便只需对当前落子周围进行遍历即可。
-    bool checkVictory(Position move) {
-        const int curX = move.x(), curY = move.y();
-        
-        // 沿不同方向的搜索方法复用
-        const auto search = [&](int dx, int dy) {
-            int renju = 1; // 当前落子构成的最大连珠数
-
-            // 正向与反向搜索
-            for (int sgn = 1; sgn == 1 || sgn == -1; sgn -=2) {
-                int x = curX, y = curY;
-                for (int i = 0; i < 4; ++i) {
-                    x += sgn*dx, y += sgn*dy;
-                    // 判断坐标的格子是否未越界且归属为当前棋子
-                    if ((x >= 0 && x < width) && (y >= 0 && y < height)
-                        && moveStates(m_curPlayer)[y*width + x]) ++renju;
-                    else break;
-                }
-            }
-
-            return renju >= max_renju;
-        };
-        
-        // 从 左上->右下 || 左下->右上 || 左->右 || 下->上  进行搜索
-        if (search(1, -1) || search(1, 1) || search(1, 0) || search(0, 1)) {
-            m_winner = m_curPlayer; // 赢家为当前玩家
-            return true;
-        } else if (moveCounts(Player::None) == 0) {
-            m_winner = Player::None; // 若未赢，之后也没有可下之地，则为和局
-            return true;
-        } else {
-            return false;
-        }
-    }
-
     void setState(Player player, Position position) {
         if (moveStates(player)[position] == false) {
             moveStates(player)[position] = true;
