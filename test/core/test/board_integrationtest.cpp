@@ -5,9 +5,10 @@
 
 namespace Gomoku {
 inline bool operator==(const Board& lhs, const Board& rhs) {
-    // 为加快速度，只检查两个moveStates元素个数是否相等，就不检查元素是否一一对应了
+    // 为加快速度，只检查moveStates元素个数是否相等，就不检查元素是否一一对应了
+    // 注意m_moveStates与m_moveCounts都不是std::array，而是原生数组，因此不能直接用来比较
     auto make_tied = [](const Board& b) { 
-        return std::make_tuple(b.m_curPlayer, b.m_winner, b.m_moveStates[0].size(), b.m_moveStates[1].size(), b.m_moveStates[2].size()); 
+        return std::tie(b.m_curPlayer, b.m_winner, b.m_moveCounts[0], b.m_moveCounts[1], b.m_moveCounts[2]);
     };
     return make_tied(lhs) == make_tied(rhs);
 }
@@ -19,6 +20,8 @@ using std::end;
 
 // Problem found 1: getNextMove() 无限循环
 // Problem found 2: isCuurentPlayer函数参数不能直接设为Position，因为要做越界检查
+// Problem found 3: std::array::empty()总是返回false 不能作为条件判断使用
+// Problem found 4: checkVictory::search中把正反向搜索合而为一的逻辑是有问题的
 class BoardTest : public ::testing::Test {
 protected:
     static const int caseSize = 10;
@@ -32,7 +35,7 @@ protected:
     // 对棋盘的状态进行快速检查
     ::testing::AssertionResult trivialCheck(const Board& board) {
         // 已下与未下的格子数量要互补
-        if (board.m_moveStates[0].size() + board.m_moveStates[1].size() + board.m_moveStates[2].size() != width * height) {
+        if (board.moveCounts(Player::Black) + board.moveCounts(Player::White) + board.moveCounts(Player::None) != width * height) {
             return ::testing::AssertionFailure() << "Moves size sum not compatible.";
         }
         // 游戏未结束时（m_curPlayer != Player::None），一定没有赢家（m_winner = Player::None）
@@ -72,8 +75,33 @@ TEST_F(BoardTest, MoveSymmetry) {
     }
 }
 
+// TODO: 查revertMove()在游戏结束后是否能调用成功
 TEST_F(BoardTest, CheckVictory) {
-    // TODO: 查revertMove()在游戏结束后是否能调用成功
+    // 黑棋能赢的一种手顺
+    Player curPlayer = Player::Black;
+    Position blacks[9] = { {3,3}, {3,4}, {4,4}, {3,5}, {5,5}, {3,6}, {6,6}, {3,7}, {7,7} };
+    for (int i = 0; i < sizeof(blacks) / sizeof(Position); ++i) {
+        EXPECT_NE(curPlayer, board.applyMove(blacks[i])); // 下的一定是有效的一手
+        curPlayer = -curPlayer;
+    }
+    ASSERT_TRUE(board.status().end);
+    ASSERT_EQ(board.status().winner, Player::Black);
+    for (int i = sizeof(blacks) / sizeof(Position) - 1; i >= 0; --i) {
+        EXPECT_NE(curPlayer, board.revertMove(blacks[i])); // 一定悔棋成功了
+        curPlayer = -curPlayer;
+    }
+    // 白棋能赢的一种手顺
+    Position whites[10] = { {3,3}, {3,4}, {4,4}, {3,5}, {5,5}, {3,6}, {6,6}, {3,7}, {8,8}, {3,8} };
+    for (int i = 0; i < sizeof(whites) / sizeof(Position); ++i) {
+        EXPECT_NE(curPlayer, board.applyMove(whites[i])); // 下的一定是有效的一手
+        curPlayer = -curPlayer;
+    }
+    ASSERT_TRUE(board.status().end);
+    ASSERT_EQ(board.status().winner, Player::White);
+    for (int i = sizeof(whites) / sizeof(Position) - 1; i >= 0; --i) {
+        EXPECT_NE(curPlayer, board.revertMove(whites[i])); // 一定悔棋成功了
+        curPlayer = -curPlayer;
+    }
 }
 
 // 利用一种可以和棋的下法进行检查
