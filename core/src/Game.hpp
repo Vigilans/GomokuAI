@@ -8,9 +8,9 @@ namespace Gomoku {
 
 using namespace std; // FIXME：坏习惯，在未来将被迁移到cpp中
 
-static constexpr int width = 15;
-static constexpr int height = 15;
-static constexpr int max_renju = 5;
+constexpr int width = 15;
+constexpr int height = 15;
+constexpr int max_renju = 5;
 
 
 enum class Player : char { White = -1, None = 0, Black = 1 };
@@ -149,14 +149,8 @@ public:
 
 private:
     bool checkMove(Position move) {
+        // 越界与无子检查。暂无禁手规则。
         return move.id >= 0 && move.id < width * height && moveStates(Player::None)[move];
-        #if _DEBUG
-        // 若在调试模式下，则加一层是否越界且是否无子的检查
-        //return true;
-        #else
-        // 暂无禁手规则
-        return true;
-        #endif
     }
 
     // 每下一步都进行终局检查，这样便只需对当前落子周围进行遍历即可。
@@ -165,12 +159,6 @@ private:
         
         // 沿不同方向的搜索方法复用
         const auto search = [&](int dx, int dy) {
-            // 判断坐标的格子是否未越界且归属为当前棋子
-            const auto isCurrentPlayer = [&](int x, int y) {
-                return (x >= 0 && x < width) && (y >= 0 && y < height)
-                    && moveStates(m_curPlayer)[Position(x, y)];
-            };
-
             int renju = 1; // 当前落子构成的最大连珠数
 
             // 正向与反向搜索
@@ -178,16 +166,18 @@ private:
                 int x = curX, y = curY;
                 for (int i = 0; i < 4; ++i) {
                     x += sgn*dx, y += sgn*dy;
-                    if (isCurrentPlayer(x, y)) ++renju;
+                    // 判断坐标的格子是否未越界且归属为当前棋子
+                    if ((x >= 0 && x < width) && (y >= 0 && y < height)
+                        && moveStates(m_curPlayer)[y*width + x]) ++renju;
                     else break;
                 }
             }
 
-            return renju >= 5;
+            return renju >= max_renju;
         };
         
-        // 从 左->右 || 下->上 || 左上->右下 || 左下->右上 进行搜索
-        if (search(1, 0) || search(0, 1) || search(1, -1) || search(1, 1)) {
+        // 从 左上->右下 || 左下->右上 || 左->右 || 下->上  进行搜索
+        if (search(1, -1) || search(1, 1) || search(1, 0) || search(0, 1)) {
             m_winner = m_curPlayer; // 赢家为当前玩家
             return true;
         } else if (moveCounts(Player::None) == 0) {
