@@ -35,7 +35,7 @@ public:
     }
 
     Position getNextMove(Board& board) {
-        for (int i = 0; i < 100; ++i) {
+        for (int i = 0; i < 1000000; ++i) {
             playout(board); // 完成一轮蒙特卡洛树的循环
         }
         stepForward(); // 更新蒙特卡洛树，向选出的最好手推进一步
@@ -120,7 +120,7 @@ private:
 private:
     unique_ptr<Node> m_root;
     Player m_player;
-    stack<Position> m_moveStack;
+    stack<Position, std::vector<Position>> m_moveStack;
 };
 
 }

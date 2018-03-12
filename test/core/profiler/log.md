@@ -25,3 +25,53 @@
 
 
 **总结**：DEBUG模式下，STL的开销成为了绝对的大头。
+
+
+
+## 2018/3/12
+
+### 将棋盘容器改为std::array，并修改一些BUG后，RELEASE下的性能分析：
+
+相对于`2018/3/11`版本，性能提升了约50倍。
+在$10^6$次playout下，一次测试耗时约4秒。
+
+为了获取更详细的函数工作开销，我们关闭了编译时内联扩展，再进行了一次测试：
+尽量不考虑一些明显因禁止内联扩展而使得开销增大的函数，目前的CPU开销分布为：
+
+* playout() -> 98.45%
+* * applyMove() -> 50.50%
+  * reset() -> 23.18%
+  * select() -> 10.47% （禁止内联展开引起的开销）
+* 总计：applyMove() -> 50.61%
+  * checkVictory() -> 39.58%
+    * 与`2018/3/11`版本一样，开销仍旧集中在isCurrentPlayer()函数中。
+  * setState() -> 2.78%
+  * unsetState() -> 1.82%
+  * checkMove() -> 1.19%
+* 总计：reset() -> 23.18%
+  * deque::back() -> 13.02%
+  * revertMove() -> 7.21%
+    * setState() -> 2.53%
+    * unsetState() -> 2.14%
+
+
+**总结**：
+
+1. 更换std::array后，尽管性能得到了质的提升，但applyMove()与revertMove()仍旧是两个大头。
+
+2. 值得注意的是，在目前的实现中，checkMove()与isCurrentPlayer()所做的事几乎一模一样，但其开销总占比却差了33倍之多。
+
+   可能的原因是：在每次applyMove()中，checkMove()与checkVictory()各被调用一次，但checkVictory会检查4个方向，每个方向至多会检查2*4个子，也就是isCurrentPlayer()最高会被调用32次，造成了巨大的开销。
+
+3. 另外，用于取栈顶元素的deque::back()也值得注意。尽管禁止了内联展开，但其开销还是显得过大了。
+
+
+**可能的性能建议**：
+
+1. 由于目前版本下isCurrentPlayer()只在一处代码被调用，因此可以将其从函数封装中拆出来。
+
+2. 进一步优化胜利检查的算法，减少isCurrentPlayer()等操作的频繁嗲用
+
+3. 将std::stack的Container改为std::vector，或干脆就将std::vector作为栈使用。
+
+   ?
