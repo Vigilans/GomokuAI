@@ -18,47 +18,48 @@ struct Node {
     Position position = -1;
     size_t visits = 0;
     float victory_value = 0.0;
+    float ucb1 = 0.0;
 
-    bool isLeaf() {
-        return children.empty();
+    bool isFull(const Board& board) const {
+        return children.size() == board.moveCounts(Player::None);
     }
 
     float UCB1(float expl_param) {
-        return 1.0f * visits / victory_value + expl_param * sqrt(logf(parent->visits) / this->visits);
+        return 1.0f * visits / victory_value + expl_param * sqrt(logf(parent->visits + 1) / this->visits);
     }
 };
 
 class MCTS {
 public:
-    MCTS(Player player, Position curMove = -1) : m_root(new Node{ nullptr, {}, curMove }), m_player(player) {
+    MCTS(Player player, Position lastMove = -1) : m_root(new Node{ nullptr, {}, lastMove }), m_player(player) {
         srand(time(nullptr));
         m_moveStack.reserve(width * height);
     }
 
     Position getNextMove(Board& board) {
-        for (int i = 0; i < 500000; ++i) {
-            playout(board); // 完成一轮蒙特卡洛树的循环
+        for (int i = 0; i < 50000; ++i) {
+            playout(board); // 完成一轮蒙特卡洛树的迭代
         }
         stepForward(); // 更新蒙特卡洛树，向选出的最好手推进一步
         return m_root->position; // 返回选出的最好一手
     }
 
 public:
-    // 蒙特卡洛树的一轮循环
+    // 蒙特卡洛树的一轮迭代
     void playout(Board& board) {
-        Node* node = m_root.get(); // 裸指针用作观察指针，不对树结点拥有所有权
-        while (!node->isLeaf()) {
-            node = select(node); // 根据价值公式选出下一个探索结点
-            board.applyMove(node->position, false); // 重要性能点：非叶节点无需检查是否胜利（此前已检查过了）
+        Node* node = m_root.get();      // 裸指针用作观察指针，不对树结点拥有所有权
+        while (node->isFull(board)) {   // 检测当前结点是否所有可行手都被拓展过
+            node = select(node);        // 若当前结点已拓展完毕，则根据价值公式选出下一个探索结点
+            board.applyMove(node->position, false); // 重要性能点：非终点节点无需检查是否胜利（此前已检查过了）
         }
         float leaf_value;
-        if (!board.checkGameEnd(node->position)) { // 检查下了根节点对应一手后游戏是否结束
+        if (!board.checkGameEnd(node->position)) {  // 检查终结点游戏是否结束
             node = expand(node, board);
-            leaf_value = simulate(node, board); // 根据模拟战预估当前结点价值分数
+            leaf_value = simulate(node, board);     // 根据模拟战预估当前结点价值分数
         } else {
             leaf_value = getFinalScore(m_player, board.m_winner); // 根据对局结果获取绝对价值分数
         }
-        backPropogate(node, board, leaf_value); // 回溯更新，同时重置Board到初始传入的状态
+        backPropogate(node, board, leaf_value);     // 回溯更新，同时重置Board到初始传入的状态
     }
     
     // AlphaZero的论文中，对MCTS的再利用策略
@@ -77,7 +78,7 @@ public:
 private:
     Node* select(const Node* node) const {
         return max_element(node->children.begin(), node->children.end(), [](auto&& lhs, auto&& rhs) {
-            return lhs->UCB1(sqrtf(2)) < rhs->UCB1(sqrtf(2));
+            return lhs->ucb1 < rhs->ucb1;
         })->get();
     }
 
@@ -107,14 +108,13 @@ private:
 
     void backPropogate(Node* node, Board& board, float value) {
         do {
-            if (node->parent != nullptr) { // 不重置根结点的一手
-                board.revertMove(node->position);
-            }
+            board.revertMove(node->position);
             node->visits += 1;
             node->victory_value += value >= 0 ? value : 0;
+            node->ucb1 = node->UCB1(sqrtf(2));
             node = node->parent;
             value = -value;
-        } while (node != nullptr);
+        } while (node ->parent != nullptr); // 根结点数据无需更新了
     }
 
 private:
