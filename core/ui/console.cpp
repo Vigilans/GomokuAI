@@ -1,8 +1,8 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
-#include "Game.hpp"
-#include "MCTS.hpp"
+#include "../include/Game.h"
+#include "../include/MCTS.h"
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;
@@ -85,12 +85,14 @@ int main() {
     for (int x, y; board.m_curPlayer != Player::None;) {
         cout << "\nYour  (x, y): ";
         cin >> hex >> x >> y;
-        if (board.applyMove({ x - 1, y - 1 }) == Player::Black) {
+        switch (board.applyMove({ x - 1, y - 1 })) {
+        case Player::Black:
+        case Player::None:
             continue;
         }
 
-        auto move = board.getRandomMove();
-        //auto move = mcts.getNextMove(board);
+        //auto move = board.getRandomMove();
+        auto move = MCTS(Player::White, { x - 1,y - 1 }).getNextMove(board);
         cout << "CPU's (x, y): " << move.x() + 1 << " " << move.y() + 1 << endl;
         board.applyMove(move);
         //cout << string(width - 3, ' ') << "Board\n";

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "core/src/Game.hpp"
+#include "core/include/Game.h"
 #include <algorithm>
 #include <numeric>
 
