@@ -5,17 +5,13 @@ using namespace Gomoku;
 
 // 由于是内联使用，不暴露成外部接口，因此无需进行额外参数检查，下同
 inline void setState(Board* board, Player player, Position position) {
-//    if (board->moveStates(player)[position] == false) {
-        board->moveStates(player)[position] = true;
-        board->moveCounts(player) += 1;
-//    }
+    board->moveStates(player)[position] = true;
+    board->moveCounts(player) += 1;
 }
 
 inline void unsetState(Board* board, Player player, Position position) {
-//    if (board->moveStates(player)[position] == true) {
-        board->moveStates(player)[position] = false;
-        board->moveCounts(player) -= 1;
-//    }
+    board->moveStates(player)[position] = false;
+    board->moveCounts(player) -= 1;
 }
 
 Board::Board() {
@@ -49,7 +45,7 @@ Position Board::getRandomMove() const {
     if (moveCounts(Player::None) == 0) {
         throw overflow_error("board is already full");
     }
-    int divisor = (RAND_MAX + 1) / (width * height);
+    int divisor = (RAND_MAX + 1) / BOARD_SIZE;
     int rnd = rand() % divisor;
     while (!moveStates(Player::None)[rnd]) {
         rnd = (rnd + 1) % moveStates(Player::None).size();
@@ -58,7 +54,7 @@ Position Board::getRandomMove() const {
 }
 
 bool Board::checkMove(Position move) {
-    return move.id >= 0 && move.id < width * height && moveStates(Player::None)[move];
+    return move.id >= 0 && move.id < BOARD_SIZE && moveStates(Player::None)[move];
 }
 
 bool Board::checkGameEnd(Position move) {
@@ -74,14 +70,14 @@ bool Board::checkGameEnd(Position move) {
             for (int i = 0; i < 4; ++i) {
                 x += sgn*dx, y += sgn*dy;
                 // 判断坐标的格子是否未越界且归属为当前棋子
-                if ((x >= 0 && x < width) && (y >= 0 && y < height)
-                    && moveStates(m_curPlayer)[y*width + x]) ++renju;
+                if ((x >= 0 && x < WIDTH) && (y >= 0 && y < HEIGHT)
+                    && moveStates(m_curPlayer)[y*WIDTH + x]) ++renju;
                 else break;
             }
             if (sgn == -1) break;
         }
 
-        return renju >= max_renju;
+        return renju >= MAX_RENJU;
     };
         
     // 从 左上->右下 || 左下->右上 || 左->右 || 下->上  进行搜索

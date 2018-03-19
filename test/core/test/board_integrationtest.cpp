@@ -28,14 +28,14 @@ protected:
 
     // 产生一列不重复的Position
     void randomlyFill(Position* first, Position* last) {
-        std::iota(first, last, rand() % (width * height / caseSize));
+        std::iota(first, last, rand() % (GameConfig::BOARD_SIZE / caseSize));
         std::random_shuffle(first, last);
     }
 
     // 对棋盘的状态进行快速检查
     ::testing::AssertionResult trivialCheck(const Board& board) {
         // 已下与未下的格子数量要互补
-        if (board.moveCounts(Player::Black) + board.moveCounts(Player::White) + board.moveCounts(Player::None) != width * height) {
+        if (board.moveCounts(Player::Black) + board.moveCounts(Player::White) + board.moveCounts(Player::None) != GameConfig::BOARD_SIZE) {
             return ::testing::AssertionFailure() << "Moves size sum not compatible.";
         }
         // 游戏未结束时（m_curPlayer != Player::None），一定没有赢家（m_winner = Player::None）
@@ -106,18 +106,18 @@ TEST_F(BoardTest, CheckVictory) {
 
 // 利用一种可以和棋的下法进行检查
 TEST_F(BoardTest, CheckTie) {
-    for (int j = 0; j < height; ++j) {
+    for (int j = 0; j < HEIGHT; ++j) {
         // y的映射方式为：
-        // 低height/2位：由0位开始，每位映射为0,2,4,6,8...
-        // 高height/2位：由(height+1)/2位开始，每位映射为1,3,5,7,9...
-        int y = j <= height/2 ? 2*j : 2*(j - height/2) - 1;
-        for (int i = 0; i < width; ++i) {
+        // 低HEIGHT/2位：由0位开始，每位映射为0,2,4,6,8...
+        // 高HEIGHT/2位：由(HEIGHT+1)/2位开始，每位映射为1,3,5,7,9...
+        int y = j <= HEIGHT/2 ? 2*j : 2*(j - HEIGHT/2) - 1;
+        for (int i = 0; i < WIDTH; ++i) {
             // x的映射方式为：i -> x
             int x = i;
             // 下棋到{x, y}并进行相关检查
             Player result = board.applyMove({x, y});
             ASSERT_TRUE(trivialCheck(board));
-            if (j * width + i == width * height - 1) {
+            if (j * WIDTH + i == GameConfig::BOARD_SIZE - 1) {
                 EXPECT_EQ(result, Player::None);
                 EXPECT_EQ(board.m_curPlayer, Player::None);
                 EXPECT_EQ(board.m_winner, Player::None);

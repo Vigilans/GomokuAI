@@ -15,7 +15,7 @@ using namespace std;
 //}
 //
 //void from_json(const json& j, Position& p) {
-//    p.id = static_cast<int>(j["y"]) * width + static_cast<int>(j["x"]);
+//    p.id = static_cast<int>(j["y"]) * WIDTH + static_cast<int>(j["x"]);
 //}
 //}
 //
@@ -50,21 +50,21 @@ using namespace std;
 using namespace Gomoku;
 
 void print(const Board& board, ostream& os = cout) {
-    Player positions[width * height];
+    Player positions[WIDTH * HEIGHT];
     for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < width * height; ++j) {
+        for (int j = 0; j < WIDTH * HEIGHT; ++j) {
             positions[j] = board.m_moveStates[i][j] ? Player(i - 1) : positions[j];
         }
     }
     os << hex << "  ";
-    for (int i = 0; i < width; ++i) {
+    for (int i = 0; i < WIDTH; ++i) {
         os << i + 1 << " ";
     }
     os << "\n";
-    for (int y = 0; y < height; ++y) {
+    for (int y = 0; y < HEIGHT; ++y) {
         os << y + 1 << " ";
-        for (int x = 0; x < width; ++x) {
-            switch (positions[y * width + x]) {
+        for (int x = 0; x < WIDTH; ++x) {
+            switch (positions[y * WIDTH + x]) {
             case Player::Black: os << "x"; break;
             case Player::White: os << "o"; break;
             case Player::None:  os << "."; break;
@@ -95,7 +95,7 @@ int main() {
         auto move = MCTS(Player::White, { x - 1,y - 1 }).getNextMove(board);
         cout << "CPU's (x, y): " << move.x() + 1 << " " << move.y() + 1 << endl;
         board.applyMove(move);
-        //cout << string(width - 3, ' ') << "Board\n";
+        //cout << string(WIDTH - 3, ' ') << "Board\n";
         cout << endl;
         print(board);
     }

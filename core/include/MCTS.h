@@ -3,27 +3,48 @@
 #include "Game.h" // Gomoku::Player, Gomoku::Position, Gomoku::Board
 #include <vector> // std::vector
 #include <memory> // std::unique_ptr
+#include <functional> // std::function
 
 namespace Gomoku {
 
-// 前置声明
-struct Policy;
-
 struct Node {
+    /* 树结构部分 */
     Node* parent = nullptr;
     std::vector<std::unique_ptr<Node>> children = {};
-    Position position = -1;
+
+    /* 棋盘状态部分 */
+    Position position;
+    Player player;
+
+    /* 结点价值部分 */
     std::size_t visits = 1; // 创建时即被认为已访问过一次
     float victory_value = 0.0;
-    float ucb1 = 0.0;
+    float probability = 0.0;
 
-    bool isLeaf() const {
-        return children.empty();
-    }
+    /* 辅助判断函数 */
+    bool isLeaf() const { return children.empty(); }
+    bool isFull(const Board& board) const { return children.size() == board.moveCounts(Player::None); }
+};
 
-    double UCB1(double expl_param) {
-        return victory_value / visits + expl_param * sqrt(log(parent->visits) / visits);
-    }
+
+struct Policy {
+    // 提供默认的Policy函数，函数签名不一定与最终函数一致。
+    struct Default {
+        static double ucb1(const Node* node, double expl_param);
+        static Node*  select(const Node* node, std::function<double(const Node*, double)> ucb1);
+        static Node*  expand(Node* node, const Board& board);
+        static double simulate(Node* node, Board& board, std::vector<Position>& moveStack);
+        static void   backPropogate(Node* node, Board& board, double value);
+    };
+
+    std::function<double(const Node*, double)> ucb1 = Default::ucb1;
+    std::function<Node*(const Node*)>          select = [this](const Node* n) { return Default::select(n, this->ucb1); };
+    std::function<Node*(Node*, const Board&)>  expand = Default::expand;
+    std::function<double(Node*, Board&)>       simulate = [this](Node* n, Board& b) { return Default::simulate(n, b, this->m_stack); };
+    std::function<void(Node*, Board&, double)> backPropogate = Default::backPropogate;
+
+protected:
+    std::vector<Position> m_stack;
 };
 
 
@@ -33,7 +54,6 @@ public:
 
     Position getNextMove(Board& board);
 
-public:
     // 蒙特卡洛树的一轮迭代
     void playout(Board& board);
 
@@ -41,22 +61,12 @@ public:
     void stepForward();
 
 private:
-    Node* select(const Node* node) const;
-
-    void expand(Node* node, const Board& board);
-
-    double simulate(Node* node, Board& board);
-
-    void backPropogate(Node* node, Board& board, double value);
-
-private:
-    Player m_player;
+    std::unique_ptr<Node> m_root;
+    std::unique_ptr<Policy> m_policy;
     std::size_t m_iterations;
-    std::unique_ptr<Node> m_root;  
-    std::vector<Position> m_moveStack;
+    Player m_player;
 };
 
 }
 
 #endif // !GOMOKU_MCTS_H_
-

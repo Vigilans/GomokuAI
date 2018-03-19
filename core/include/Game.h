@@ -5,10 +5,10 @@
 
 namespace Gomoku {
 
-// 游戏的基本参数
-constexpr int width = 15;
-constexpr int height = 15;
-constexpr int max_renju = 5;
+// 游戏的基本配置
+enum GameConfig {
+    WIDTH = 15, HEIGHT = 15, MAX_RENJU = 5, BOARD_SIZE = WIDTH*HEIGHT
+};
 
 
 // 玩家概念的抽象封装
@@ -32,12 +32,12 @@ struct Position {
     int id;
 
     Position(int id = -1) : id(id) {}
-    Position(int x, int y) : id(y * width + x) {}
-    Position(std::pair<int, int> pose) : id(pose.second * width + pose.first) {}
+    Position(int x, int y) : id(y * WIDTH + x) {}
+    Position(std::pair<int, int> pose) : id(pose.second * WIDTH + pose.first) {}
 
     operator int() const { return id; }
-    constexpr int x() const { return id % width; }
-    constexpr int y() const { return id / width; }
+    constexpr int x() const { return id % WIDTH; }
+    constexpr int y() const { return id / WIDTH; }
 
     // 保证Position可以作为哈希表的key使用
     struct Hasher {
@@ -109,8 +109,8 @@ public:
     }
 
     // 通过Player枚举获取对应棋盘状态
-    std::array<bool, width*height>&       moveStates(Player player) { return m_moveStates[static_cast<int>(player) + 1]; }
-    const std::array<bool, width*height>& moveStates(Player player) const { return m_moveStates[static_cast<int>(player) + 1]; }
+    std::array<bool, BOARD_SIZE>&       moveStates(Player player) { return m_moveStates[static_cast<int>(player) + 1]; }
+    const std::array<bool, BOARD_SIZE>& moveStates(Player player) const { return m_moveStates[static_cast<int>(player) + 1]; }
 
     // 通过Player枚举获取已落子/未落子总数
     std::size_t& moveCounts(Player player) { return m_moveCounts[static_cast<int>(player) + 1]; }
@@ -141,7 +141,7 @@ public:
         2 - Player::Black - 黑子放置情况
         附：为什么不使用std::vector呢？因为vector<bool> :)。
     */
-    std::array<bool, width*height> m_moveStates[3] = {};
+    std::array<bool, BOARD_SIZE> m_moveStates[3] = {};
     std::size_t m_moveCounts[3] = {};
 };
 

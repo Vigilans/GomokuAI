@@ -12,9 +12,9 @@ protected:
     virtual void SetUp() override {
         for (int i = 0; i < caseSize; ++i) {
             int sgn = randSgn(); // 每轮循环保证符号一致
-            xCoords[i] = sgn * (rand() % width);
-            yCoords[i] = sgn * (rand() % height);
-            ids[i] = sgn * (rand() % (width * height));
+            xCoords[i] = sgn * (rand() % WIDTH);
+            yCoords[i] = sgn * (rand() % HEIGHT);
+            ids[i] = sgn * (rand() % GameConfig::BOARD_SIZE);
         }
     }
 
@@ -40,7 +40,7 @@ TEST_F(PositionTest, CheckFormula) {
     for (auto id : ids) {
         Position pos(id);
         int offset = rand() % 500;
-        ASSERT_EQ(Position(pos.x(), pos.y() + offset).id, pos.id + width * offset);
+        ASSERT_EQ(Position(pos.x(), pos.y() + offset).id, pos.id + WIDTH * offset);
         ASSERT_EQ(Position(pos.x() + offset, pos.y()).id, pos.id + offset);
     }
 }
