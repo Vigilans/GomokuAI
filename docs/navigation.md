@@ -3,11 +3,6 @@
 # Gomoku AI
 
 
-<!-- Default theme -->
-
-[gimmick:theme](spacelab)
-
-
 <!-- Navigation -->
 
 [项目介绍](pages/Introduction.md)
@@ -21,7 +16,7 @@
 [评估总结]()
 
 * [积累改进](pages/Review/Improvements Accumulated.md)
-* [文献参考](pages/Review/Literature Reference)
+* [文献参考](pages/Review/Literature Reference.md)
 
 [性能调优]()
 
@@ -30,6 +25,13 @@
 
 [成品报告](pages/Final Report.md)
 
+<!-- Default theme -->
+
+[gimmick:theme (inverse: false)](spacelab)
+
+[gimmick:ThemeChooser](Change theme)
+
+[gimmick:forkmeongithub](https://github.com/Vigilans-Yea/GomokuAI)
 
 
 <!-- A more complex navigation example: ----------------------------------------
