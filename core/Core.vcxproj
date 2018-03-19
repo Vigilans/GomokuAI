@@ -145,6 +145,7 @@
   <ItemGroup>
     <ClInclude Include="include\Game.h" />
     <ClInclude Include="include\MCTS.h" />
+    <ClInclude Include="UCTAlgorithms.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game.cpp" />

@@ -21,6 +21,9 @@
     <ClInclude Include="include\MCTS.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="UCTAlgorithms.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game.cpp">
