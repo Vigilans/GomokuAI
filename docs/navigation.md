@@ -10,18 +10,21 @@
 
 <!-- Navigation -->
 
-[设计简介](pages/Introduction.md)
+[项目介绍](pages/Introduction.md)
 
 [代码结构]()
+
 * # Core
 * [Game.h](pages/Code Structure/Core_Game.md)
 * [MCTS.h](pages/Code Structure/Core_MCTS.md)
 
 [评估总结]()
+
 * [积累改进](pages/Review/Improvements Accumulated.md)
 * [文献参考](pages/Review/Literature Reference)
 
 [性能调优]()
+
 * [开销分析](pages/Performance Profile/Cost Analysis.md)
 * [性能报告](pages/Performance Profile/Profiler Report.md)
 
