@@ -59,3 +59,7 @@
 $$\frac{\frac{T}{2n}\sum_{i=0}^n\frac{1}{N-i}}{\frac{T}{2}+\frac{T}{2n}\sum_{i=0}^n\frac{1}{N-i}}≈\frac{\ln(\frac{N+1}{N-n})}{n+\ln(\frac{N+1}{N-n})}=1-\frac{1}{1+\ln(\frac{N+1}{N-n})/n}$$
 
 当$N=255,n=127$时，上式约为$1-\frac{1}{1+\ln2/127}≈0.3\%$。
+
+
+
+[gimmick: math]()

@@ -1,8 +1,8 @@
 #include <string>
 #include <iostream>
 #include <iomanip>
-#include "../include/Game.h"
-#include "../include/MCTS.h"
+#include "lib/include/Game.h"
+#include "lib/include/MCTS.h"
 #include "nlohmann/json.hpp"
 
 using json = nlohmann::json;

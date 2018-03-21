@@ -94,7 +94,7 @@ void MCTS::playout(Board& board) {
         node = m_policy->expand(node, board);   // 若扩展一层结点，则expand()直接返回node本身
         node_value = m_policy->simulate(node, board);     // 根据模拟战预估当前结点价值分数
     } else {
-        node_value = getFinalScore(m_player, board.m_winner); // 根据对局结果获取绝对价值分数
+        node_value = getFinalScore(node->player, board.m_winner); // 根据对局结果获取绝对价值分数
     }
     m_policy->backPropogate(node, board, node_value);     // 回溯更新，同时重置Board到初始传入的状态
 }

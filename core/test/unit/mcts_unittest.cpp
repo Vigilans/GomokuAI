@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "core/include/MCTS.h"
+#include "lib/include/MCTS.h"
 
 using namespace Gomoku;
 

@@ -1,0 +1,33 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="pch.cpp" />
+    <ClCompile Include="unit\mcts_unittest.cpp">
+      <Filter>UnitTest</Filter>
+    </ClCompile>
+    <ClCompile Include="unit\player_unittest.cpp">
+      <Filter>UnitTest</Filter>
+    </ClCompile>
+    <ClCompile Include="unit\position_unittest.cpp">
+      <Filter>UnitTest</Filter>
+    </ClCompile>
+    <ClCompile Include="integration\board_integrationtest.cpp">
+      <Filter>IntegrationTest</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="pch.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="packages.config" />
+    <None Include="readme.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="UnitTest">
+      <UniqueIdentifier>{e3840f2c-6f06-4c05-86aa-5c315bd504c8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="IntegrationTest">
+      <UniqueIdentifier>{a8dd78ee-998e-4e84-b0a6-7791c634f642}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

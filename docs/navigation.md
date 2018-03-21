@@ -27,9 +27,9 @@
 
 <!-- Default theme -->
 
-[gimmick:theme (inverse: false)](spacelab)
+[gimmick:theme (inverse: false)](simplex)
 
-[gimmick:ThemeChooser](Change theme)
+[gimmick:ThemeChooser](更换主题)
 
 [gimmick:forkmeongithub](https://github.com/Vigilans-Yea/GomokuAI)
 
