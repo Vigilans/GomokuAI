@@ -9,6 +9,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreUI", "core\ui\CoreUI.vc
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreLib", "core\lib\CoreLib.vcxproj", "{38C6C51A-CE17-45E7-A9CB-D6CC7180B78C}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CorePyExt", "core\py_ext\CorePyExt.vcxproj", "{E1785E47-7722-4608-82A0-BBBE383D3DF5}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -41,6 +43,14 @@ Global
 		{38C6C51A-CE17-45E7-A9CB-D6CC7180B78C}.Release|x64.Build.0 = Release|x64
 		{38C6C51A-CE17-45E7-A9CB-D6CC7180B78C}.Release|x86.ActiveCfg = Release|Win32
 		{38C6C51A-CE17-45E7-A9CB-D6CC7180B78C}.Release|x86.Build.0 = Release|Win32
+		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Debug|x64.ActiveCfg = Debug|x64
+		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Debug|x64.Build.0 = Debug|x64
+		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Debug|x86.ActiveCfg = Debug|Win32
+		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Debug|x86.Build.0 = Debug|Win32
+		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Release|x64.ActiveCfg = Release|x64
+		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Release|x64.Build.0 = Release|x64
+		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Release|x86.ActiveCfg = Release|Win32
+		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
