@@ -36,14 +36,19 @@ inline void Game_Ext(py::module& mod) {
         .def_property("x", &Position::x, [](Position& p, Position::value_type x) { p.id = p.y() * WIDTH + x; })
         .def_property("y", &Position::y, [](Position& p, Position::value_type y) { p.id += (y - p.y()) * WIDTH; })
         .def("__int__",  [](const Position& p) { return p.id; })
-        .def("__hash__", [](const Position& p) { return Position::Hasher()(p); })
-        .def("__repr__", [](const Position& p) { return "Position (" + std::to_string(p.x()) + ", " + std::to_string(p.y()) + ")"; })
-        .def("__str__",  [](const Position& p) { return "(" + std::to_string(p.x()) + ", " + std::to_string(p.y()) + ")"; });
+        .def("__hash__", [](const Position& p) { return std::hash<Position>()(p); })
+        .def("__repr__", [](const Position& p) { return py::str("Position {}").format(std::to_string(p)); })
+        .def("__str__",  [](const Position& p) { return std::to_string(p); });
 
 
     // Definition of Board class
     py::class_<Board>(mod, "Board", "Gomoku game board")
         .def(py::init<>())
+        .def("apply_move",  &Board::applyMove, py::arg("move"), py::arg("checkVictory") = true)
+        .def("revert_move", &Board::revertMove)
+        .def("random_move", &Board::getRandomMove)
+        .def("check_move",  &Board::checkMove)
+        .def("check_end",   &Board::checkGameEnd)
         .def_property_readonly("status", [](const Board& b) {
             auto status = b.status();
             return py::dict(
@@ -65,15 +70,11 @@ inline void Game_Ext(py::module& mod) {
             for (int i = 0; i < 3; ++i) {
                 const auto player = Player(i - 1);
                 // reshape to a square board
-                move_states[py::cast(player)] = py::array(py::dtype("bool"), { WIDTH, HEIGHT }, &b.moveStates(player)[0]); 
+                move_states[py::cast(player)] = py::array(py::dtype("uint8"), { WIDTH, HEIGHT }, &b.moveStates(player)[0]); 
             }
             return move_states;
         })
-        .def("apply_move",  &Board::applyMove, py::arg("move"), py::arg("checkVictory") = true)
-        .def("revert_move", &Board::revertMove)
-        .def("random_move", &Board::getRandomMove)
-        .def("check_move",  &Board::checkMove)
-        .def("check_end",   &Board::checkGameEnd)
-            ;
+        .def("__repr__", [](const Board& b) { return py::str("Gomoku board with currently {} to move").format(std::to_string(b.m_curPlayer)); })
+        .def("__str__",  [](const Board& b) { return std::to_string(b); });
 }
 
