@@ -1,7 +1,14 @@
 #include "Game.h"
+#include <string>
+#include <sstream>
+#include <random>
 
 using namespace std;
 using namespace Gomoku;
+
+static mt19937 rndeng((random_device())());
+static uniform_int_distribution<unsigned> rnd(0, BOARD_SIZE - 1); // 注意区间是[a, b]!
+static ostringstream oss;
 
 // 由于是内联使用，不暴露成外部接口，因此无需进行额外参数检查，下同
 inline void setState(Board* board, Player player, Position position) {
@@ -45,12 +52,11 @@ Position Board::getRandomMove() const {
     if (moveCounts(Player::None) == 0) {
         throw overflow_error("board is already full");
     }
-    int divisor = (RAND_MAX + 1) / BOARD_SIZE;
-    int rnd = rand() % divisor;
-    while (!moveStates(Player::None)[rnd]) {
-        rnd = (rnd + 1) % moveStates(Player::None).size();
+    int id = rnd(rndeng);
+    while (!moveStates(Player::None)[id]) {
+        id = (id + 1) % moveStates(Player::None).size();
     }
-    return Position(rnd);
+    return Position(id);
 }
 
 bool Board::checkMove(Position move) {
@@ -90,4 +96,54 @@ bool Board::checkGameEnd(Position move) {
     } else {
         return false;
     }
+}
+
+string std::to_string(Player player) {
+    switch (player) {
+    case Player::Black:
+        return "Player Black";
+    case Player::None:
+        return "No Player";
+    case Player::White:
+        return "Player White";
+    default:
+        return "Player ???";
+    }
+}
+
+string std::to_string(Position position) {
+    oss.str("");
+    oss << "(" << position.x() << ", " << position.y() << ")";
+    return oss.str();
+}
+
+string std::to_string(const Board& board) {
+    static Player positions[WIDTH * HEIGHT];
+
+    oss.str("");
+    for (int i = 0; i < 3; ++i) {
+        for (int j = 0; j < WIDTH * HEIGHT; ++j) {
+            positions[j] = board.m_moveStates[i][j] ? Player(i - 1) : positions[j];
+        }
+    }
+    oss << hex << "  ";
+    for (int i = 0; i < WIDTH; ++i) {
+        oss << i + 1 << " ";
+    }
+    oss << "\n";
+    for (int y = 0; y < HEIGHT; ++y) {
+        oss << y + 1 << " ";
+        for (int x = 0; x < WIDTH; ++x) {
+            switch (positions[y * WIDTH + x]) {
+            case Player::Black: oss << "x"; break;
+            case Player::White: oss << "o"; break;
+            case Player::None:  oss << "_"; break;
+            }
+            oss << " ";
+        }
+        oss << "\n";
+    }
+    oss << dec;
+
+    return oss.str();
 }

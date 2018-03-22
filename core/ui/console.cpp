@@ -50,39 +50,13 @@ using namespace std;
 
 using namespace Gomoku;
 
-void print(const Board& board, ostream& os = cout) {
-    Player positions[WIDTH * HEIGHT];
-    for (int i = 0; i < 3; ++i) {
-        for (int j = 0; j < WIDTH * HEIGHT; ++j) {
-            positions[j] = board.m_moveStates[i][j] ? Player(i - 1) : positions[j];
-        }
-    }
-    os << hex << "  ";
-    for (int i = 0; i < WIDTH; ++i) {
-        os << i + 1 << " ";
-    }
-    os << "\n";
-    for (int y = 0; y < HEIGHT; ++y) {
-        os << y + 1 << " ";
-        for (int x = 0; x < WIDTH; ++x) {
-            switch (positions[y * WIDTH + x]) {
-            case Player::Black: os << "x"; break;
-            case Player::White: os << "o"; break;
-            case Player::None:  os << "."; break;
-            }
-            os << " ";
-        }
-        os << "\n";
-    }
-}
-
 int main() {
     std::ios::sync_with_stdio(false);
 
     Board board;
     MCTS mcts(Player::White);
 
-    print(board);
+    cout << std::to_string(board);
     for (int x, y; board.m_curPlayer != Player::None;) {
         cout << "\nYour  (x, y): ";
         cin >> hex >> x >> y;
@@ -97,8 +71,7 @@ int main() {
         cout << "CPU's (x, y): " << move.x() + 1 << " " << move.y() + 1 << endl;
         board.applyMove(move);
         //cout << string(WIDTH - 3, ' ') << "Board\n";
-        cout << endl;
-        print(board);
+        cout << endl << std::to_string(board);
     }
 
     cout << "\nWinner: " << (board.m_winner == Player::Black ? "You" : "CPU") << "!\n\n";

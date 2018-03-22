@@ -29,22 +29,17 @@ constexpr double getFinalScore(Player player, Player winner) {
 
 // 可用来表示第一/第四象限的坐标。也就是说，x/y坐标必须同正或同负。
 struct Position {
-    int id;
+    using value_type = int;
 
-    Position(int id = -1) : id(id) {}
-    Position(int x, int y) : id(y * WIDTH + x) {}
-    Position(std::pair<int, int> pose) : id(pose.second * WIDTH + pose.first) {}
+    value_type id;
 
-    operator int() const { return id; }
-    constexpr int x() const { return id % WIDTH; }
-    constexpr int y() const { return id / WIDTH; }
+    Position(value_type id = -1)                     : id(id) {}
+    Position(value_type x, value_type y)             : id(y * WIDTH + x) {}
+    Position(std::pair<value_type, value_type> pose) : id(pose.second * WIDTH + pose.first) {}
 
-    // 保证Position可以作为哈希表的key使用
-    struct Hasher {
-        std::size_t operator()(const Position& position) const {
-            return position.id;
-        }
-    };
+    operator  value_type  () const { return id; }
+    constexpr value_type x() const { return id % WIDTH; }
+    constexpr value_type y() const { return id / WIDTH; }
 };
 
 
@@ -123,6 +118,22 @@ public:
     std::array<bool, BOARD_SIZE> m_moveStates[3] = {};
     std::size_t m_moveCounts[3] = {};
 };
+
+}
+
+// Some generic function overload in namespace std
+namespace std {
+
+template <>
+struct hash<Gomoku::Position> {
+    std::size_t operator()(const Gomoku::Position& position) const {
+        return position.id;
+    }
+};
+
+string to_string(Gomoku::Player);
+string to_string(Gomoku::Position);
+string to_string(const Gomoku::Board&);
 
 }
 
