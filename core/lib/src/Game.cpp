@@ -6,8 +6,8 @@
 using namespace std;
 using namespace Gomoku;
 
-static mt19937 rndeng((random_device())());
 static uniform_int_distribution<unsigned> rnd(0, BOARD_SIZE - 1); // 注意区间是[a, b]!
+static mt19937 rnd_eng((random_device())());
 static ostringstream oss;
 
 // 由于是内联使用，不暴露成外部接口，因此无需进行额外参数检查，下同
@@ -31,7 +31,7 @@ Player Board::applyMove(Position move, bool checkVictory) {
     if (m_curPlayer != Player::None && checkMove(move)) {
         setState(this, m_curPlayer, move);
         unsetState(this,Player::None, move);
-        // 若checkVictory为false,则checkGameEnd()被短路。
+        // 若checkVictory为false，则checkGameEnd()被短路。
         m_curPlayer = checkVictory && checkGameEnd(move) ? Player::None : -m_curPlayer;
     }
     return m_curPlayer;
@@ -52,7 +52,7 @@ Position Board::getRandomMove() const {
     if (moveCounts(Player::None) == 0) {
         throw overflow_error("board is already full");
     }
-    int id = rnd(rndeng);
+    int id = rnd(rnd_eng);
     while (!moveStates(Player::None)[id]) {
         id = (id + 1) % moveStates(Player::None).size();
     }

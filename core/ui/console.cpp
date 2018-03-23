@@ -54,22 +54,23 @@ int main() {
     std::ios::sync_with_stdio(false);
 
     Board board;
-    MCTS mcts(Player::White);
+    MCTS mcts();
 
     cout << std::to_string(board);
     for (int x, y; board.m_curPlayer != Player::None;) {
         cout << "\nYour  (x, y): ";
         cin >> hex >> x >> y;
-        switch (board.applyMove({ x - 1, y - 1 })) {
+        Position player_move(x - 1, y - 1);
+        switch (board.applyMove(player_move)) {
         case Player::Black:
         case Player::None:
             continue;
         }
 
-        //auto move = board.getRandomMove();
-        auto move = MCTS(Player::White, { x - 1,y - 1 }).getNextMove(board);
-        cout << "CPU's (x, y): " << move.x() + 1 << " " << move.y() + 1 << endl;
-        board.applyMove(move);
+        //auto cpu_move = board.getRandomMove();
+        auto cpu_move = MCTS(player_move, Player::Black).getNextMove(board);
+        cout << "CPU's (x, y): " << cpu_move.x() + 1 << " " << cpu_move.y() + 1 << endl;
+        board.applyMove(cpu_move);
         //cout << string(WIDTH - 3, ' ') << "Board\n";
         cout << endl << std::to_string(board);
     }

@@ -3,17 +3,6 @@
 #include <algorithm>
 #include <numeric>
 
-namespace Gomoku {
-inline bool operator==(const Board& lhs, const Board& rhs) {
-    // 为加快速度，只检查moveStates元素个数是否相等，就不检查元素是否一一对应了
-    // 注意m_moveStates与m_moveCounts都不是std::array，而是原生数组，因此不能直接用来比较
-    auto make_tied = [](const Board& b) { 
-        return std::tie(b.m_curPlayer, b.m_winner, b.m_moveCounts[0], b.m_moveCounts[1], b.m_moveCounts[2]);
-    };
-    return make_tied(lhs) == make_tied(rhs);
-}
-}
-
 using namespace Gomoku;
 using std::begin;
 using std::end;
@@ -29,7 +18,7 @@ protected:
     // 产生一列不重复的Position
     void randomlyFill(Position* first, Position* last) {
         std::iota(first, last, rand() % (GameConfig::BOARD_SIZE / caseSize));
-        std::random_shuffle(first, last);
+        //std::shuffle(first, last, rand);
     }
 
     // 对棋盘的状态进行快速检查
