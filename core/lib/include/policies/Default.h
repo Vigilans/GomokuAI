@@ -1,6 +1,7 @@
 #ifndef GOMOKU_POLICIES_DEFAULT_H_
 #define GOMOKU_POLICIES_DEFAULT_H_
 #include "MCTS.h"
+#include <cstdlib>
 #include <tuple>
 #include <algorithm>
 
@@ -12,12 +13,21 @@ namespace Gomoku::Policies {
 struct Default {
     
     // 综合考虑当前场面价值、当前Action概率的UCB1公式。
-    static double UCB1(const Node* node, double c_puct) {
+    static double UCB1(const Node* node, double expl_param) {
         const double Q_i = node->state_value;
         const double P_i = node->action_prob;
         const double N = node->parent->node_visits;
         const double n_i = node->node_visits + 1;
-        return Q_i + c_puct * P_i * sqrt(log(N) / n_i);
+        return Q_i + expl_param * P_i * sqrt(log(N) / n_i);
+    }
+
+    // 多项式UCT公式。
+    static double PUCT(const Node* node, double c_puct) {
+        const double Q_i = node->state_value;
+        const double P_i = node->action_prob;
+        const double N = node->parent->node_visits;
+        const double n_i = node->node_visits + 1;
+        return Q_i + c_puct * P_i * sqrt(N) / n_i;
     }
 
     static Node* select(Policy* policy, const Node* node, double c_puct) {
@@ -27,7 +37,7 @@ struct Default {
         int index = 0;
         double max = 0.0;
         for (int i = 0; i < node->children.size(); ++i) {
-            auto cur = UCB1(node->children[i].get(), c_puct);
+            auto cur = node->children[i]->node_visits ? PUCT(node->children[i].get(), c_puct) : 1000;
             if (cur > max) {
                 index = i;
                 max = cur;

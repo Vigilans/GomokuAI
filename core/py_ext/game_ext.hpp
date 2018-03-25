@@ -22,7 +22,7 @@ inline void Game_Ext(py::module& mod) {
         .value("white", Player::White)
         .value("none",  Player::None)
         .value("black", Player::Black)
-        .def(py::init([](int p) { return Player(p); }))
+        //.def(py::init([](int p) { return Player(p); }))
         .def("__float__", [](Player p) { return static_cast<double>(p); })
         .def("__neg__",   [](Player p) { return -p; })
         .def_static("calc_score", [](Player p, Player w) { return getFinalScore(p, w); });
@@ -70,7 +70,7 @@ inline void Game_Ext(py::module& mod) {
             for (int i = 0; i < 3; ++i) {
                 const auto player = Player(i - 1);
                 // reshape to a square board
-                move_states[py::cast(player)] = py::array(py::dtype("uint8"), { WIDTH, HEIGHT }, &b.moveStates(player)[0]); 
+                move_states[py::cast(player)] = py::array(py::dtype("uint8"), { WIDTH, HEIGHT }, b.moveStates(player).data()); 
             }
             return move_states;
         })

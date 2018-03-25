@@ -6,5 +6,5 @@
 PYBIND11_MODULE(core, mod) {
     mod.doc() = "Gomoku AI core module";
     Game_Ext(mod);
-    MCTS_Ext(mod);
+    //MCTS_Ext(mod);
 }

@@ -70,7 +70,7 @@ public:
         Position last_move = -1,
         Player last_player = Player::White,
         Policy* policy = nullptr,
-        std::size_t c_iterations = 3000,
+        std::size_t c_iterations = 20000,
         double c_puct = sqrt(2)
     );
 
