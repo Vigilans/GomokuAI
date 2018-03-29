@@ -1,6 +1,7 @@
 #ifndef GOMOKU_MCTS_H_
 #define GOMOKU_MCTS_H_
 #include "Game.h" // Gomoku::Player, Gomoku::Position, Gomoku::Board
+#include <unordered_map> // std::unordered_map
 #include <vector> // std::vector
 #include <memory> // std::unique_ptr
 #include <functional> // std::function
@@ -9,20 +10,20 @@
 namespace Gomoku {
 
 struct Node {
-    /* Ê÷½á¹¹²¿·Ö */
+    /* æ ‘ç»“æ„éƒ¨åˆ† */
     Node* parent = nullptr;
     std::vector<std::unique_ptr<Node>> children = {};
 
-    /* ÆåÅÌ×´Ì¬²¿·Ö */
+    /* æ£‹ç›˜çŠ¶æ€éƒ¨åˆ† */
     Position position;
     Player player;
 
-    /* ½áµã¼ÛÖµ²¿·Ö */
+    /* ç»“ç‚¹ä»·å€¼éƒ¨åˆ† */
     std::size_t node_visits = 0;
-    double state_value = 0.0;     // ±íÊ¾´Ë½áµã¶ÔÓ¦µÄµ±Ç°¾ÖÃæµÄÆÀ·Ö
-    double action_prob = 0.0;     // ±íÊ¾¸¸½áµã¶ÔÓ¦¾ÖÃæÏÂ£¬Ñ¡Ôñ¸Ã¶¯×÷µÄ¸ÅÂÊ
+    double state_value = 0.0;     // è¡¨ç¤ºæ­¤ç»“ç‚¹å¯¹åº”çš„å½“å‰å±€é¢çš„è¯„åˆ†
+    double action_prob = 0.0;     // è¡¨ç¤ºçˆ¶ç»“ç‚¹å¯¹åº”å±€é¢ä¸‹ï¼Œé€‰æ‹©è¯¥åŠ¨ä½œçš„æ¦‚ç‡
 
-    /* ¸¨ÖúÅĞ¶Ïº¯Êı */
+    /* è¾…åŠ©åˆ¤æ–­å‡½æ•° */
     bool isLeaf() const { return children.empty(); }
     bool isFull(const Board& board) const { return children.size() == board.moveCounts(Player::None); }
 };
@@ -31,26 +32,27 @@ struct Node {
 class Policy {
 public:
     /*
-        ¢Ù simple wrapper of uct
+        â‘  simple wrapper of uct
     */
     using SelectFunc = std::function<Node*(const Node*, double)>;
 
     /*
-        ¢Ù return self
+        â‘  return self
     */
     using ExpandFunc = std::function<std::size_t(Node*, std::vector<double>)>;
 
     /*
-        ¢Ù Board State Invariant
+        â‘  Board State Invariant
     */
-    using EvaluateFunc = std::function<std::tuple<double, std::vector<double>>(Board&)>;
+    using EvalResult = std::tuple<double, std::vector<double>>;
+    using EvaluateFunc = std::function<EvalResult(Board&)>;
 
     /*
-        ¢Ù Board State Reset (Symmetry with select)
+        â‘  Board State Reset (Symmetry with select)
     */
     using UpdateFunc = std::function<void(Node*, Board&, double)>;
 
-    // µ±ÆäÖĞÄ³Ò»Ïî´«ÈënullptrÊ±£¬¸ÃÏî½«Ê¹ÓÃÒ»¸öÄ¬ÈÏ²ßÂÔ³õÊ¼»¯¡£
+    // å½“å…¶ä¸­æŸä¸€é¡¹ä¼ å…¥nullptræ—¶ï¼Œè¯¥é¡¹å°†ä½¿ç”¨ä¸€ä¸ªé»˜è®¤ç­–ç•¥åˆå§‹åŒ–ã€‚
     Policy(SelectFunc = nullptr, ExpandFunc = nullptr, EvaluateFunc = nullptr, UpdateFunc = nullptr);
 
 public:
@@ -59,7 +61,7 @@ public:
     EvaluateFunc simulate;
     UpdateFunc   backPropogate;
 
-    // ÓÃÒÔ´æ·ÅActionsµÄÈİÆ÷£¬¿ÉÒÔÔÚ²»Í¬µÄPolicyÖĞ±íÏÖÎªÈÎºÎĞÎÊ½¡£
+    // ç”¨ä»¥å­˜æ”¾Actionsçš„å®¹å™¨ï¼Œå¯ä»¥åœ¨ä¸åŒçš„Policyä¸­è¡¨ç°ä¸ºä»»ä½•å½¢å¼ã€‚
     std::any container;
 };
 
@@ -67,26 +69,24 @@ public:
 class MCTS {
 public:
     MCTS(
-        Position last_move = -1,
-        Player last_player = Player::White,
-        Policy* policy = nullptr,
+        Position    last_move    = -1,
+        Player      last_player  = Player::White,
+        Policy*     policy       = nullptr,
         std::size_t c_iterations = 20000,
-        double c_puct = sqrt(2)
+        double      c_puct       = sqrt(2)
     );
 
     Position getNextMove(Board& board);
 
-    // get root value
-    // get root probabilities
+    // ä½œä¸ºTree-policyçš„è¯„ä¼°å‡½æ•°
+    Policy::EvalResult evalState(Board& board);
 
-    // ÃÉÌØ¿¨ÂåÊ÷µÄÒ»ÂÖµü´ú
+    // è’™ç‰¹å¡æ´›æ ‘çš„ä¸€è½®è¿­ä»£
     void playout(Board& board);
 
-    // Ñ¡³ö×îºÃÊÖ£¬Ê¹ÃÉÌØ¿¨ÂåÊ÷ÍùÏÂ×ßÒ»²ã
-    Node* stepForward(); 
-
-    // ¸ù¾İÌá¹©µÄ¶¯×÷ÍùÏÂ×ß
-    Node* stepForward(Position); 
+    
+    Node* stepForward();  // é€‰å‡ºæœ€å¥½æ‰‹ï¼Œä½¿è’™ç‰¹å¡æ´›æ ‘å¾€ä¸‹èµ°ä¸€å±‚
+    Node* stepForward(Position next_move);    // æ ¹æ®æä¾›çš„åŠ¨ä½œå¾€ä¸‹èµ°
 
 public:
     std::unique_ptr<Node> m_root;

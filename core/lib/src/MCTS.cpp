@@ -5,11 +5,31 @@ using namespace std;
 using namespace Gomoku;
 using namespace Gomoku::Policies;
 
-Policy::Policy(SelectFunc f1, ExpandFunc f2, EvaluateFunc f3, UpdateFunc f4) :
-    select       (f1 ? f1 : SelectFunc([this](auto node, auto c_puct) { return Default::select(this, node, c_puct); })),
-    expand       (f2 ? f2 : ExpandFunc([this](auto node, auto action_probs) { return Default::expand(this, node, action_probs); })),
-    simulate     (f3 ? f3 : EvaluateFunc([this](auto& board) { return Default::simulate(this, board); })),
-    backPropogate(f4 ? f4 : UpdateFunc([this](auto node, auto& board, auto value) { return Default::backPropogate(this, node, board, value); })) {
+// 更新后，原根节点由unique_ptr自动释放，其余的非子树结点也会被链式自动销毁。
+inline Node* updateRoot(MCTS& mcts, unique_ptr<Node>&& next_node) {
+    mcts.m_root = std::move(next_node);
+    mcts.m_root->parent = nullptr;
+    return mcts.m_root.get();
+}
+
+Policy::Policy(
+    SelectFunc f1, 
+    ExpandFunc f2, 
+    EvaluateFunc f3, 
+    UpdateFunc f4
+) : 
+    select(f1 ? f1 : [this](auto node, auto c_puct) {
+        return Default::select(this, node, c_puct);
+    }),
+    expand(f2 ? f2 : [this](auto node, auto action_probs) {
+        return Default::expand(this, node, action_probs);
+    }),
+    simulate(f3 ? f3 : [this](auto& board) {
+        return Default::simulate(this, board);
+    }),
+    backPropogate(f4 ? f4 : [this](auto node, auto& board, auto value) {
+        return Default::backPropogate(this, node, board, value);
+    }) {
 
 }
 
@@ -24,8 +44,8 @@ MCTS::MCTS(
     m_policy(policy ? policy : new Policy),
     m_size(1),
     c_iterations(c_iterations),
-    c_puct(c_puct) {
-    
+    c_puct(c_puct) { 
+
 }
 
 Position MCTS::getNextMove(Board& board) {
@@ -53,16 +73,16 @@ void MCTS::playout(Board& board) {
 }
 
 // AlphaZero的论文中，对MCTS的再利用策略
-// 参见https://stackoverflow.com/questions/47389700/why-does-monte-carlo-tree-search-reset-tree
+// 参见https://stackoverflow.com/questions/47389700
 Node* MCTS::stepForward() {
-    // 选出最好的一手
-    auto&& nextNode = std::move(*max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
+    return updateRoot(*this, std::move(*max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
         return lhs->node_visits < rhs->node_visits;
-    }));
-    // 更新蒙特卡洛树，将根节点推进至选择出的最好手的对应结点
-    // 更新后，原根节点由unique_ptr自动释放，其余的非子树结点也会被链式自动销毁。
-    m_root = std::move(nextNode);
-    m_root->parent = nullptr;
-    return m_root.get();
+    })));
 }
+
+//Node* MCTS::stepForward(Position next_move) {
+//    return updateRoot(*this, std::move(*find(m_root->children.begin(), m_root->children.end(), [&](auto&& node) {
+//        return node->position == next_move;
+//    })));
+//}
 

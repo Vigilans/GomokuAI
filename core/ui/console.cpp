@@ -53,8 +53,10 @@ using namespace Gomoku;
 int main() {
     std::ios::sync_with_stdio(false);
 
+    cout << sizeof(std::vector<std::unique_ptr<Node>>);
+
     Board board;
-    MCTS mcts();
+    MCTS mcts;
 
     cout << std::to_string(board);
     for (int x, y; board.m_curPlayer != Player::None;) {
