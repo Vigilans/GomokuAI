@@ -15,7 +15,7 @@ inline Node* updateRoot(MCTS& mcts, unique_ptr<Node>&& next_node) {
 Policy::Policy(
     SelectFunc f1, 
     ExpandFunc f2, 
-    EvaluateFunc f3, 
+    EvalFunc f3, 
     UpdateFunc f4
 ) : 
     select(f1 ? f1 : [this](auto node, auto c_puct) {
@@ -40,7 +40,7 @@ MCTS::MCTS(
     std::size_t c_iterations,
     double c_puct
 ) :
-    m_root(new Node{ nullptr, {}, last_move, last_player, 0, 0.0, 1.0 }),   
+    m_root(new Node{ nullptr, last_move, last_player, 0.0, 1.0 }),   
     m_policy(policy ? policy : new Policy),
     m_size(1),
     c_iterations(c_iterations),
@@ -50,26 +50,20 @@ MCTS::MCTS(
 
 Position MCTS::getNextMove(Board& board) {
     for (int i = 0; i < c_iterations; ++i) {
-        playout(board); // 完成一轮蒙特卡洛树的迭代
+        m_size += playout(board);
     }
-    return stepForward()->position; // 更新蒙特卡洛树，向选出的最好手推进一步并将其返回
+    return stepForward()->position;
 }
 
-void MCTS::playout(Board& board) {
-    Node* node = m_root.get();      // 裸指针用作观察指针，不对树结点拥有所有权
-    while (!node->isLeaf()) {   // 检测当前结点是否所有可行手都被拓展过
-        node = m_policy->select(node, c_puct);        // 若当前结点已拓展完毕，则根据价值公式选出下一个探索结点
-        board.applyMove(node->position, false); // 重要性能点：非终点节点无需检查是否胜利（此前已检查过了）
+Policy::EvalResult MCTS::evalState(Board& board) {
+    for (int i = 0; i < c_iterations; ++i) {
+        m_size += playout(board);
     }
-    double node_value;
-    if (!board.checkGameEnd(node->position)) {  // 检查终结点游戏是否结束  
-        auto [value, action_probs] = m_policy->simulate(board);    // 根据模拟战预估当前结点价值分数 
-        m_size += m_policy->expand(node, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
-        node_value = value;
-    } else {
-        node_value = getFinalScore(node->player, board.m_winner); // 根据对局结果获取绝对价值分数
+    vector<double> action_probs(BOARD_SIZE);
+    for (auto&& node : m_root->children) {
+        action_probs[node->position] = 1.0 * node->node_visits / m_root->node_visits;
     }
-    m_policy->backPropogate(node, board, node_value);     // 回溯更新，同时重置Board到初始传入的状态
+    return make_tuple(m_root->state_value, std::move(action_probs));
 }
 
 // AlphaZero的论文中，对MCTS的再利用策略
@@ -80,9 +74,27 @@ Node* MCTS::stepForward() {
     })));
 }
 
-//Node* MCTS::stepForward(Position next_move) {
-//    return updateRoot(*this, std::move(*find(m_root->children.begin(), m_root->children.end(), [&](auto&& node) {
-//        return node->position == next_move;
-//    })));
-//}
+Node* MCTS::stepForward(Position next_move) {
+    return updateRoot(*this, std::move(*find_if(m_root->children.begin(), m_root->children.end(), [next_move](auto&& node) {
+        return node->position == next_move;
+    })));
+}
 
+size_t MCTS::playout(Board& board) {
+    Node* node = m_root.get();      // 裸指针用作观察指针，不对树结点拥有所有权
+    while (!node->isLeaf()) {   // 检测当前结点是否所有可行手都被拓展过
+        node = m_policy->select(node, c_puct);  // 若当前结点已拓展完毕，则根据价值公式选出下一个探索结点
+        board.applyMove(node->position, false); // 重要性能点：非终点节点无需检查是否胜利（此前已检查过了）
+    }
+    double node_value;
+    size_t expand_size;
+    if (!board.checkGameEnd(node->position)) {  // 检查终结点游戏是否结束  
+        auto [value, action_probs] = m_policy->simulate(board);        // 根据模拟战预估当前结点对应盘面价值分数 
+        expand_size = m_policy->expand(node, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
+        node_value = value;
+    } else {
+        node_value = getFinalScore(node->player, board.m_winner); // 根据对局结果获取绝对价值分数
+    }
+    m_policy->backPropogate(node, board, node_value);     // 回溯更新，同时重置Board到初始传入的状态
+    return expand_size;
+}
