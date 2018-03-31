@@ -1,5 +1,6 @@
 #ifndef GOMOKU_POLICIES_DEFAULT_H_
 #define GOMOKU_POLICIES_DEFAULT_H_
+#pragma warning(disable:4244) // å…³é—­æ”¶ç¼©è½¬æ¢è­¦å‘Š
 #include "MCTS.h"
 #include <cstdlib>
 #include <tuple>
@@ -7,21 +8,20 @@
 
 namespace Gomoku::Policies {
 
-// DefaultÊÇÒ»×é¾²Ì¬·½·¨µÄ¼¯ºÏ£¬²¢²»¼Ì³ĞPolicy¡£
-// ÎªÁËÊ¹DefaultÄÜÊ¹ÓÃµ½PolicyµÄContainer£¬Ã¿¸öº¯Êı¾ù´«ÈëPolicyÖ¸Õë¡£
-// C++20µÄUnified call syntax»òĞíÄÜÈÃÕâÒ»ÇĞ¸ü¼ÓÖ±¹Û¡£
+// Defaultæ˜¯ä¸€ç»„é™æ€æ–¹æ³•çš„é›†åˆï¼Œå¹¶ä¸ç»§æ‰¿Policyã€‚
+// ä¸ºäº†ä½¿Defaultèƒ½ä½¿ç”¨åˆ°Policyçš„Containerï¼Œæ¯ä¸ªå‡½æ•°å‡ä¼ å…¥PolicyæŒ‡é’ˆã€‚
+// C++20çš„Unified call syntaxæˆ–è®¸èƒ½è®©è¿™ä¸€åˆ‡æ›´åŠ ç›´è§‚ã€‚
 struct Default {
     
-    // ×ÛºÏ¿¼ÂÇµ±Ç°³¡Ãæ¼ÛÖµ¡¢µ±Ç°Action¸ÅÂÊµÄUCB1¹«Ê½¡£
+    // ä»…è€ƒè™‘å½“å‰åœºé¢ä»·å€¼çš„UCB1å…¬å¼ã€‚
     static double UCB1(const Node* node, double expl_param) {
         const double Q_i = node->state_value;
-        const double P_i = node->action_prob;
         const double N = node->parent->node_visits;
         const double n_i = node->node_visits + 1;
-        return Q_i + expl_param * P_i * sqrt(log(N) / n_i);
+        return Q_i + expl_param * sqrt(log(N) / n_i);
     }
 
-    // ¶àÏîÊ½UCT¹«Ê½¡£
+    // åŸºäºæ¦‚ç‡çš„å¤šé¡¹å¼UCTå…¬å¼ã€‚
     static double PUCT(const Node* node, double c_puct) {
         const double Q_i = node->state_value;
         const double P_i = node->action_prob;
@@ -30,14 +30,14 @@ struct Default {
         return Q_i + c_puct * P_i * sqrt(N) / n_i;
     }
 
-    static Node* select(Policy* policy, const Node* node, double c_puct) {
+    static Node* select(Policy* policy, const Node* node, double expl) {
         //return max_element(node->children.begin(), node->children.end(), [](auto&& lhs, auto&& rhs) {
         //    return lhs->UCB1(sqrt(2)) < rhs->UCB1(sqrt(2));
         //})->get();
         int index = 0;
         double max = 0.0;
         for (int i = 0; i < node->children.size(); ++i) {
-            auto cur = node->children[i]->node_visits ? PUCT(node->children[i].get(), c_puct) : 1000;
+            auto cur = node->children[i]->node_visits ? PUCT(node->children[i].get(), expl) : 1000;
             if (cur > max) {
                 index = i;
                 max = cur;
@@ -46,19 +46,19 @@ struct Default {
         return node->children[index].get();
     }
 
-    // ¸ù¾İ´«ÈëµÄ¸ÅÂÊÀ©ÕÅ½áµã¡£¸ÅÂÊÎª0µÄAction½«²»±»¼ÓÈë×Ó½áµãÖĞ¡£
+    // æ ¹æ®ä¼ å…¥çš„æ¦‚ç‡æ‰©å¼ ç»“ç‚¹ã€‚æ¦‚ç‡ä¸º0çš„Actionå°†ä¸è¢«åŠ å…¥å­ç»“ç‚¹ä¸­ã€‚
     static std::size_t expand(Policy* policy, Node* node, const std::vector<double> action_probs) {
         node->children.reserve(action_probs.size());
         for (int i = 0; i < GameConfig::BOARD_SIZE; ++i) {
             if (action_probs[i] != 0.0) {
-                node->children.emplace_back(new Node{ node, {}, i, -node->player, 0, 0.0, action_probs[i] });
+                node->children.emplace_back(new Node{ node, i, -node->player, 0.0, action_probs[i] });
             }
         }
         return node->children.size();
     }
 
-    // Ëæ»úÏÂÆåÖ±µ½ÓÎÏ·½áÊø
-    static std::tuple<double, std::vector<double>> simulate(Policy* policy, Board& board) {
+    // éšæœºä¸‹æ£‹ç›´åˆ°æ¸¸æˆç»“æŸ
+    static Policy::EvalResult simulate(Policy* policy, Board& board) {
         using Actions = std::vector<Position>;
         if (!policy->container.has_value()) {
             policy->container.emplace<Actions>();
@@ -73,7 +73,7 @@ struct Default {
         }
 
         const auto winner = board.m_winner;
-        // ÖØÖÃÆåÅÌÖÁMCTSµ±Ç°¸ù½Úµã×´Ì¬£¬×¢ÒâÓ®¼Ò»á±»ÖØĞÂÉèÎªPlayer::None£¡
+        // é‡ç½®æ£‹ç›˜è‡³MCTSå½“å‰æ ¹èŠ‚ç‚¹çŠ¶æ€ï¼Œæ³¨æ„èµ¢å®¶ä¼šè¢«é‡æ–°è®¾ä¸ºPlayer::Noneï¼
         while (!move_stack.empty()) {
             board.revertMove(move_stack.back());
             move_stack.pop_back();
