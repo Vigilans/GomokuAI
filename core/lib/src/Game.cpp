@@ -71,16 +71,15 @@ bool Board::checkGameEnd(Position move) {
         int renju = 1; // 当前落子构成的最大连珠数
 
         // 正向与反向搜索
-        for (int sgn = 1; ; sgn = -1) {
+        for (int sgn : {1, -1}) {
             int x = curX, y = curY;
             for (int i = 0; i < 4; ++i) {
-                x += sgn*dx, y += sgn*dy;
+                x += sgn * dx, y += sgn * dy;
                 // 判断坐标的格子是否未越界且归属为当前棋子
                 if ((x >= 0 && x < WIDTH) && (y >= 0 && y < HEIGHT)
                     && moveStates(m_curPlayer)[y*WIDTH + x]) ++renju;
                 else break;
             }
-            if (sgn == -1) break;
         }
 
         return renju >= MAX_RENJU;
@@ -121,7 +120,7 @@ string std::to_string(const Board& board) {
     static Player positions[WIDTH * HEIGHT];
 
     oss.str("");
-    for (int i = 0; i < 3; ++i) {
+    for (int i : {0, 1, 2}) {
         for (int j = 0; j < WIDTH * HEIGHT; ++j) {
             positions[j] = board.m_moveStates[i][j] ? Player(i - 1) : positions[j];
         }
