@@ -40,3 +40,9 @@
 > 关于Profiler的具体测试结果，请参阅*Performance Profile*中的[*Profiler Report*](#Profiler Report)章节。
 >
 > 关于详细的时空开销分析，请参阅*Performance Profile*中的[*Cost Analysis*](#Board 时空开销分析)章节。
+
+### Week 5
+
+相对于前一个版本，此阶段我们主要累积了一些工程上的改进，如Node，Policy，MCTS类的开放性结构设计。
+
+详情请见Week7报告。

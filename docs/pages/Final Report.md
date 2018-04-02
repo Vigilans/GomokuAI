@@ -12,15 +12,15 @@
 <span style="font-size:24px;">Current Bot Version</span> 
 </h3>
 <div align="center">
-<strong><span style="font-size:18px;">Git commits</span></strong><span style="font-size:18px;">: 18</span><br />
-<strong><span style="font-size:18px;">Latest Commit</span></strong><span style="font-size:18px;">: 92d714e </span><br />
+<strong><span style="font-size:18px;">Git commits</span></strong><span style="font-size:18px;">: 38</span><br />
+<strong><span style="font-size:18px;">Latest Commit</span></strong><span style="font-size:18px;">: 635847a</span><br />
 <strong><span style="font-size:18px;">Git Repo Status</span></strong><span style="font-size:18px;">: Private </span><br />
-<strong><span style="font-size:18px;">Documents</span></strong><span style="font-size:18px;">: Not available</span> 
+<strong><span style="font-size:18px;">Documents</span></strong><span style="font-size:18px;">: https://vigilans-yea.github.io/GomokuAI/</span> 
 </div>
 
 
 
-# Current Score
+# Current Performance
 
 ### Week 3
 
@@ -30,21 +30,95 @@
 * 此外，不知为何，目前的Bot代码能在Windows下正常运行，但一旦在Botzone的Linux环境下跑，就会出现Runtime Error_ (:з」∠ )_
 
 
+### Week 5
+
+* 本期仍为开发的过渡期，主要工作是建立起来了项目的完整结构与模块间的功能依赖关系，且明确了要做一个神经网络版AI的目标。
+* 目前，AlphaZero版AI的开发接近完成，等待着实地的训练与测试。当它能够稳定的变强以后，我们便有了一个稳靠的火器，届时也将正式投入与他人的竞技之中。
 
 
-# Detailed Introduction
+
+
+# General Report
 
 ## Idea of Design
 
+我们的目标是~~：没有蛀牙！~~：
+
+* High Performance
+* High Readablity
+* High Scalbility
+
+在可读性与扩展性上，我们采用工程化手段进行AI的开发，使用Python作为胶水语言；
+
+在性能上，我们采用C++编写AI中性能关键的模块，并包装成为Python模块的扩展。
+
+
+
 ## Expectations
 
-这两个都放下期更新吧……（应该会整合成一个很详尽的章节）
+简单来说，它应能够达成如下的效果：
+
+1. 在性能上达到一个极致的平衡，没有浪费的操作。
+2. 可以方便地在不同的算法之间切换。
+3. 可以提供一个方便的与Botzone交互的接口。
+
+（待更新）
 
 
 
-## Code Structure
+## Further Plans & Directions
 
-### Player: enum
+### Week 3
+
+* 在开始写报告后，我们为MCTS设计了`Policy`这个重要的结构。有了它，我们可以方便地对MCTS的关键算法进行替换，由此可以对各种不同算法的性能进行改进与评估。因此，未来的报告中，或许可以方便地列出各种baseline算法相互比较的图表。
+
+* 起初，我们组的一个大方向是「使用C++内核 + Python搭建神经网络来实现AI」。现在，这个方向反而变得不那么明晰了。因为我们不太清楚不使用神经网络，且只用纯C++代码到底能将AI性能推进到什么样的程度。
+
+  我们将在实现一些有名的MCTS优化算法（如：RAVE算法）后，根据AI的表现来决定是否执行最初的路线。
+
+
+### Week 5
+
+* 在得知4班的某位同学成功跑起来了AlphaZero版AI后，我们组终于定下心来决定跟进。本来是打算在最后一期做出来作为收尾之笔的，但经过仔细考虑后，提早做出来有不少的好处：
+
+  * 考虑到神经网络需要较长的训练时间，早早做出来，显然为之后的优化与等待留有较大的余地。
+  * 神经网络是一个在开发过程中，你能持续明显感觉到「它在变强」的东西。因此，它可以成为我们的基线模型，在训练过程中产生的各种checkpoint也可以用以与后续的其他模型比较。
+
+* 在AlphaZero版AI能够顺畅地运行以后，我们将继续研究传统方法，以作为未来的主要基线方法，及备选参赛选手。不过，我们不打算再分别实现很多种不同算法了。我们将维护一个单独的「TraditionalAgent」，使用各种算法对其集中优化，以用来和AlphaZeroAgent进行有意义的比较。
+
+* 未来的主要优化方向：
+
+  * 算法上：
+
+    由于AlphaZero需要大量的计算力来达到较好的训练速度，（例如论文中使用了5000个TPU v1来生成自对弈棋谱），而我们显然无法负担起如此庞大的算力，因此需要使用一些手段来对其进行优化。
+
+    未来一期将采取的优化手段为：
+
+    * [Decisive and Anti-Decisive Moves](https://hal.inria.fr/inria-00495078/document)。它以一个简单的思想利用领域知识来强化Select与Simulate过程。这种优化的特点是它不会对AI的自我学习造成负面影响，仅仅是加速了AI的收敛速度：因为其优化点在某种程度上是AI必须抵达的终点。
+    * 设计卷积核的初始权重，以期加速收敛。
+
+  * 工程上：
+
+    * Memory Pool。经过Profiler测试显示，在目前的默认策略与MCTS配置下，有40%~50%的时间开销花在了expand阶段，并且几乎所有时间开销都集中在`operator new`，也就是树结点的内存分配上。MCTS的记录显示，一轮Playout后，结点的个数高达$4×10^7​$个。
+
+      写一个高性能的内存池，应该能够对此性能瓶颈有较好的改善。
+
+    * Cache。目前每次backPropogate操作都会将棋盘回退到开始局面，再进行下一轮Playout。但是，当Exploitation的值足够大时，很有可能下一轮Playout大部分仍走原来的路径。如果要加上盘面检查机制的话，这种重复操作的开销可能是很大的。
+
+      我们可以添加一个简单的Cache机制，即每轮Playout后Board暂时保持叶结点的局面，在下一轮Playout中，一直到Select阶段选到的结点不在上一轮路径为止，才对Board进行回退操作。
+
+
+
+
+# Code Structure
+
+## Core
+
+Core C++模块实现了所有Performance-Critical的组件。
+
+### Game.h
+
+#### Player: enum
 
 ```cpp
 enum class Player : char { White = -1, None = 0, Black = 1 };
@@ -90,13 +164,11 @@ enum class Player : char { White = -1, None = 0, Black = 1 };
 
 
 
-
-
-### Position: struct
+#### Position: struct
 
 ```cpp
 struct Position {
-    int id;
+    short id;
 
     Position(int id = -1)         : id(id) {}
     Position(int x, int y)        : id(y*WIDTH + x) {}
@@ -114,9 +186,9 @@ struct Position {
 
 同时，通过提供`std::pair`作为构造参数，我们常常可以写出 `{x, y}` 这样方便的初始化格式。
 
+内部存储使用short，其余情况均转换为int计算。
 
-
-### Board: class
+#### Board: class
 
 ```cpp
 class Board {
@@ -180,63 +252,194 @@ Board的每一步方法都被仔细地设计过，力求无任何冗余操作。
 
 
 
-### MCTS: class
+### MCTS.h
+
+#### Node: struct
 
 ```cpp
-struct Node {     
-    Node* parent = nullptr; // 子结点仅对父结点持有观察指针，不拥有所有权
-    vector<unique_ptr<Node>> children = {};
-    Position position = -1;
-    size_t visits = 0;
-    float value = 0.0;
-
-    bool isFull(const Board& board) const;
-    float UCB1(float expl_param);
-};
-
-class MCTS {
-public:
-    MCTS(Player player, Position lastMove = -1);
-	
-    // 利用MCTS预测下一手
-    Position getNextMove(Board& board); 
-
-private:
-    // 蒙特卡洛树的一轮迭代
-    void playout(Board& board);
+struct Node {
+    /* 
+        树结构部分 - 父结点。
+        结点为观察指针，不对其拥有所有权。
+    */
+    Node* parent = nullptr;
+    /* 
+        棋盘状态部分：
+          * position: 当前局面下最近一手的位置。
+          * player: 当前局面下应走一下手的玩家。
+    */
+    Position position = Position(-1);
+    Player player = Player::None;
+    /* 
+        结点价值部分：
+          * state_value: 此结点对应的当前局面的评分。一般为胜率。
+          * action_prob: 在父结点对应的局面下，选择该动作的概率。
+    */
+    float state_value = 0.0;
+    float action_prob = 0.0;
+    size_t node_visits = 0;
+    /*
+        树结构部分 - 子结点。
+        结点为独有指针集合，对每个子结点拥有所有权。
+    */
+    std::vector<std::unique_ptr<Node>> children = {};
     
-    // 对MCTS的再利用策略
-    void stepForward();
-
-private:
-    Node* select(const Node* node) const;
-    Node* expand(Node* node, Board& board);
-    float simulate(Node* node, Board& board);
-    void backPropogate(Node* node, Board& board, float value);
-
-private:
-    unique_ptr<Node> m_root;
-    Player m_player;
-    vector<Position> m_moveStack;
+    /* 
+        构造与赋值函数。
+        显式声明两个函数的移动版本，以阻止复制版本的自动生成。 
+    */
+    Node(Node&&) = default;
+    Node& operator=(Node&&) = default;
+    
+    /* 辅助判断函数 */
+    bool isLeaf() const;
+    bool isFull(const Board& board) const;
 };
 ```
 
-截止报告提交时，MCTS的结构有了很大的改变。
+蒙特卡洛树结点。由于整个树的结点数量十分庞大，因此其内存布局务必谨慎设计。
 
-不过，这些改变和MCTS结构的具体介绍，就留给第6周的报告来总结吧！
+32位下，Node的大小为32字节；64位下则为56字节。
+
+#### Policy: class
+
+```cpp
+class Policy {
+public:
+    // Tree-Policy中的选择阶段策略函数。
+    using SelectFunc = std::function<Node*(const Node*, double)>;
+
+    /*
+        Tree-Policy中的扩展策略函数：
+          ① 直接扩展一整层结点，并根据EvalResult中的概率向量为每个结点赋初值。
+          ② 返回值为新增的结点数。
+    */
+    using ExpandFunc = std::function<size_t(Node*, std::vector<double>)>;
+
+    /*
+    	当Tree-Policy抵达中止点时，用于将棋下完（可选）并评估场面价值的Default-Policy：
+          ① 在函数调用前后，一般应保证棋盘的状态不变。
+          ② 返回值为 <场面价值, 各处落子的概率> 。
+    */
+    using EvalResult = std::tuple<double, std::vector<double>>;
+    using EvalFunc = std::function<EvalResult(Board&)>;
+
+    /*
+    	Tree-Policy中的反向传播策略函数：
+          ① 此阶段棋盘将被重置回初始状态（与Select过程的路线对称）
+          ② 结点的各种属性均在此函数中被更新。
+    */
+    using UpdateFunc = std::function<void(Node*, Board&, double)>;
+
+    // 当其中某一项传入nullptr时，该项将使用一个默认策略初始化。
+    Policy(SelectFunc = nullptr, ExpandFunc = nullptr, EvalFunc = nullptr, UpdateFunc = nullptr);
+
+    SelectFunc select;
+    ExpandFunc expand;
+    EvalFunc   simulate;
+    UpdateFunc backPropogate;
+
+public:
+    std::any container; // 用以存放Actions的容器，可以在不同的Policy中表现为任何形式。
+};
+```
+
+蒙特卡洛树策略。该类将MCTS一轮Playout中四种主要方法抽象出来，使得我们可以用各种不同的算法进行填充，形成不同的策略。
+
+#### MCTS: class
+
+```cpp
+class MCTS {
+public:
+    MCTS(
+        Position last_move    = -1,
+        Player   last_player  = Player::White,
+        Policy*  policy       = nullptr,
+        size_t   c_iterations = 20000,
+        double   c_puct       = sqrt(2)
+    );
+
+    Position getNextMove(Board& board);
+
+    // Tree-policy的评估函数
+    Policy::EvalResult evalState(Board& board);
+    
+    // 将MCTS往深推进一层
+    Node* stepForward();                      // 选出子结点中的最好手
+    Node* stepForward(Position next_move);    // 根据提供的动作往下走
+
+    // 蒙特卡洛树的一轮迭代
+    size_t playout(Board& board);
+
+public:
+    std::unique_ptr<Node> m_root;
+    std::unique_ptr<Policy> m_policy;
+    size_t m_size;
+    size_t c_iterations;
+    double c_puct;
+};
+```
+
+在Node与Policy独立实现之后，MCTS类仅仅是这两个类上的一层Wrapper。它提供参数的配置，将Node与Policy的各单元有机地组合起来。
 
 
 
-## Further Plans & Directions
+## Network
 
-### Week 3
+Network模块实现了AlphaZero中策略价值网络部分，以及配套训练方法的模块。
 
-* 在开始写报告后，我们为MCTS设计了`Policy`这个重要的结构。有了它，我们可以方便地对MCTS的关键算法进行替换，由此可以对各种不同算法的性能进行改进与评估。因此，未来的报告中，或许可以方便地列出各种baseline算法相互比较的图表。
+### model.py
 
-* 起初，我们组的一个大方向是「使用C++内核 + Python搭建神经网络来实现AI」。现在，这个方向反而变得不那么明晰了。因为我们不太清楚不使用神经网络，且只用纯C++代码到底能将AI性能推进到什么样的程度。
+```python
+# 定义一个卷积块。
+def ConvBlock(
+        filter_size=256,
+        kernel_size=(3, 3),
+        activation=None
+    ) -> list:
+    pass
 
-  我们将在实现一些有名的MCTS优化算法（如：RAVE算法）后，根据AI的表现来决定是否执行最初的路线。
+# 定义一个残差卷积块。
+def ResBlock(identity_input) -> list:
+    pass
 
+# 策略价值网络类。
+class PolicyValueNetwork:
+    # 构造函数，在此完成网络的构建。
+    def __init__(self, config):
+        input_layer = Input(...) # 输入结构定义
+        shared_net = Sequential(input_layer, ...) # 公共网络定义
+        policy_head = Sequential(shared_net, ...) # 策略端定义
+        value_head = Sequential(shared_net, ...)  # 价值端定义
+        
+        # 模型最终定义
+        self.model = Model(
+        	input_layer,
+            [policy_head, value_head]
+        )
+    
+    # 评估传入的场面价值与接下来每处的落子概率（即为MCTS的Simulate Policy）
+    def eval_state(self, state):
+        pass
+```
+
+
+
+## Agents
+
+Agent模块包装了各种不同的算法策略，形成一个抽象的玩家。
+
+基类中定义了一套与Botzone进行交互的方法，使得每一个子类文件都可作为入口点文件提交到Botzone上。
+
+（待更新）
+
+### agent.py
+
+Agent基类。
+
+### random_agent.py
+
+最基础的随机下棋玩家。
 
 
 
@@ -285,8 +488,11 @@ private:
 >
 > 关于详细的时空开销分析，请参阅*Performance Profile*中的[*Cost Analysis*](#Board 时空开销分析)章节。
 
+### Week 5
 
+相对于前一个版本，此阶段我们主要累积了一些工程上的改进，如Node，Policy，MCTS类的开放性结构设计。
 
+详情请见Week7报告。
 
 ## Literatures Reference
 
@@ -294,28 +500,32 @@ private:
 
 - [x] \[1\][*PENG Bo*: 从围棋盘看卷积神经网络CNN的具体工作过程](https://zhuanlan.zhihu.com/p/25345778)
 
-      虽然目前没有用上CNN，研究对象也不是围棋，但文中提出的「One-hot编码」对我们组的棋盘设计有着很大的启发。采用这种形式构造的棋盘，带来了许多意料之外的好处（尤其是速度）。
+  虽然目前没有用上CNN，研究对象也不是围棋，但文中提出的「One-hot编码」对我们组的棋盘设计有着很大的启发。采用这种形式构造的棋盘，带来了许多意料之外的好处（尤其是速度）。
 
 ### Work-In-Progress
 
+- [ ] [Mastering the game of Go without human knowledge](https://www.gwern.net/docs/rl/2017-silver.pdf)
+
+- [ ] [Mastering Chess and Shogi by Self-Play with a General Reinforcement Learning Algorithm](https://arxiv.org/pdf/1712.01815.pdf?utm_source=utkukhraman)
+
+  AlphaZero的两篇论文。其中，第一篇论文（AlphaGo Zero）提供了详细的复现方法，目前正被实现中。
+
+
 - [ ] [*Browne et al*: A Survey of Monte Carlo Tree Search Methods](http://mcts.ai/pubs/mcts-survey-master.pdf)
 
-      关于MCTS方法的大宗型调研论文。涵盖了从select到backPropogate的MCTS所有子过程的理解、优化与应用。是我们组未来对AI进行优化时最为重要的参考大纲。
+  关于MCTS方法的大宗型调研论文。涵盖了从select到backPropogate的MCTS所有子过程的理解、优化与应用。是我们组未来对AI进行优化时最为重要的参考大纲。
 
 ### Candidates For Future
 
 - [ ] [*Gelly et al*: Monte-Carlo tree search and rapid action value estimation in computer Go](http://www.ics.uci.edu/~dechter/courses/ics-295/winter-2018/papers/mcts-gelly-silver.pdf)
-  ​    
-      RAVE算法。这是作者在2011年发布的版本。整个算法似乎利用到了「重用子问题」的思想，是非常值得研究的一种优化策略。
+
+  RAVE算法。这是作者在2011年发布的版本。整个算法似乎利用到了「重用子问题」的思想，是非常值得研究的一种优化策略。
 
 - [ ] [*Frydenberg et al*: Investigating MCTS Modiﬁcations in General Video Game Playing]()
 
 - [ ] [*Lanzi et al*: Evolving UCT Alternatives for General Video Game Playing](https://www.politesi.polimi.it/bitstream/10589/133902/3/tesi.pdf)
 
-      以上两篇论文都提出了一些UCB1的修改算法。若能从中找到一个较好的无需父结点数据的公式，则可以对MCTS的select过程实现一个很重要的性能优化：通过维护一个大根堆来快速选出最优子结点。
-
-
-
+  以上两篇论文都提出了一些UCB1的修改算法。若能从中找到一个较好的无需父结点数据的公式，则可以对MCTS的select过程实现一个很重要的性能优化：通过维护一个大根堆来快速选出最优子结点。
 
 
 # Performance Profile
@@ -355,11 +565,11 @@ private:
 * $h$：从根节点算起，当前蒙特卡洛树的树高。
 * $n_i$：当前结点下，可下的位置数量。
 
-|    函数    |      select       |          expand          |
-| :--------: | :---------------: | :----------------------: |
-| 单次复杂度 | $S(n_i)=O(N-n_i)$ | $E_1=O(1)$, $E_2=O(N-n)$ |
-|    \#1     |     $(N-n)h$      |          $N-n$           |
-|    \#2     |        $h$        |            1             |
+|      select       |    函数    |          expand          |
+| :---------------: | :--------: | :----------------------: |
+| $S(n_i)=O(N-n_i)$ | 单次复杂度 | $E_1=O(1)$, $E_2=O(N-n)$ |
+|     $(N-n)h$      |    \#1     |          $N-n$           |
+|        $h$        |    \#2     |            1             |
 
 默认根节点为棋盘初始状态时，总时间开销：
 
