@@ -10,11 +10,12 @@ inline void Game_Ext(py::module& mod) {
 
 
     // Definition of Game Config enum
-    //py::class_<GameConfig>(mod, "Config", "Gomoku game configs")
-    //    .def_readonly_static("width", GameConfig::WIDTH)
-    //    .def_readonly_static("height", &GameConfig::HEIGHT)
-    //    .def_readonly_static("board_size", &GameConfig::BOARD_SIZE)
-    //    .def_readonly_static("max_renju", &GameConfig::MAX_RENJU);
+    mod.add_object("GameConfig", py::dict(
+        "width"_a      = (int)GameConfig::WIDTH,
+        "height"_a     = (int)GameConfig::HEIGHT,
+        "board_size"_a = (int)GameConfig::BOARD_SIZE,
+        "max_renju"_a  = (int)GameConfig::MAX_RENJU
+    ));
 
 
     // Definition of Player enum class
@@ -22,7 +23,6 @@ inline void Game_Ext(py::module& mod) {
         .value("white", Player::White)
         .value("none",  Player::None)
         .value("black", Player::Black)
-        //.def(py::init([](int p) { return Player(p); }))
         .def("__float__", [](Player p) { return static_cast<double>(p); })
         .def("__neg__",   [](Player p) { return -p; })
         .def_static("calc_score", [](Player p, Player w) { return getFinalScore(p, w); });
@@ -49,6 +49,7 @@ inline void Game_Ext(py::module& mod) {
         .def("random_move", &Board::getRandomMove)
         .def("check_move",  &Board::checkMove)
         .def("check_end",   &Board::checkGameEnd)
+        .def("reset",       &Board::reset)
         .def_property_readonly("status", [](const Board& b) {
             auto status = b.status();
             return py::dict(
@@ -59,16 +60,14 @@ inline void Game_Ext(py::module& mod) {
         })
         .def_property_readonly("move_counts", [](const Board& b) {
             py::dict move_counts;
-            for (int i = 0; i < 3; ++i) {
-                const auto player = Player(i - 1);
+            for (auto player : { Player::Black, Player::None, Player::White }) {
                 move_counts[py::cast(player)] = b.moveCounts(player);
             }
             return move_counts;
         })
         .def_property_readonly("move_states", [](const Board& b) {
             py::dict move_states;
-            for (int i = 0; i < 3; ++i) {
-                const auto player = Player(i - 1);
+            for (auto player : { Player::Black, Player::None, Player::White }) {
                 // reshape to a square board
                 move_states[py::cast(player)] = py::array(py::dtype("uint8"), { WIDTH, HEIGHT }, b.moveStates(player).data()); 
             }

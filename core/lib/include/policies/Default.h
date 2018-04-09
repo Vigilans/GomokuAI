@@ -47,11 +47,13 @@ struct Default {
     }
 
     // 根据传入的概率扩张结点。概率为0的Action将不被加入子结点中。
-    static std::size_t expand(Policy* policy, Node* node, const std::vector<double> action_probs) {
+    static size_t expand(Policy* policy, Node* node, Board& board, const std::vector<double> action_probs) {
         node->children.reserve(action_probs.size());
         for (int i = 0; i < GameConfig::BOARD_SIZE; ++i) {
-            if (action_probs[i] != 0.0) {
-                node->children.emplace_back(new Node{ node, i, -node->player, 0.0, action_probs[i] });
+            // 后一个条件是额外的检查，防止不允许下的点意外被添进树中。
+            // 一般情况下会被短路，不影响性能。
+            if (action_probs[i] != 0 && board.checkMove(i)) {
+                node->children.emplace_back(new Node{ node, Position(i), -node->player, 0.0f, float(action_probs[i]) });
             }
         }
         return node->children.size();

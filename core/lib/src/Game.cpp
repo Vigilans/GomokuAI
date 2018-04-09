@@ -22,8 +22,7 @@ inline void unsetState(Board* board, Player player, Position position) {
 }
 
 Board::Board() {
-    moveStates(Player::None).fill(true);
-    moveCounts(Player::None) = moveStates(Player::None).size();
+    this->reset();
 }
 
 Player Board::applyMove(Position move, bool checkVictory) {
@@ -67,7 +66,7 @@ bool Board::checkGameEnd(Position move) {
     const int curX = move.x(), curY = move.y();
         
     // 沿不同方向的搜索方法复用
-    const auto search = [&](int dx, int dy) {
+    const auto search = [&curX, &curY, this](int dx, int dy) {
         int renju = 1; // 当前落子构成的最大连珠数
 
         // 正向与反向搜索
@@ -97,6 +96,15 @@ bool Board::checkGameEnd(Position move) {
     }
 }
 
+void Board::reset() {
+    for (auto player : { Player::Black, Player::None, Player::White }) {
+        moveStates(player).fill(player == Player::None ? true : false);
+        moveCounts(player) = (player == Player::None ? GameConfig::BOARD_SIZE : 0);
+    }
+    m_curPlayer = Player::Black;
+    m_winner = Player::None;
+}
+
 string std::to_string(Player player) {
     switch (player) {
     case Player::Black:
@@ -112,7 +120,7 @@ string std::to_string(Player player) {
 
 string std::to_string(Position position) {
     oss.str("");
-    oss << "(" << position.x() << ", " << position.y() << ")";
+    oss << "(" << (int)position.x() << ", " << (int)position.y() << ")";
     return oss.str();
 }
 

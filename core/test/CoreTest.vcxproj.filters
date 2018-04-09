@@ -19,7 +19,6 @@
     <ClInclude Include="pch.h" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="packages.config" />
     <None Include="readme.md" />
   </ItemGroup>
   <ItemGroup>

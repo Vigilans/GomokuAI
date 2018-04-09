@@ -21,8 +21,8 @@ Policy::Policy(
     select(f1 ? f1 : [this](auto node, auto c_puct) {
         return Default::select(this, node, c_puct);
     }),
-    expand(f2 ? f2 : [this](auto node, auto action_probs) {
-        return Default::expand(this, node, action_probs);
+    expand(f2 ? f2 : [this](auto node, auto& board, auto action_probs) {
+        return Default::expand(this, node, board, std::move(action_probs));
     }),
     simulate(f3 ? f3 : [this](auto& board) {
         return Default::simulate(this, board);
@@ -37,7 +37,7 @@ MCTS::MCTS(
     Position last_move,
     Player last_player,
     Policy* policy,
-    std::size_t c_iterations,
+    size_t c_iterations,
     double c_puct
 ) :
     m_root(new Node{ nullptr, last_move, last_player, 0.0, 1.0 }),   
@@ -90,7 +90,7 @@ size_t MCTS::playout(Board& board) {
     size_t expand_size;
     if (!board.checkGameEnd(node->position)) {  // 检查终结点游戏是否结束  
         auto [value, action_probs] = m_policy->simulate(board);        // 根据模拟战预估当前结点对应盘面价值分数 
-        expand_size = m_policy->expand(node, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
+        expand_size = m_policy->expand(node, board, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
         node_value = value;
     } else {
         node_value = getFinalScore(node->player, board.m_winner); // 根据对局结果获取绝对价值分数

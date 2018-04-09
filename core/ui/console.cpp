@@ -56,6 +56,14 @@ int main() {
     Board board;
     MCTS mcts;
 
+    cout << sizeof(decltype(Node::node_visits)) << endl;
+    cout << sizeof(decltype(Node::children)) << endl;
+    cout << sizeof(decltype(Node::action_prob)) << endl;
+    cout << sizeof(decltype(Node::parent)) << endl;
+    cout << sizeof(decltype(Node::player)) << endl;
+    cout << sizeof(decltype(Node::position)) << endl;
+    cout << sizeof(Node) << endl;
+
     cout << std::to_string(board);
     for (int x, y; board.m_curPlayer != Player::None;) {
         cout << "\nYour  (x, y): ";

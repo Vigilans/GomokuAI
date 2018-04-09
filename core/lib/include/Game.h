@@ -5,76 +5,80 @@
 
 namespace Gomoku {
 
-// ÓÎÏ·µÄ»ù±¾ÅäÖÃ
+// æ¸¸æˆçš„åŸºæœ¬é…ç½®
 enum GameConfig {
     WIDTH = 15, HEIGHT = 15, MAX_RENJU = 5, BOARD_SIZE = WIDTH*HEIGHT
 };
 
 
-// Íæ¼Ò¸ÅÄîµÄ³éÏó·â×°
+// ç©å®¶æ¦‚å¿µçš„æŠ½è±¡å°è£…
 enum class Player : char { 
     White = -1, None = 0, Black = 1 
 };
 
-// ·µ»Ø¶ÔÊÖµÄPlayerÖµ¡£Player::NoneµÄ¶ÔÊÖÈÔÊÇPlayer::None¡£
+// è¿”å›å¯¹æ‰‹çš„Playerå€¼ã€‚Player::Noneçš„å¯¹æ‰‹ä»æ˜¯Player::Noneã€‚
 constexpr Player operator-(Player player) { 
     return Player(-static_cast<char>(player)); 
 }
 
-// ·µ»ØÓÎÏ·½áÊøºóµÄµÃ·Ö¡£Í¬ºÅ£¨winnerÓëplayerÏàÍ¬£©ÎªÕı£¬ÒìºÅÎª¸º£¬Æ½¾ÖÎªÁã¡£
+// è¿”å›æ¸¸æˆç»“æŸåçš„å¾—åˆ†ã€‚åŒå·ï¼ˆwinnerä¸playerç›¸åŒï¼‰ä¸ºæ­£ï¼Œå¼‚å·ä¸ºè´Ÿï¼Œå¹³å±€ä¸ºé›¶ã€‚
 constexpr double getFinalScore(Player player, Player winner) { 
     return static_cast<double>(player) * static_cast<double>(winner); 
 }
 
 
-// ¿ÉÓÃÀ´±íÊ¾µÚÒ»/µÚËÄÏóÏŞµÄ×ø±ê¡£Ò²¾ÍÊÇËµ£¬x/y×ø±ê±ØĞëÍ¬Õı»òÍ¬¸º¡£
+// å¯ç”¨æ¥è¡¨ç¤ºç¬¬ä¸€/ç¬¬å››è±¡é™çš„åæ ‡ã€‚ä¹Ÿå°±æ˜¯è¯´ï¼Œx/yåæ ‡å¿…é¡»åŒæ­£æˆ–åŒè´Ÿã€‚
+// å†…éƒ¨å­˜å‚¨ä½¿ç”¨shortï¼Œå…¶ä½™æƒ…å†µå‡è½¬æ¢ä¸ºintè®¡ç®—ã€‚
 struct Position {
-    using value_type = int;
+    using value_type = short;
 
     value_type id;
 
-    Position(value_type id = -1)                     : id(id) {}
-    Position(value_type x, value_type y)             : id(y * WIDTH + x) {}
-    Position(std::pair<value_type, value_type> pose) : id(pose.second * WIDTH + pose.first) {}
+    Position(int id = -1)              : id(id) {}
+    Position(int x, int y)             : id(y * WIDTH + x) {}
+    Position(std::pair<int, int> pose) : id(pose.second * WIDTH + pose.first) {}
 
-    operator  value_type  () const { return id; }
-    constexpr value_type x() const { return id % WIDTH; }
-    constexpr value_type y() const { return id / WIDTH; }
+    operator  int  () const { return id; }
+    constexpr int x() const { return id % WIDTH; }
+    constexpr int y() const { return id / WIDTH; }
 };
 
 
 class Board {
-// ¹«¿ª½Ó¿Ú²¿·Ö
+// å…¬å¼€æ¥å£éƒ¨åˆ†
 public:
     Board();
 
     /*
-        ÏÂÆå¡£·µ»ØÖµÀàĞÍÎªPlayer£¬´ú±íÏÂÒ»ÂÖÓ¦ÏÂµÄÍæ¼Ò¡£¾ßÌå½âÊÍ£º
-        - ÈôPlayerÎª¶ÔÊÖ£¬Ôò´ú±íÏÂÒ»²½Ó¦¶ÔÊÖÏÂ£¬Õı³£¼ÌĞø¡£
-        - ÈôPlayerÎª¼º·½£¬Ôò´ú±íÕâÒ»ÊÖÎŞĞ§£¬Ó¦¸ÃÖØÏÂ¡£
-        - ÈôPlayerÎªNone£¬Ôò´ú±íÕâÒ»²½ºóÓÎÏ·ÒÑ½áÊø¡£´ËÊ±£¬¿ÉÒÔÍ¨¹ım_winner»ñÈ¡ÓÎÏ·½á¹û¡£
+        ä¸‹æ£‹ã€‚è¿”å›å€¼ç±»å‹ä¸ºPlayerï¼Œä»£è¡¨ä¸‹ä¸€è½®åº”ä¸‹çš„ç©å®¶ã€‚å…·ä½“è§£é‡Šï¼š
+        - è‹¥Playerä¸ºå¯¹æ‰‹ï¼Œåˆ™ä»£è¡¨ä¸‹ä¸€æ­¥åº”å¯¹æ‰‹ä¸‹ï¼Œæ­£å¸¸ç»§ç»­ã€‚
+        - è‹¥Playerä¸ºå·±æ–¹ï¼Œåˆ™ä»£è¡¨è¿™ä¸€æ‰‹æ— æ•ˆï¼Œåº”è¯¥é‡ä¸‹ã€‚
+        - è‹¥Playerä¸ºNoneï¼Œåˆ™ä»£è¡¨è¿™ä¸€æ­¥åæ¸¸æˆå·²ç»“æŸã€‚æ­¤æ—¶ï¼Œå¯ä»¥é€šè¿‡m_winnerè·å–æ¸¸æˆç»“æœã€‚
     */
     Player applyMove(Position move, bool checkVictory = true);
 
     /*
-        »ÚÆå¡£·µ»ØÖµÀàĞÍÎªPlayer£¬´ú±íÏÂÒ»ÂÖÓ¦ÏÂµÄÍæ¼Ò¡£¾ßÌå½âÊÍ£º
-        - ÈôPlayerÎª¶ÔÊÖ£¬Ôò´ú±í»ÚÆå³É¹¦£¬¸ÄÎª¶ÔÊÖÍæ¼ÒÏÂÆå¡£
-        - ÈôPlayerÎª¼º·½£¬Ôò´ú±í»ÚÆåÊ§°Ü£¬ÆåÅÌ×´Ì¬²»±ä¡£
+        æ‚”æ£‹ã€‚è¿”å›å€¼ç±»å‹ä¸ºPlayerï¼Œä»£è¡¨ä¸‹ä¸€è½®åº”ä¸‹çš„ç©å®¶ã€‚å…·ä½“è§£é‡Šï¼š
+        - è‹¥Playerä¸ºå¯¹æ‰‹ï¼Œåˆ™ä»£è¡¨æ‚”æ£‹æˆåŠŸï¼Œæ”¹ä¸ºå¯¹æ‰‹ç©å®¶ä¸‹æ£‹ã€‚
+        - è‹¥Playerä¸ºå·±æ–¹ï¼Œåˆ™ä»£è¡¨æ‚”æ£‹å¤±è´¥ï¼Œæ£‹ç›˜çŠ¶æ€ä¸å˜ã€‚
     */
     Player revertMove(Position move);
 
-    // Ã¿ÏÂÒ»²½¶¼½øĞĞÖÕ¾Ö¼ì²é£¬ÕâÑù±ãÖ»Ğè¶Ôµ±Ç°Âä×ÓÖÜÎ§½øĞĞ±éÀú¼´¿É¡£
+    // æ¯ä¸‹ä¸€æ­¥éƒ½è¿›è¡Œç»ˆå±€æ£€æŸ¥ï¼Œè¿™æ ·ä¾¿åªéœ€å¯¹å½“å‰è½å­å‘¨å›´è¿›è¡Œéå†å³å¯ã€‚
     Position getRandomMove() const;
 
-    // Ô½½çÓëÎŞ×Ó¼ì²é¡£ÔİÎŞ½ûÊÖ¹æÔò¡£
+    // è¶Šç•Œä¸æ— å­æ£€æŸ¥ã€‚æš‚æ— ç¦æ‰‹è§„åˆ™ã€‚
     bool checkMove(Position move);
 
-    // Ã¿ÏÂÒ»²½¶¼½øĞĞÖÕ¾Ö¼ì²é£¬ÕâÑù±ãÖ»Ğè¶Ôµ±Ç°Âä×ÓÖÜÎ§½øĞĞ±éÀú¼´¿É¡£
+    // æ¯ä¸‹ä¸€æ­¥éƒ½è¿›è¡Œç»ˆå±€æ£€æŸ¥ï¼Œè¿™æ ·ä¾¿åªéœ€å¯¹å½“å‰è½å­å‘¨å›´è¿›è¡Œéå†å³å¯ã€‚
     bool checkGameEnd(Position move);
+
+    // é‡ç½®æ£‹ç›˜åˆ°åˆå§‹çŠ¶æ€ã€‚
+    void reset();
     
-// Êı¾İ³ÉÔ±·â×°²¿·Ö
+// æ•°æ®æˆå‘˜å°è£…éƒ¨åˆ†
 public: 
-    // ·µ»Øµ±Ç°ÓÎÏ·×´Ì¬
+    // è¿”å›å½“å‰æ¸¸æˆçŠ¶æ€
     const auto status() const {
         struct { bool end; Player curPlayer; Player winner; } status {
             m_curPlayer == Player::None, m_curPlayer, m_winner 
@@ -82,38 +86,38 @@ public:
         return status;
     }
 
-    // Í¨¹ıPlayerÃ¶¾Ù»ñÈ¡¶ÔÓ¦ÆåÅÌ×´Ì¬
+    // é€šè¿‡Playeræšä¸¾è·å–å¯¹åº”æ£‹ç›˜çŠ¶æ€
     std::array<bool, BOARD_SIZE>&       moveStates(Player player) { return m_moveStates[static_cast<int>(player) + 1]; }
     const std::array<bool, BOARD_SIZE>& moveStates(Player player) const { return m_moveStates[static_cast<int>(player) + 1]; }
 
-    // Í¨¹ıPlayerÃ¶¾Ù»ñÈ¡ÒÑÂä×Ó/Î´Âä×Ó×ÜÊı
+    // é€šè¿‡Playeræšä¸¾è·å–å·²è½å­/æœªè½å­æ€»æ•°
     std::size_t& moveCounts(Player player) { return m_moveCounts[static_cast<int>(player) + 1]; }
     std::size_t  moveCounts(Player player) const { return m_moveCounts[static_cast<int>(player) + 1]; }
 
-// Êı¾İ³ÉÔ±²¿·Ö
+// æ•°æ®æˆå‘˜éƒ¨åˆ†
 public:
     /*
-        ±íÊ¾ÔÚµ±Ç°ÆåÅÌ×´Ì¬ÏÂÓ¦ÏÂµÄÍæ¼Ò¡£
-        µ±ÖµÎªPlayer::NoneÊ±£¬´ú±íÓÎÏ·½áÊø¡£
-        Ä¬ÈÏÎªºÚÆåÏÈÏÂ¡£
+        è¡¨ç¤ºåœ¨å½“å‰æ£‹ç›˜çŠ¶æ€ä¸‹åº”ä¸‹çš„ç©å®¶ã€‚
+        å½“å€¼ä¸ºPlayer::Noneæ—¶ï¼Œä»£è¡¨æ¸¸æˆç»“æŸã€‚
+        é»˜è®¤ä¸ºé»‘æ£‹å…ˆä¸‹ã€‚
     */
     Player m_curPlayer = Player::Black;
 
     /*
-        µ±Æå¾Ö½áÊøºó£¬ÆäÖµ´ú±í×îÖÕÓÎÏ·½á¹û:
-        - Player::Black: ºÚÓ®
-        - Player::White: °×Ó®
-        - Player::None:  ºÍ¾Ö
-        µ±Æå¾Ö»¹Î´½áÊøÊ±£¨m_curPlayer != Player::None£©£¬ÖµÊ¼ÖÕ±£³ÖÎªNone£¬´ú±í»¹Ã»ÓĞÓ®¼Ò¡£
+        å½“æ£‹å±€ç»“æŸåï¼Œå…¶å€¼ä»£è¡¨æœ€ç»ˆæ¸¸æˆç»“æœ:
+        - Player::Black: é»‘èµ¢
+        - Player::White: ç™½èµ¢
+        - Player::None:  å’Œå±€
+        å½“æ£‹å±€è¿˜æœªç»“æŸæ—¶ï¼ˆm_curPlayer != Player::Noneï¼‰ï¼Œå€¼å§‹ç»ˆä¿æŒä¸ºNoneï¼Œä»£è¡¨è¿˜æ²¡æœ‰èµ¢å®¶ã€‚
     */
     Player m_winner = Player::None;
 
     /*
-        Á½¸öÊı×é±íÊ¾ÁËÆåÅÌÉÏµÄ×´Ì¬ÓëÒÑÂä×Ó¸öÊı¡£¸÷ÏÂ±ê¶ÔÓ¦¹ØÏµÎª£º
-        0 - Player::White - °××Ó·ÅÖÃÇé¿ö
-        1 - Player::None  - ¿ÉÂä×ÓÎ»ÖÃÇé¿ö
-        2 - Player::Black - ºÚ×Ó·ÅÖÃÇé¿ö
-        ¸½£ºÎªÊ²Ã´²»Ê¹ÓÃstd::vectorÄØ£¿ÒòÎªvector<bool> :)¡£
+        ä¸¤ä¸ªæ•°ç»„è¡¨ç¤ºäº†æ£‹ç›˜ä¸Šçš„çŠ¶æ€ä¸å·²è½å­ä¸ªæ•°ã€‚å„ä¸‹æ ‡å¯¹åº”å…³ç³»ä¸ºï¼š
+        0 - Player::White - ç™½å­æ”¾ç½®æƒ…å†µ
+        1 - Player::None  - å¯è½å­ä½ç½®æƒ…å†µ
+        2 - Player::Black - é»‘å­æ”¾ç½®æƒ…å†µ
+        é™„ï¼šä¸ºä»€ä¹ˆä¸ä½¿ç”¨std::vectorå‘¢ï¼Ÿå› ä¸ºvector<bool> :)ã€‚
     */
     std::array<bool, BOARD_SIZE> m_moveStates[3] = {};
     std::size_t m_moveCounts[3] = {};

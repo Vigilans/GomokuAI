@@ -9,7 +9,7 @@ inline void MCTS_Ext(py::module& mod) {
     using namespace Gomoku;
 
     py::class_<Node>(mod, "Node", "MCTS Tree Node")
-        .def(py::init<Node*, Position, Player, double, double>(),
+        .def(py::init<Node*, Position, Player, float, float>(),
             py::arg("parent") = nullptr,
             py::arg("position") = Position(-1),
             py::arg("player") = Player::None,
@@ -30,13 +30,13 @@ inline void MCTS_Ext(py::module& mod) {
         .def(py::init<Policy::SelectFunc, Policy::ExpandFunc, Policy::EvalFunc, Policy::UpdateFunc>(),
             py::arg("select") = nullptr,
             py::arg("expand") = nullptr,
-            py::arg("evaluate") = nullptr,
-            py::arg("update") = nullptr
+            py::arg("eval_state") = nullptr,
+            py::arg("back_prop") = nullptr
         )
         .def_readonly("select", &Policy::select)
         .def_readonly("expand", &Policy::expand)
-        .def_readonly("evaluate", &Policy::simulate)
-        .def_readonly("update", &Policy::backPropogate);
+        .def_readonly("eval_state", &Policy::simulate)
+        .def_readonly("back_prop", &Policy::backPropogate);
 
 
     py::class_<MCTS>(mod, "MCTS", "Monte Carlo Tree Search")
