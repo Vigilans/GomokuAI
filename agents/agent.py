@@ -1,3 +1,4 @@
+from .utils import botzone_interact
 from core import Player, Position, Board, GameConfig as Game
 import numpy as np
 
@@ -25,61 +26,9 @@ class Agent:
             self.get_action(state)
         )
 
-    def interact_play(self):
-        """
-        Play interactively according to the botzone interface.
-        Returns:
-            None
-        """
-        pass
+    def __str__(self):
+        return "Base Random Agent"
 
 
-def dual_play(players, board=None, verbose=False):
-    """
-    Play with 2 players.
-    Params:
-      players: { Player.black: agent1, Player.white: agent2 }.
-      board:   initial board state. Start player will be determined here.
-      verbose: if true, then return value will be in the form of training data.
-    Returns:
-      if verbose set to True:
-        [(state_inputs, final_score, action_probs)]
-      else:
-        winner
-    """
-    if board is None:
-        board = Board()
-
-    if verbose is True:
-        result = []
-    else:
-        result = Player.none
-
-    while(True):
-        # set the current agent
-        cur_agent = players[board.status["cur_player"]]
-
-        # evaluate board state and get action
-        if verbose is True:
-            _, action_probs, next_move = cur_agent.eval_state(board)
-            result.append((
-                board.encoded_states(),
-                board.status["cur_player"],
-                action_probs
-            ))
-        else:
-            next_move = cur_agent.get_action(board)
-        # update board
-        board.apply_move(next_move)
-
-        # end judge
-        if board.status["is_end"]:
-            winner = board.status["winner"]
-            # format output result
-            if verbose is True:
-                for state in result:
-                    state[1] = Player.get_score(state[1], winner)
-            else:
-                result = winner
-
-            return result
+if __name__ == "__main__":
+    botzone_interact(Agent())
