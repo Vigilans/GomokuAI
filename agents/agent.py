@@ -1,5 +1,7 @@
-from .utils import botzone_interact
-from core import Player, Position, Board, GameConfig as Game
+if __name__ == "__main__":
+    import __init__ as __pkg_init__
+
+from core import Position, Board, GameConfig as Game
 import numpy as np
 
 
@@ -19,7 +21,7 @@ class Agent:
         Returns:
           (state_value, action_probs, next_move)
         """
-        # if not overrided, simply return random and uniform evaluation
+        # if not overrided, simply return uniform evaluation and random move
         return (
             0.0,
             np.full((Game["width"], Game["height"]), 1 / Game["board_size"]),
@@ -31,4 +33,5 @@ class Agent:
 
 
 if __name__ == "__main__":
+    from utils import botzone_interact
     botzone_interact(Agent())
