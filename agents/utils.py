@@ -12,6 +12,7 @@ def dual_play(agents, board=None, verbose=False):
     Returns:
       if verbose set to True:
         [(state_inputs, final_score, action_probs)]
+        Each element is a numpy.array.
       else:
         winner
     """
@@ -46,14 +47,14 @@ def dual_play(agents, board=None, verbose=False):
             # format output result
             if verbose is True:
                 for state in result:
-                    state[1] = Player.get_score(state[1], winner)
+                    state[1] = np.array(Player.get_score(state[1], winner))
             else:
                 result = winner
 
             return result
 
 
-def eval_agent(agents, num_games=5, board=None):
+def eval_agent(agents, num_games=5):
     """
     Eval the performance of two agents by multiple game simulation.
     Params:
@@ -65,6 +66,7 @@ def eval_agent(agents, num_games=5, board=None):
     """
     print("---------Evaluating agents-------------")
 
+    board = Board()
     players = [Player.black, Player.white]
     win_cnts = np.zeros(2)
 
@@ -76,6 +78,8 @@ def eval_agent(agents, num_games=5, board=None):
         except ValueError:  # tie
             win_cnts += 0.5
         players.reverse()  # exchange the start player
+        board.reset()
+        [agent.reset() for agent in agents]
 
     win_rates = win_cnts / num_games
 
