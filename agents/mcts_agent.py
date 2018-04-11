@@ -25,6 +25,9 @@ class MCTSAgent(Agent):
         Q, pi = self.mcts.eval_state(state)
         return Q, pi, self.mcts.step_forward().position
 
+    def reset(self):
+        self.mcts.reset()
+
     def _check_root(self, state):
         """ ensure root node to be last player's move when not self-playing"""
         cur_player = state.status["cur_player"]
