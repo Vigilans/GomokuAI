@@ -50,7 +50,7 @@ struct Default {
     static size_t expand(Policy* policy, Node* node, Board& board, const std::vector<double> action_probs) {
         node->children.reserve(action_probs.size());
         for (int i = 0; i < GameConfig::BOARD_SIZE; ++i) {
-            // 后一个条件是额外的检查，防止不允许下的点意外被添进树中。
+            // 后一个条件是额外的检查，防止不允许下的点意外添进树中。
             // 一般情况下会被短路，不影响性能。
             if (action_probs[i] != 0 && board.checkMove(i)) {
                 node->children.emplace_back(new Node{ node, Position(i), -node->player, 0.0f, float(action_probs[i]) });
@@ -61,30 +61,24 @@ struct Default {
 
     // 随机下棋直到游戏结束
     static Policy::EvalResult simulate(Policy* policy, Board& board) {
-        using Actions = std::vector<Position>;
-        if (!policy->container.has_value()) {
-            policy->container.emplace<Actions>();
-        }   
-        auto&& move_stack = std::any_cast<Actions>(policy->container);
         const auto node_player = board.m_curPlayer;
+        auto total_moves = 0;
 
         for (auto result = node_player; result != Player::None; ) {
             auto move = board.getRandomMove();
             result = board.applyMove(move);
-            move_stack.push_back(move);
+            total_moves += 1;
         }
 
         const auto winner = board.m_winner;
         // 重置棋盘至MCTS当前根节点状态，注意赢家会被重新设为Player::None！
-        while (!move_stack.empty()) {
-            board.revertMove(move_stack.back());
-            move_stack.pop_back();
-        }
+        board.revertMove(total_moves);
 
         const auto score = getFinalScore(node_player, winner);
         auto action_probs = std::vector<double>(BOARD_SIZE);
         for (int i = 0; i < BOARD_SIZE; ++i) {
-            action_probs[i] = board.moveStates(Player::None)[i] ? 1.0 / board.moveCounts(Player::None) : 0.0;
+            //action_probs[i] = board.moveStates(Player::None)[i] ? (rand() / RAND_MAX) * 0.999998 + 0.000001 : 0.0; // 随机生成(0, 1)之间的概率
+            action_probs[i] = board.moveStates(Player::None)[i] ? 1.0 / board.moveCounts(Player::None) : 0.0; // 随机生成(0, 1)之间的概率
         }
 
         return std::make_tuple(score, std::move(action_probs));
@@ -95,7 +89,7 @@ struct Default {
             node->node_visits += 1;
             node->state_value += (value - node->state_value) / node->node_visits;
             if (node->parent != nullptr) {
-                board.revertMove(node->position);
+                board.revertMove();
             }
         }
     }

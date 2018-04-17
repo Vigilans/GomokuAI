@@ -1,7 +1,8 @@
 #ifndef GOMOKU_GAME_H_
 #define GOMOKU_GAME_H_
 #include <utility> // std::pair, std::size_t
-#include <array>   // std::array, 
+#include <vector>  // std::vector
+#include <array>   // std::array
 
 namespace Gomoku {
 
@@ -58,11 +59,11 @@ public:
     Player applyMove(Position move, bool checkVictory = true);
 
     /*
-        悔棋。返回值类型为Player，代表下一轮应下的玩家。具体解释：
-        - 若Player为对手，则代表悔棋成功，改为对手玩家下棋。
-        - 若Player为己方，则代表悔棋失败，棋盘状态不变。
+        悔棋。具体解释：
+        - 参数为要悔棋的步数，默认为1。
+        - 返回值类型为Player，代表下一轮应下的玩家。
     */
-    Player revertMove(Position move);
+    Player revertMove(size_t count = 1);
 
     // 每下一步都进行终局检查，这样便只需对当前落子周围进行遍历即可。
     Position getRandomMove() const;
@@ -112,6 +113,7 @@ public:
     */
     Player m_winner = Player::None;
 
+
     /*
         两个数组表示了棋盘上的状态与已落子个数。各下标对应关系为：
         0 - Player::White - 白子放置情况
@@ -121,6 +123,9 @@ public:
     */
     std::array<bool, BOARD_SIZE> m_moveStates[3] = {};
     std::size_t m_moveCounts[3] = {};
+
+    //保存了棋局的完整记录的栈式结构。
+    std::vector<Position> m_moveRecord;
 };
 
 }

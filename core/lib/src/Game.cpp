@@ -22,6 +22,7 @@ inline void unsetState(Board* board, Player player, Position position) {
 }
 
 Board::Board() {
+    this->m_moveRecord.reserve(GameConfig::BOARD_SIZE / 3);
     this->reset();
 }
 
@@ -29,20 +30,24 @@ Player Board::applyMove(Position move, bool checkVictory) {
     // 检查游戏是否未结束且为有效的一步
     if (m_curPlayer != Player::None && checkMove(move)) {
         setState(this, m_curPlayer, move);
-        unsetState(this,Player::None, move);
-        // 若checkVictory为false，则checkGameEnd()被短路。
-        m_curPlayer = checkVictory && checkGameEnd(move) ? Player::None : -m_curPlayer;
+        unsetState(this, Player::None, move);
+        m_curPlayer = checkVictory && checkGameEnd(move) ? Player::None : -m_curPlayer; // 若checkVictory为false，则checkGameEnd()被短路。
+        m_moveRecord.push_back(move);
     }
     return m_curPlayer;
 }
 
-Player Board::revertMove(Position move) {
-    // 需要保证游戏结束后(m_curPlayer == Player::None)，也能调用成功
-    if (!moveStates(Player::None)[move]) {
+Player Board::revertMove(size_t count) {
+    // 需要保证游戏结束后，也能调用成功
+    if (m_curPlayer == Player::None && count != 0) {
+        m_curPlayer = moveCounts(Player::Black) == moveCounts(Player::White) ? Player::Black : Player::White;
         m_winner = Player::None; // 由于悔了一步，游戏回到没有赢家的状态
-        m_curPlayer = moveStates(Player::Black)[move] ? Player::Black : Player::White;
-        setState(this, Player::None, move);
-        unsetState(this, m_curPlayer, move);
+    }
+    for (size_t i = 0; !m_moveRecord.empty() && i < count; ++i) {
+        unsetState(this, -m_curPlayer, m_moveRecord.back());
+        setState(this, Player::None, m_moveRecord.back());
+        m_moveRecord.pop_back();
+        m_curPlayer = -m_curPlayer;
     }
     return m_curPlayer;
 }
@@ -101,6 +106,7 @@ void Board::reset() {
         moveStates(player).fill(player == Player::None ? true : false);
         moveCounts(player) = (player == Player::None ? GameConfig::BOARD_SIZE : 0);
     }
+    m_moveRecord.clear();
     m_curPlayer = Player::Black;
     m_winner = Player::None;
 }
