@@ -35,9 +35,10 @@ struct Default {
         //    return lhs->UCB1(sqrt(2)) < rhs->UCB1(sqrt(2));
         //})->get();
         int index = 0;
-        double max = 0.0;
-        for (int i = 0; i < node->children.size(); ++i) {
-            auto cur = node->children[i]->node_visits ? PUCT(node->children[i].get(), expl) : 1000;
+        double max = PUCT(node->children[0].get(), expl);
+        for (int i = 1; i < node->children.size(); ++i) {
+            //auto cur = node->children[i]->node_visits ? PUCT(node->children[i].get(), expl) : 1000;
+            auto cur = PUCT(node->children[i].get(), expl);
             if (cur > max) {
                 index = i;
                 max = cur;
@@ -52,7 +53,7 @@ struct Default {
         for (int i = 0; i < GameConfig::BOARD_SIZE; ++i) {
             // 后一个条件是额外的检查，防止不允许下的点意外添进树中。
             // 一般情况下会被短路，不影响性能。
-            if (action_probs[i] != 0 && board.checkMove(i)) {
+            if (action_probs[i] != 0.0 && board.checkMove(i)) {
                 node->children.emplace_back(new Node{ node, Position(i), -node->player, 0.0f, float(action_probs[i]) });
             }
         }
@@ -61,23 +62,29 @@ struct Default {
 
     // 随机下棋直到游戏结束
     static Policy::EvalResult simulate(Policy* policy, Board& board) {
-        const auto node_player = board.m_curPlayer;
-        auto total_moves = 0;
+        double score = 0;
+        double rollout_count = 5;
 
-        for (auto result = node_player; result != Player::None; ) {
-            auto move = board.getRandomMove();
-            result = board.applyMove(move);
-            total_moves += 1;
+        for (int i = 0; i < rollout_count; ++i) {
+            auto total_moves = 0;
+
+            for (auto result = board.m_curPlayer; result != Player::None; ++total_moves) {
+                auto move = board.getRandomMove();
+                result = board.applyMove(move);
+            }
+
+            const auto winner = board.m_winner;
+            score += calcScore(Player::Black, winner); // 黑棋越赢越接近1，白棋越赢越接近-1
+
+            // 重置棋盘至传入时状态，注意赢家会被重新设为Player::None！
+            board.revertMove(total_moves);
         }
+        
+        score /= rollout_count;
 
-        const auto winner = board.m_winner;
-        // 重置棋盘至MCTS当前根节点状态，注意赢家会被重新设为Player::None！
-        board.revertMove(total_moves);
-
-        const auto score = getFinalScore(node_player, winner);
         auto action_probs = std::vector<double>(BOARD_SIZE);
         for (int i = 0; i < BOARD_SIZE; ++i) {
-            //action_probs[i] = board.moveStates(Player::None)[i] ? (rand() / RAND_MAX) * 0.999998 + 0.000001 : 0.0; // 随机生成(0, 1)之间的概率
+            //double noise = (1.0 * rand() / RAND_MAX) * 0.999998;
             action_probs[i] = board.moveStates(Player::None)[i] ? 1.0 / board.moveCounts(Player::None) : 0.0; // 随机生成(0, 1)之间的概率
         }
 

@@ -32,7 +32,8 @@ Player Board::applyMove(Position move, bool checkVictory) {
         setState(this, m_curPlayer, move);
         unsetState(this, Player::None, move);
         m_moveRecord.push_back(move);
-        m_curPlayer = checkVictory && checkGameEnd() ? Player::None : -m_curPlayer; // 若checkVictory为false，则checkGameEnd()被短路。
+        m_curPlayer = -m_curPlayer;
+        if (checkVictory) { checkGameEnd(); }
     }
     return m_curPlayer;
 }
@@ -73,11 +74,17 @@ bool Board::checkGameEnd() {
         return true;
     }
 
+    // 若一手都没下，则一定未结束
+    if (m_moveRecord.empty()) {
+        return false;
+    }
+
     // 获取最后一手的坐标
     const auto [curX, curY] = m_moveRecord.back();
+    const auto lastPlayer = -m_curPlayer;
         
     // 沿不同方向的搜索方法复用
-    const auto search = [curX, curY, this](int dx, int dy) {
+    const auto search = [curX, curY, lastPlayer, this](int dx, int dy) {
         int renju = 1; // 当前落子构成的最大连珠数
 
         // 正向与反向搜索
@@ -87,7 +94,7 @@ bool Board::checkGameEnd() {
                 x += sgn * dx, y += sgn * dy;
                 // 判断坐标的格子是否未越界且归属为当前棋子
                 if ((x >= 0 && x < WIDTH) && (y >= 0 && y < HEIGHT)
-                    && moveStates(m_curPlayer)[y*WIDTH + x]) ++renju;
+                    && moveStates(lastPlayer)[y*WIDTH + x]) ++renju;
                 else break;
             }
         }
@@ -97,7 +104,7 @@ bool Board::checkGameEnd() {
         
     // 从 左上->右下 || 左下->右上 || 左->右 || 下->上  进行搜索
     if (search(1, -1) || search(1, 1) || search(1, 0) || search(0, 1)) {
-        m_winner = m_curPlayer; // 赢家为当前玩家
+        m_winner = lastPlayer; // 赢家为下最后一手的玩家
         m_curPlayer = Player::None;
         return true;
     } else if (moveCounts(Player::None) == 0) {

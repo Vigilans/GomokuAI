@@ -6,6 +6,12 @@
 #include <functional> // std::function
 #include <any> // std::any
 
+#ifdef _DEBUG
+#define C_ITERATIONS 5000
+#else
+#define C_ITERATIONS 5000
+#endif
+
 namespace Gomoku {
 
 // 蒙特卡洛树结点。
@@ -20,15 +26,15 @@ struct Node {
 
     /* 
         棋盘状态部分：
-          * position: 当前局面下最近一手的位置。
-          * player: 当前局面下应走一下手的玩家。
+          * position: 当前局面下最后一手下的位置。
+          * player:   当前局面下最后一手下的玩家。
     */
     Position position = Position(-1);
     Player player = Player::None;
 
     /* 
         结点价值部分：
-          * state_value: 此结点对应的当前局面的评分。一般为胜率。
+          * state_value: 结点对应局面对于结点对应玩家的价值。一般为胜率。
           * action_prob: 在父结点对应的局面下，选择该动作的概率。
     */
     float state_value = 0.0;
@@ -48,7 +54,7 @@ struct Node {
     Node(Node&&) = default;
     Node& operator=(Node&&) = default;
 
-    /* 辅助判断函数 */
+    /* 辅助函数 */
     bool isLeaf() const { return children.empty(); }
     bool isFull(const Board& board) const { return children.size() == board.moveCounts(Player::None); }
 };
@@ -104,7 +110,7 @@ public:
         Position last_move    = -1,
         Player   last_player  = Player::White,
         Policy*  policy       = nullptr,
-        size_t   c_iterations = 20000,
+        size_t   c_iterations = C_ITERATIONS,
         double   c_puct       = sqrt(2)
     );
 
@@ -113,17 +119,20 @@ public:
     // Tree-policy的评估函数
     Policy::EvalResult evalState(Board& board);
     
-    // 将MCTS往深推进一层
+    // 将蒙特卡洛树往深推进一层
     Node* stepForward();                      // 选出子结点中的最好手
     Node* stepForward(Position next_move);    // 根据提供的动作往下走
 
     // 蒙特卡洛树的一轮迭代
     size_t playout(Board& board);
 
+    // 重置蒙特卡洛树
+    void reset();
+
 public:
     std::unique_ptr<Node> m_root;
     std::unique_ptr<Policy> m_policy;
-    size_t m_size;
+    size_t m_size; // FIXME: 由于unique_ptr的自动销毁，目前暂不能正确计数。
     size_t c_iterations;
     double c_puct;
 };

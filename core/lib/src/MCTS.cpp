@@ -69,15 +69,17 @@ Policy::EvalResult MCTS::evalState(Board& board) {
 // AlphaZero的论文中，对MCTS的再利用策略
 // 参见https://stackoverflow.com/questions/47389700
 Node* MCTS::stepForward() {
-    return updateRoot(*this, std::move(*max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
+    auto iter = max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
         return lhs->node_visits < rhs->node_visits;
-    })));
+    });
+    return updateRoot(*this, std::move(*iter));
 }
 
 Node* MCTS::stepForward(Position next_move) {
-    return updateRoot(*this, std::move(*find_if(m_root->children.begin(), m_root->children.end(), [next_move](auto&& node) {
+    auto iter = find_if(m_root->children.begin(), m_root->children.end(), [next_move](auto&& node) {
         return node->position == next_move;
-    })));
+    });
+    return updateRoot(*this, iter != m_root->children.end() ? std::move(*iter) : make_unique<Node>(Node{ nullptr, next_move, -m_root->player, 0.0f, 1.0f }));
 }
 
 size_t MCTS::playout(Board& board) {
@@ -88,13 +90,20 @@ size_t MCTS::playout(Board& board) {
     }
     double node_value;
     size_t expand_size;
-    if (!board.checkGameEnd(node->position)) {  // 检查终结点游戏是否结束  
-        auto [value, action_probs] = m_policy->simulate(board);        // 根据模拟战预估当前结点对应盘面价值分数 
+    if (!board.checkGameEnd()) {  // 检查终结点游戏是否结束  
+        auto [state_value, action_probs] = m_policy->simulate(board);         // 根据模拟战预估当前结点对应盘面价值分数 
         expand_size = m_policy->expand(node, board, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
-        node_value = value;
+        node_value = calcScore(node->player, state_value);
     } else {
-        node_value = getFinalScore(node->player, board.m_winner); // 根据对局结果获取绝对价值分数
+        _ASSERT(node->player == board.m_winner);
+        expand_size = 0;
+        node_value = calcScore(node->player, board.m_winner); // 根据对局结果获取绝对价值分数
     }
     m_policy->backPropogate(node, board, node_value);     // 回溯更新，同时重置Board到初始传入的状态
     return expand_size;
+}
+
+void Gomoku::MCTS::reset() {
+    m_root = make_unique<Node>(Node{ nullptr, Position(-1), Player::White, 0.0f, 1.0f });
+    m_size = 1;
 }

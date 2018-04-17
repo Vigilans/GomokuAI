@@ -42,9 +42,9 @@ struct Position {
     Position(int x, int y)             : id(y * WIDTH + x) {}
     Position(std::pair<int, int> pose) : id(pose.second * WIDTH + pose.first) {}
 
+    operator  int  () const { return id; }
     constexpr int x() const { return id % WIDTH; }
     constexpr int y() const { return id / WIDTH; }
-    operator int() const { return id; }
 };
 
 
