@@ -23,25 +23,28 @@ constexpr Player operator-(Player player) {
 }
 
 // 返回游戏结束后的得分。同号（winner与player相同）为正，异号为负，平局为零。
-constexpr double getFinalScore(Player player, Player winner) { 
+constexpr double calcScore(Player player, Player winner) { 
     return static_cast<double>(player) * static_cast<double>(winner); 
+}
+
+// 返回当前局面评分相对于参数的player的价值。
+constexpr double calcScore(Player player, double stateValue) {
+    return static_cast<double>(player) * stateValue;
 }
 
 
 // 可用来表示第一/第四象限的坐标。也就是说，x/y坐标必须同正或同负。
-// 内部存储使用short，其余情况均转换为int计算。
 struct Position {
-    using value_type = short;
-
-    value_type id;
+    // 内部存储使用short，其余情况均转换为int计算。
+    short id;
 
     Position(int id = -1)              : id(id) {}
     Position(int x, int y)             : id(y * WIDTH + x) {}
     Position(std::pair<int, int> pose) : id(pose.second * WIDTH + pose.first) {}
 
-    operator  int  () const { return id; }
     constexpr int x() const { return id % WIDTH; }
     constexpr int y() const { return id / WIDTH; }
+    operator int() const { return id; }
 };
 
 
@@ -65,14 +68,14 @@ public:
     */
     Player revertMove(size_t count = 1);
 
-    // 每下一步都进行终局检查，这样便只需对当前落子周围进行遍历即可。
+    // 获取随机的可行着点。
     Position getRandomMove() const;
 
     // 越界与无子检查。暂无禁手规则。
     bool checkMove(Position move);
 
-    // 每下一步都进行终局检查，这样便只需对当前落子周围进行遍历即可。
-    bool checkGameEnd(Position move);
+    // 从性能角度考虑，只需对最后落子周围进行遍历。
+    bool checkGameEnd();
 
     // 重置棋盘到初始状态。
     void reset();
@@ -130,8 +133,12 @@ public:
 
 }
 
-// Some generic function overload in namespace std
+// Generic bindings in namespace std
 namespace std {
+
+string to_string(Gomoku::Player);
+string to_string(Gomoku::Position);
+string to_string(const Gomoku::Board&);
 
 template <>
 struct hash<Gomoku::Position> {
@@ -140,9 +147,15 @@ struct hash<Gomoku::Position> {
     }
 };
 
-string to_string(Gomoku::Player);
-string to_string(Gomoku::Position);
-string to_string(const Gomoku::Board&);
+// Custom Structure Binding
+template <std::size_t N>
+int get(const Gomoku::Position& pose) { return N == 0 ? pose.x() : pose.y(); }
+
+template <>
+struct tuple_size<Gomoku::Position> : std::integral_constant<std::size_t, 2> {};
+
+template <std::size_t N>
+struct tuple_element<N, Gomoku::Position> { using type = int; };
 
 }
 
