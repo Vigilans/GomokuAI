@@ -6,17 +6,26 @@ using namespace Gomoku;
 class MCTSTest : public ::testing::Test {
 protected:
     Board board;
-    MCTS b_mcts = MCTS();
-    //MCTS w_mcts = MCTS();
+    MCTS mcts;
 };
 
-TEST_F(MCTSTest, OnePlayOut) {
-    board.applyMove(b_mcts.getNextMove(board));
-    //w_mcts.playout(board);
+TEST_F(MCTSTest, OneEvaluation) {
+    board.applyMove(mcts.getNextMove(board));
 }
 
-TEST_F(MCTSTest, SimulateSymmetry) {
+TEST_F(MCTSTest, EvaluateSymmetry) {
+    Position positions[] = { { 7, 7 },{ 8, 8 },{ 9, 9 },{ 10, 10 } };
     Board board_cpy(board);
-    b_mcts.m_policy->simulate(board);
-    ASSERT_EQ(board, board_cpy);
+    for (auto move : positions) {
+        board.applyMove(move);
+        board_cpy.applyMove(move);
+        mcts.stepForward(move);
+        ASSERT_EQ(mcts.m_root->position, board.m_moveRecord.back()) << "Root position not equal to last move";
+        mcts.m_policy->simulate(board);
+        ASSERT_EQ(board, board_cpy) << "DefaultPolicy::simulate changed board state"; // board state invariant
+        Position next_move = mcts.getNextMove(board);
+        ASSERT_EQ(board, board_cpy) << "MCTS::getNextMove changed board state"; // board state invariant
+        board.applyMove(next_move);
+        board_cpy.applyMove(next_move);
+    }
 }

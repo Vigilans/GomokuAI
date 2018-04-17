@@ -7,28 +7,32 @@ using namespace Gomoku;
 using std::begin;
 using std::end;
 
-// Problem found 1: getNextMove() ÎŞÏŞÑ­»·
-// Problem found 2: isCuurentPlayerº¯Êı²ÎÊı²»ÄÜÖ±½ÓÉèÎªPosition£¬ÒòÎªÒª×öÔ½½ç¼ì²é
-// Problem found 3: std::array::empty()×ÜÊÇ·µ»Øfalse ²»ÄÜ×÷ÎªÌõ¼şÅĞ¶ÏÊ¹ÓÃ
-// Problem found 4: checkVictory::searchÖĞ°ÑÕı·´ÏòËÑË÷ºÏ¶øÎªÒ»µÄÂß¼­ÊÇÓĞÎÊÌâµÄ
+// Problem found 1: getNextMove() æ— é™å¾ªç¯
+// Problem found 2: isCuurentPlayerå‡½æ•°å‚æ•°ä¸èƒ½ç›´æ¥è®¾ä¸ºPositionï¼Œå› ä¸ºè¦åšè¶Šç•Œæ£€æŸ¥
+// Problem found 3: std::array::empty()æ€»æ˜¯è¿”å›false ä¸èƒ½ä½œä¸ºæ¡ä»¶åˆ¤æ–­ä½¿ç”¨
+// Problem found 4: checkVictory::searchä¸­æŠŠæ­£åå‘æœç´¢åˆè€Œä¸ºä¸€çš„é€»è¾‘æ˜¯æœ‰é—®é¢˜çš„
 class BoardTest : public ::testing::Test {
 protected:
     static const int caseSize = 10;
 
-    // ²úÉúÒ»ÁĞ²»ÖØ¸´µÄPosition
+    // äº§ç”Ÿä¸€åˆ—ä¸é‡å¤çš„Position
     void randomlyFill(Position* first, Position* last) {
         std::iota(first, last, rand() % (GameConfig::BOARD_SIZE / caseSize));
         //std::shuffle(first, last, rand);
     }
 
-    // ¶ÔÆåÅÌµÄ×´Ì¬½øĞĞ¿ìËÙ¼ì²é
+    // å¯¹æ£‹ç›˜çš„çŠ¶æ€è¿›è¡Œå¿«é€Ÿæ£€æŸ¥
     ::testing::AssertionResult trivialCheck(const Board& board) {
-        // ÒÑÏÂÓëÎ´ÏÂµÄ¸ñ×ÓÊıÁ¿Òª»¥²¹
+        // å·²ä¸‹ä¸æœªä¸‹çš„æ ¼å­æ•°é‡è¦äº’è¡¥
         if (board.moveCounts(Player::Black) + board.moveCounts(Player::White) + board.moveCounts(Player::None) != GameConfig::BOARD_SIZE) {
             return ::testing::AssertionFailure() << "Moves size sum not compatible.";
         }
-        // ÓÎÏ·Î´½áÊøÊ±£¨m_curPlayer != Player::None£©£¬Ò»¶¨Ã»ÓĞÓ®¼Ò£¨m_winner = Player::None£©
-        if ((!(board.m_curPlayer != Player::None) || board.m_winner == Player::None) == false) { // ÔÌº¬¹ØÏµÊ½
+        // æ£‹è°±è®°å½•é•¿åº¦è¦ä¸å·²ä¸‹æ­¥æ•°ç›¸åŒ
+        if (board.m_moveRecord.size() != board.moveCounts(Player::Black) + board.moveCounts(Player::White)) {
+            return ::testing::AssertionFailure() << "Move record size not compatible with moves applied.";
+        }
+        // æ¸¸æˆæœªç»“æŸæ—¶ï¼ˆm_curPlayer != Player::Noneï¼‰ï¼Œä¸€å®šæ²¡æœ‰èµ¢å®¶ï¼ˆm_winner = Player::Noneï¼‰
+        if ((!(board.m_curPlayer != Player::None) || board.m_winner == Player::None) == false) { // è•´å«å…³ç³»å¼
             return ::testing::AssertionFailure() << "Winner is not none when game does not end.";
         }
         return ::testing::AssertionSuccess();
@@ -37,73 +41,70 @@ protected:
     Board board;
 };
 
-// ¶Ô³ÆĞÔ¼ì²é£ºApplyMoveÓëRevertMove
-// RevertMove()µÄ»ù±¾Çé¿ö½«ÔÚÕâÀï¼ì²é
+// å¯¹ç§°æ€§æ£€æŸ¥ï¼šApplyMoveä¸RevertMove
+// RevertMove()çš„åŸºæœ¬æƒ…å†µå°†åœ¨è¿™é‡Œæ£€æŸ¥
 TEST_F(BoardTest, MoveSymmetry) {
     Board board_cpy(board);
     Position positions[caseSize];
     randomlyFill(begin(positions), end(positions));
     for (int i = 0; i < caseSize; ++i) {
         int offset = rand() % 3 + 1;
-        // Ëæ»úÑ¡È¡Á¬Ğø¼¸¸öPosition½øĞĞapplyÓërevert
+        // éšæœºé€‰å–è¿ç»­å‡ ä¸ªPositionè¿›è¡Œapplyä¸revert
         int j;
         for (j = 0; j < offset && i + j < caseSize; ++j) {
             board.applyMove(positions[i + j]);
             ASSERT_TRUE(trivialCheck(board));
         }
-        for (--j; j >= 0; --j) {
-            Player curPlayer = board.m_curPlayer;
-            Player result = board.revertMove(positions[i + j]);
-            ASSERT_TRUE(trivialCheck(board));
-            EXPECT_EQ(result, (curPlayer = -curPlayer));
-            // ÔÚÔ­Î»ÔÙ»ÚÒ»´ÎÆå£¬¼ì²éÏÂÒ»ÊÖÊÇ·ñÈÔÎªµ±Ç°Íæ¼Ò£¨»ÚÆåÎŞĞ§£©
-            board.revertMove(positions[i + j]);
-            EXPECT_EQ(result, curPlayer);
-        }
+        // æ¯”è¾ƒä¸‹è¿‡çš„æ£‹ä¸æ£‹è°±è®°å½•æ˜¯å¦ç›¸ç­‰
+        ASSERT_EQ(board.m_moveRecord, std::vector<Position>(positions + i, positions + i + j));
+        // ç›´æ¥è¿æ‚”å‡ æ­¥æ£‹
+        ASSERT_EQ(Player::Black, board.revertMove(j));
         EXPECT_EQ(board, board_cpy);
     }
 }
 
-// TODO: ²érevertMove()ÔÚÓÎÏ·½áÊøºóÊÇ·ñÄÜµ÷ÓÃ³É¹¦
+// TODO: æŸ¥revertMove()åœ¨æ¸¸æˆç»“æŸåæ˜¯å¦èƒ½è°ƒç”¨æˆåŠŸ
 TEST_F(BoardTest, CheckVictory) {
-    // ºÚÆåÄÜÓ®µÄÒ»ÖÖÊÖË³
+    // é»‘æ£‹èƒ½èµ¢çš„ä¸€ç§æ‰‹é¡º
     Player curPlayer = Player::Black;
     Position blacks[9] = { {3,3}, {3,4}, {4,4}, {3,5}, {5,5}, {3,6}, {6,6}, {3,7}, {7,7} };
     for (int i = 0; i < sizeof(blacks) / sizeof(Position); ++i) {
-        EXPECT_NE(curPlayer, board.applyMove(blacks[i])); // ÏÂµÄÒ»¶¨ÊÇÓĞĞ§µÄÒ»ÊÖ
+        EXPECT_NE(curPlayer, board.applyMove(blacks[i])); // ä¸‹çš„ä¸€å®šæ˜¯æœ‰æ•ˆçš„ä¸€æ‰‹
         curPlayer = -curPlayer;
     }
     ASSERT_TRUE(board.status().end);
     ASSERT_EQ(board.status().winner, Player::Black);
     for (int i = sizeof(blacks) / sizeof(Position) - 1; i >= 0; --i) {
-        EXPECT_NE(curPlayer, board.revertMove(blacks[i])); // Ò»¶¨»ÚÆå³É¹¦ÁË
+        EXPECT_NE(curPlayer, board.revertMove()); // ä¸€å®šæ‚”æ£‹æˆåŠŸäº†
+        ASSERT_TRUE(trivialCheck(board));
         curPlayer = -curPlayer;
     }
-    // °×ÆåÄÜÓ®µÄÒ»ÖÖÊÖË³
+    // ç™½æ£‹èƒ½èµ¢çš„ä¸€ç§æ‰‹é¡º
     Position whites[10] = { {3,3}, {3,4}, {4,4}, {3,5}, {5,5}, {3,6}, {6,6}, {3,7}, {8,8}, {3,8} };
     for (int i = 0; i < sizeof(whites) / sizeof(Position); ++i) {
-        EXPECT_NE(curPlayer, board.applyMove(whites[i])); // ÏÂµÄÒ»¶¨ÊÇÓĞĞ§µÄÒ»ÊÖ
+        EXPECT_NE(curPlayer, board.applyMove(whites[i])); // ä¸‹çš„ä¸€å®šæ˜¯æœ‰æ•ˆçš„ä¸€æ‰‹
         curPlayer = -curPlayer;
     }
     ASSERT_TRUE(board.status().end);
     ASSERT_EQ(board.status().winner, Player::White);
     for (int i = sizeof(whites) / sizeof(Position) - 1; i >= 0; --i) {
-        EXPECT_NE(curPlayer, board.revertMove(whites[i])); // Ò»¶¨»ÚÆå³É¹¦ÁË
+        EXPECT_NE(curPlayer, board.revertMove()); // ä¸€å®šæ‚”æ£‹æˆåŠŸäº†
+        ASSERT_TRUE(trivialCheck(board));
         curPlayer = -curPlayer;
     }
 }
 
-// ÀûÓÃÒ»ÖÖ¿ÉÒÔºÍÆåµÄÏÂ·¨½øĞĞ¼ì²é
+// åˆ©ç”¨ä¸€ç§å¯ä»¥å’Œæ£‹çš„ä¸‹æ³•è¿›è¡Œæ£€æŸ¥
 TEST_F(BoardTest, CheckTie) {
     for (int j = 0; j < HEIGHT; ++j) {
-        // yµÄÓ³Éä·½Ê½Îª£º
-        // µÍHEIGHT/2Î»£ºÓÉ0Î»¿ªÊ¼£¬Ã¿Î»Ó³ÉäÎª0,2,4,6,8...
-        // ¸ßHEIGHT/2Î»£ºÓÉ(HEIGHT+1)/2Î»¿ªÊ¼£¬Ã¿Î»Ó³ÉäÎª1,3,5,7,9...
+        // yçš„æ˜ å°„æ–¹å¼ä¸ºï¼š
+        // ä½HEIGHT/2ä½ï¼šç”±0ä½å¼€å§‹ï¼Œæ¯ä½æ˜ å°„ä¸º0,2,4,6,8...
+        // é«˜HEIGHT/2ä½ï¼šç”±(HEIGHT+1)/2ä½å¼€å§‹ï¼Œæ¯ä½æ˜ å°„ä¸º1,3,5,7,9...
         int y = j <= HEIGHT/2 ? 2*j : 2*(j - HEIGHT/2) - 1;
         for (int i = 0; i < WIDTH; ++i) {
-            // xµÄÓ³Éä·½Ê½Îª£ºi -> x
+            // xçš„æ˜ å°„æ–¹å¼ä¸ºï¼ši -> x
             int x = i;
-            // ÏÂÆåµ½{x, y}²¢½øĞĞÏà¹Ø¼ì²é
+            // ä¸‹æ£‹åˆ°{x, y}å¹¶è¿›è¡Œç›¸å…³æ£€æŸ¥
             Player result = board.applyMove({x, y});
             ASSERT_TRUE(trivialCheck(board));
             if (j * WIDTH + i == GameConfig::BOARD_SIZE - 1) {
@@ -111,18 +112,18 @@ TEST_F(BoardTest, CheckTie) {
                 EXPECT_EQ(board.m_curPlayer, Player::None);
                 EXPECT_EQ(board.m_winner, Player::None);
             } else {
-                // ÓÎÏ·Ò»¶¨Ã»ÓĞ½áÊø
+                // æ¸¸æˆä¸€å®šæ²¡æœ‰ç»“æŸ
                 ASSERT_NE(result, Player::None);
                 ASSERT_NE(board.m_curPlayer, Player::None);
             }
         }
     }
-    // ¼ì²éÆåÅÌÏÂÂúºó£¬ÔÙËæ»úÈ¡×ÓÊÇ·ñ»áÅ×³öÒì³£
+    // æ£€æŸ¥æ£‹ç›˜ä¸‹æ»¡åï¼Œå†éšæœºå–å­æ˜¯å¦ä¼šæŠ›å‡ºå¼‚å¸¸
     ASSERT_THROW(board.getRandomMove(), std::exception) << "Random move does not throw exception when board is full.";
 }
 
-// Ëæ»úÏÂÍêÒ»ÅÌÍêÕûµÄÆå
-// getRandomMove()ÓëapplyMove()µÄËùÓĞÇé¿ö»áÔÚÕâÀï¼ì²é
+// éšæœºä¸‹å®Œä¸€ç›˜å®Œæ•´çš„æ£‹
+// getRandomMove()ä¸applyMove()çš„æ‰€æœ‰æƒ…å†µä¼šåœ¨è¿™é‡Œæ£€æŸ¥
 TEST_F(BoardTest, RandomRollout) {
     Board board_cpy(board);
     while (true) {
@@ -131,24 +132,24 @@ TEST_F(BoardTest, RandomRollout) {
         Player result = board.applyMove(move);
         auto status = board.status();
         ASSERT_TRUE(trivialCheck(board));
-        EXPECT_NE(result, curPlayer); // getRandomMove()ĞèÒª±£Ö¤Ò»¶¨²»»áÏÂµ½ÎŞĞ§Î»ÖÃ£¨¾ÍËãÓĞ½ûÊÖÒ²ÊÇÒ»Ñù£©
+        EXPECT_NE(result, curPlayer); // getRandomMove()éœ€è¦ä¿è¯ä¸€å®šä¸ä¼šä¸‹åˆ°æ— æ•ˆä½ç½®ï¼ˆå°±ç®—æœ‰ç¦æ‰‹ä¹Ÿæ˜¯ä¸€æ ·ï¼‰
         if (board.m_curPlayer != Player::None) {
-            // ÈôÓÎÏ·Î´½áÊø
-            EXPECT_EQ(result, -curPlayer); // ÏÂÒ»²½±äÎª¶ÔÊÖÏÂ
+            // è‹¥æ¸¸æˆæœªç»“æŸ
+            EXPECT_EQ(result, -curPlayer); // ä¸‹ä¸€æ­¥å˜ä¸ºå¯¹æ‰‹ä¸‹
             EXPECT_EQ(status.end, false);
             EXPECT_EQ(status.winner, Player::None);
         } else {
-            // ÈôÓÎÏ·ÒÑ½áÊø
+            // è‹¥æ¸¸æˆå·²ç»“æŸ
             EXPECT_EQ(result, Player::None);
             EXPECT_EQ(status.end, true);
-            EXPECT_NE(status.winner, -curPlayer); // Ó®¼ÒÒ»¶¨²»»áÊÇ¶ÔÊÖ
+            EXPECT_NE(status.winner, -curPlayer); // èµ¢å®¶ä¸€å®šä¸ä¼šæ˜¯å¯¹æ‰‹
             break;
         }
-        // ¿ªÊ¼¶ÔÎŞĞ§ÊÖ½øĞĞ¼ì²é
-        curPlayer = result; // ½«µ±Ç°Íæ¼Ò×ª»»µ½Ô­boardÏÂÁËÒ»ÊÖºóÓ¦ÏÂµÄÍæ¼Ò
-        board_cpy.applyMove(move); // ¿½±´°æboard¸úÉÏÒ»ÊÖ
-        result = board.applyMove(move); // ÔÚÔ­boardÔ­Î»ÖÃÔÙÏÂÒ»×Ó
-        EXPECT_EQ(board, board_cpy) << "board does not remain the same after applied an invalid move"; // ÒòÎª¸ÃÊÖÎŞĞ§£¬ËùÒÔÔ­boardÓ¦¸ÃÎŞ±ä»¯
-        ASSERT_EQ(result, curPlayer); // resultÒ»¶¨µÃÎªµ±Ç°Íæ¼Ò£¨µ±Ç°Íæ¼ÒĞèÒªÖØÏÂ£©
+        // å¼€å§‹å¯¹æ— æ•ˆæ‰‹è¿›è¡Œæ£€æŸ¥
+        curPlayer = result; // å°†å½“å‰ç©å®¶è½¬æ¢åˆ°åŸboardä¸‹äº†ä¸€æ‰‹ååº”ä¸‹çš„ç©å®¶
+        board_cpy.applyMove(move); // æ‹·è´ç‰ˆboardè·Ÿä¸Šä¸€æ‰‹
+        result = board.applyMove(move); // åœ¨åŸboardåŸä½ç½®å†ä¸‹ä¸€å­
+        EXPECT_EQ(board, board_cpy) << "board does not remain the same after applied an invalid move"; // å› ä¸ºè¯¥æ‰‹æ— æ•ˆï¼Œæ‰€ä»¥åŸboardåº”è¯¥æ— å˜åŒ–
+        ASSERT_EQ(result, curPlayer); // resultä¸€å®šå¾—ä¸ºå½“å‰ç©å®¶ï¼ˆå½“å‰ç©å®¶éœ€è¦é‡ä¸‹ï¼‰
     }
 }

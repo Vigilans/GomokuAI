@@ -13,10 +13,10 @@
 
 namespace Gomoku {
 inline bool operator==(const Board& lhs, const Board& rhs) {
-    // Îª¼Ó¿ìËÙ¶È£¬Ö»¼ì²émoveStatesÔªËØ¸öÊıÊÇ·ñÏàµÈ£¬¾Í²»¼ì²éÔªËØÊÇ·ñÒ»Ò»¶ÔÓ¦ÁË
-    // ×¢Òâm_moveStatesÓëm_moveCounts¶¼²»ÊÇstd::array£¬¶øÊÇÔ­ÉúÊı×é£¬Òò´Ë²»ÄÜÖ±½ÓÓÃÀ´±È½Ï
+    // ä¸ºåŠ å¿«é€Ÿåº¦ï¼Œåªæ£€æŸ¥moveStateså…ƒç´ ä¸ªæ•°åŠæ£‹è°±è®°å½•æ˜¯å¦ç›¸ç­‰ï¼Œå°±ä¸æ£€æŸ¥æ¯ä¸ªå…ƒç´ æ˜¯å¦ä¸€ä¸€å¯¹åº”äº†
+    // æ³¨æ„m_moveStatesä¸m_moveCountséƒ½ä¸æ˜¯std::arrayï¼Œè€Œæ˜¯åŸç”Ÿæ•°ç»„ï¼Œå› æ­¤ä¸èƒ½ç›´æ¥ç”¨æ¥æ¯”è¾ƒ
     auto make_tied = [](const Board& b) {
-        return std::tie(b.m_curPlayer, b.m_winner, b.m_moveCounts[0], b.m_moveCounts[1], b.m_moveCounts[2]);
+        return std::tie(b.m_curPlayer, b.m_winner, b.m_moveCounts[0], b.m_moveCounts[1], b.m_moveCounts[2], b.m_moveRecord);
     };
     return make_tied(lhs) == make_tied(rhs);
 }
