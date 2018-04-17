@@ -44,7 +44,7 @@ inline void MCTS_Ext(py::module& mod) {
             py::arg("last_move") = Position(-1),
             py::arg("last_player") = Player::White,
             py::arg_v("policy", nullptr, "Default Policy"),
-            py::arg("c_iterations") = 20000,
+            py::arg("c_iterations") = C_ITERATIONS,
             py::arg("c_puct") = sqrt(2)
         )
         .def_readonly("size", &MCTS::m_size)
@@ -55,5 +55,7 @@ inline void MCTS_Ext(py::module& mod) {
         .def("eval_state", &MCTS::evalState)
         .def("step_forward", static_cast<Node* (MCTS::*)()>(&MCTS::stepForward))
         .def("step_forward", static_cast<Node* (MCTS::*)(Position)>(&MCTS::stepForward), py::arg("next_move"))
-        .def("get_action",   &MCTS::getNextMove);
+        .def("get_action",   &MCTS::getNextMove)
+        .def("reset", &MCTS::reset)
+        .def("__repr__", [](const MCTS& m) { return py::str("MCTS with root node in '{}' and '{}' nodes").format(m.m_root->player, m.m_size); });
 }

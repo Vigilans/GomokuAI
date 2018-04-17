@@ -20,5 +20,5 @@ module_path = os.path.join(
     os.path.dirname(__file__), os_name, platform, config
 )
 
-# Add core module to sys path for import
-sys.path.insert(0, module_path)
+# Add CorePyd module to sys path for import
+sys.path.append(module_path)
