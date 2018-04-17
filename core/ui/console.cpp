@@ -56,14 +56,6 @@ int main() {
     Board board;
     MCTS mcts;
 
-    cout << sizeof(decltype(Node::node_visits)) << endl;
-    cout << sizeof(decltype(Node::children)) << endl;
-    cout << sizeof(decltype(Node::action_prob)) << endl;
-    cout << sizeof(decltype(Node::parent)) << endl;
-    cout << sizeof(decltype(Node::player)) << endl;
-    cout << sizeof(decltype(Node::position)) << endl;
-    cout << sizeof(Node) << endl;
-
     cout << std::to_string(board);
     for (int x, y; board.m_curPlayer != Player::None;) {
         cout << "\nYour  (x, y): ";
@@ -74,9 +66,11 @@ int main() {
         case Player::None:
             continue;
         }
+        mcts.stepForward(player_move);
 
         //auto cpu_move = board.getRandomMove();
-        auto cpu_move = MCTS(player_move, Player::Black).getNextMove(board);
+        //auto cpu_move = MCTS(player_move, Player::Black).getNextMove(board);
+        auto cpu_move = mcts.getNextMove(board);
         cout << "CPU's (x, y): " << cpu_move.x() + 1 << " " << cpu_move.y() + 1 << endl;
         board.applyMove(cpu_move);
         //cout << string(WIDTH - 3, ' ') << "Board\n";
