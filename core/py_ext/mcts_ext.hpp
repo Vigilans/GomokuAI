@@ -1,5 +1,6 @@
 #include "pch.h"
 #include "lib/include/MCTS.h"
+#include <vector>
 
 using namespace Gomoku;
 using namespace std;
@@ -16,14 +17,26 @@ inline void MCTS_Ext(py::module& mod) {
             py::arg("state_value") = 0.0,
             py::arg("action_prob") = 0.0
         )
-        .def_readwrite("parent", &Node::parent)
-        .def_readwrite("position", &Node::position)
-        .def_readwrite("player", &Node::player)
+        .def_readonly("parent", &Node::parent)
+        .def_readonly("position", &Node::position)
+        .def_readonly("player", &Node::player)
         .def_readwrite("state_value", &Node::state_value)
         .def_readwrite("action_prob", &Node::action_prob)
         .def_readwrite("node_visits", &Node::node_visits)
+        .def_property_readonly("children", [](const Node* n) {   
+            py::list children(n->children.size());
+            for (int i = 0; i < children.size(); ++i) {  // py::list do not support writing by iterator
+                children[i] = n->children[i].get();
+            }
+            return children;
+        })
         .def("is_leaf", &Node::isLeaf)
-        .def("is_full", &Node::isFull);
+        .def("is_full", &Node::isFull)
+        .def("__repr__", [](const Node* n) { 
+            return py::str("Node(pose: {}, player: {}, value: {}, prob: {}, visits: {}, childs: {})").format(
+                n->position, n->player, n->state_value, n->action_prob, n->node_visits, n->children.size()
+            ); 
+        });
 
 
     py::class_<Policy>(mod, "Policy", "MCTS Tree Policy")
@@ -50,12 +63,12 @@ inline void MCTS_Ext(py::module& mod) {
         .def_readonly("size", &MCTS::m_size)
         .def_readonly("c_puct", &MCTS::c_puct)
         .def_readonly("c_iterations", &MCTS::c_iterations)
-        .def_property_readonly("root", [](const MCTS& mcts) { return mcts.m_root.get(); })
-        .def_property_readonly("policy", [](const MCTS& mcts) { return mcts.m_policy.get(); })
+        .def_property_readonly("root", [](const MCTS& m) { return m.m_root.get(); })
+        .def_property_readonly("policy", [](const MCTS& m) { return m.m_policy.get(); })
         .def("eval_state", &MCTS::evalState)
-        .def("step_forward", static_cast<Node* (MCTS::*)()>(&MCTS::stepForward))
-        .def("step_forward", static_cast<Node* (MCTS::*)(Position)>(&MCTS::stepForward), py::arg("next_move"))
+        .def("step_forward", [](MCTS& m) { m.stepForward(); }) // Return value couldn't be exposed since it may get GC. 
+        .def("step_forward", [](MCTS& m, Position p) { m.stepForward(p); }, py::arg("next_move"))
         .def("get_action",   &MCTS::getNextMove)
         .def("reset", &MCTS::reset)
-        .def("__repr__", [](const MCTS& m) { return py::str("MCTS with root node in '{}' and '{}' nodes").format(m.m_root->player, m.m_size); });
+        .def("__repr__", [](const MCTS& m) { return py::str("MCTS(root_player: {}, nodes: {})").format(m.m_root->player, m.m_size); });
 }

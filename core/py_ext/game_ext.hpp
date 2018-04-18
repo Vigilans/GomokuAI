@@ -39,7 +39,7 @@ inline void Game_Ext(py::module& mod) {
         .def("__int__",  [](const Position& p) { return p.id; })
         .def("__hash__", [](const Position& p) { return std::hash<Position>()(p); })
         .def("__iter__", [](const Position& p) { return std::make_tuple(p.x(), p.y()); })
-        .def("__repr__", [](const Position& p) { return py::str("Position {}").format(std::to_string(p)); })
+        .def("__repr__", [](const Position& p) { return py::str("Position{}").format(std::to_string(p)); })
         .def("__str__",  [](const Position& p) { return std::to_string(p); });
 
 
@@ -54,7 +54,7 @@ inline void Game_Ext(py::module& mod) {
         .def("reset",       &Board::reset)
         .def_readonly("move_record", &Board::m_moveRecord)
         .def_property_readonly("last_move", [](const Board& b) {
-            return b.m_moveRecord.back();
+            return b.m_moveRecord.empty() ? Position(-1) : b.m_moveRecord.back();
         })
         .def_property_readonly("move_counts", [](const Board& b) {
             py::dict move_counts;
@@ -97,6 +97,6 @@ inline void Game_Ext(py::module& mod) {
 
             return states;
         }, "Feature planes: [X_t, Y_t, Z_t, y_t-1, x_t-2, C]")
-        .def("__repr__", [](const Board& b) { return py::str("Gomoku board with currently '{}' to move").format(std::to_string(b.m_curPlayer)); })
+        .def("__repr__", [](const Board& b) { return py::str("Board(cur_player: {})").format(std::to_string(b.m_curPlayer)); })
         .def("__str__",  [](const Board& b) { return std::to_string(b); });
 }
