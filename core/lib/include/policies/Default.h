@@ -62,7 +62,7 @@ struct Default {
 
     // 随机下棋直到游戏结束
     static Policy::EvalResult simulate(Policy* policy, Board& board) {
-        auto init_player = -board.m_curPlayer;
+        auto init_player = board.m_curPlayer;
         double score = 0;
         size_t rollout_count = 5;
 
@@ -75,7 +75,7 @@ struct Default {
             }
 
             //score += calcScore(Player::Black, board.m_winner); // 计算绝对价值，黑棋越赢越接近1，白棋越赢越接近-1
-            score += calcScore(init_player, board.m_winner); // 计算相对价值
+            score += calcScore(init_player, board.m_winner); // 计算相对于局面初始应下玩家的价值
 
             // 重置棋盘至传入时状态，注意赢家会被重新设为Player::None！
             board.revertMove(total_moves);

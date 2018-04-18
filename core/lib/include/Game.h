@@ -83,7 +83,7 @@ public:
 // 数据成员封装部分
 public: 
     // 返回当前游戏状态
-    const auto status() const {
+    const auto status() const noexcept {
         struct { bool end; Player curPlayer; Player winner; } status {
             m_curPlayer == Player::None, m_curPlayer, m_winner 
         };
@@ -91,12 +91,12 @@ public:
     }
 
     // 通过Player枚举获取对应棋盘状态
-    std::array<bool, BOARD_SIZE>&       moveStates(Player player) { return m_moveStates[static_cast<int>(player) + 1]; }
-    const std::array<bool, BOARD_SIZE>& moveStates(Player player) const { return m_moveStates[static_cast<int>(player) + 1]; }
+    std::array<bool, BOARD_SIZE>&       moveStates(Player player) noexcept { return m_moveStates[static_cast<int>(player) + 1]; }
+    const std::array<bool, BOARD_SIZE>& moveStates(Player player) const noexcept { return m_moveStates[static_cast<int>(player) + 1]; }
 
     // 通过Player枚举获取已落子/未落子总数
-    std::size_t& moveCounts(Player player) { return m_moveCounts[static_cast<int>(player) + 1]; }
-    std::size_t  moveCounts(Player player) const { return m_moveCounts[static_cast<int>(player) + 1]; }
+    std::size_t& moveCounts(Player player) noexcept { return m_moveCounts[static_cast<int>(player) + 1]; }
+    std::size_t  moveCounts(Player player) const noexcept { return m_moveCounts[static_cast<int>(player) + 1]; }
 
 // 数据成员部分
 public:

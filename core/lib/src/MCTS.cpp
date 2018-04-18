@@ -63,7 +63,7 @@ Policy::EvalResult MCTS::evalState(Board& board) {
     for (auto&& node : m_root->children) {
         action_probs[node->position] = 1.0 * node->node_visits / m_root->node_visits;
     }
-    return make_tuple(m_root->state_value, std::move(action_probs));
+    return { m_root->state_value, action_probs };
 }
 
 // AlphaZero的论文中，对MCTS的再利用策略
@@ -72,14 +72,17 @@ Node* MCTS::stepForward() {
     auto iter = max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
         return lhs->node_visits < rhs->node_visits;
     });
-    return updateRoot(*this, std::move(*iter));
+    return iter != m_root->children.end() ? updateRoot(*this, std::move(*iter)) : m_root.get();
 }
 
 Node* MCTS::stepForward(Position next_move) {
     auto iter = find_if(m_root->children.begin(), m_root->children.end(), [next_move](auto&& node) {
         return node->position == next_move;
     });
-    return updateRoot(*this, iter != m_root->children.end() ? std::move(*iter) : make_unique<Node>(Node{ nullptr, next_move, -m_root->player, 0.0f, 1.0f }));
+    if (iter == m_root->children.end()) { // 这个迷之hack是为了防止python模块中出现引用Bug...
+        iter = m_root->children.insert(m_root->children.end(), make_unique<Node>(Node{ nullptr, next_move, -m_root->player, 0.0f, 1.0f }));
+    }
+    return updateRoot(*this, std::move(*iter));
 }
 
 size_t MCTS::playout(Board& board) {
@@ -91,9 +94,9 @@ size_t MCTS::playout(Board& board) {
     double node_value;
     size_t expand_size;
     if (!board.checkGameEnd()) {  // 检查终结点游戏是否结束  
-        auto [state_value, action_probs] = m_policy->simulate(board);         // 根据模拟评估策略获取当前盘面相对价值分数 
+        auto [state_value, action_probs] = m_policy->simulate(board); // 获取当前盘面相对于「当前应下玩家」的价值与概率分布
         expand_size = m_policy->expand(node, board, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
-        node_value = state_value;
+        node_value = -state_value; // 由于node保存的是「下出变成当前局面的一手」的玩家，因此其价值应取相反数
     } else {
         _ASSERT(node->player == board.m_winner);
         expand_size = 0;
@@ -104,6 +107,7 @@ size_t MCTS::playout(Board& board) {
 }
 
 void Gomoku::MCTS::reset() {
-    m_root = make_unique<Node>(Node{ nullptr, Position(-1), Player::White, 0.0f, 1.0f });
     m_size = 1;
+    auto iter = m_root->children.insert(m_root->children.end(), make_unique<Node>(Node{ nullptr, Position(-1), Player::White, 0.0f, 1.0f }));
+    m_root = std::move(*iter);
 }
