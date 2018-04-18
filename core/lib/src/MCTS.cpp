@@ -91,13 +91,13 @@ size_t MCTS::playout(Board& board) {
     double node_value;
     size_t expand_size;
     if (!board.checkGameEnd()) {  // 检查终结点游戏是否结束  
-        auto [state_value, action_probs] = m_policy->simulate(board);         // 根据模拟战预估当前结点对应盘面价值分数 
+        auto [state_value, action_probs] = m_policy->simulate(board);         // 根据模拟评估策略获取当前盘面相对价值分数 
         expand_size = m_policy->expand(node, board, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
-        node_value = calcScore(node->player, state_value);
+        node_value = state_value;
     } else {
         _ASSERT(node->player == board.m_winner);
         expand_size = 0;
-        node_value = calcScore(node->player, board.m_winner); // 根据对局结果获取绝对价值分数
+        node_value = calcScore(node->player, board.m_winner); // 根据绝对价值(winner)获取当前局面于玩家的相对价值
     }
     m_policy->backPropogate(node, board, node_value);     // 回溯更新，同时重置Board到初始传入的状态
     return expand_size;

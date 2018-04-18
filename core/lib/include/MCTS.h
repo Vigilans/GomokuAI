@@ -7,9 +7,9 @@
 #include <any> // std::any
 
 #ifdef _DEBUG
-#define C_ITERATIONS 5000
+#define C_ITERATIONS 2000
 #else
-#define C_ITERATIONS 5000
+#define C_ITERATIONS 50000
 #endif
 
 namespace Gomoku {
@@ -111,7 +111,7 @@ public:
         Player   last_player  = Player::White,
         Policy*  policy       = nullptr,
         size_t   c_iterations = C_ITERATIONS,
-        double   c_puct       = sqrt(2)
+        double   c_puct       = 8//sqrt(2)
     );
 
     Position getNextMove(Board& board);

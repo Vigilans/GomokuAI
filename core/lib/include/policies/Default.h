@@ -62,8 +62,9 @@ struct Default {
 
     // 随机下棋直到游戏结束
     static Policy::EvalResult simulate(Policy* policy, Board& board) {
+        auto init_player = -board.m_curPlayer;
         double score = 0;
-        double rollout_count = 5;
+        size_t rollout_count = 5;
 
         for (int i = 0; i < rollout_count; ++i) {
             auto total_moves = 0;
@@ -73,8 +74,8 @@ struct Default {
                 result = board.applyMove(move);
             }
 
-            const auto winner = board.m_winner;
-            score += calcScore(Player::Black, winner); // 黑棋越赢越接近1，白棋越赢越接近-1
+            //score += calcScore(Player::Black, board.m_winner); // 计算绝对价值，黑棋越赢越接近1，白棋越赢越接近-1
+            score += calcScore(init_player, board.m_winner); // 计算相对价值
 
             // 重置棋盘至传入时状态，注意赢家会被重新设为Player::None！
             board.revertMove(total_moves);
@@ -88,7 +89,7 @@ struct Default {
             action_probs[i] = board.moveStates(Player::None)[i] ? 1.0 / board.moveCounts(Player::None) : 0.0; // 随机生成(0, 1)之间的概率
         }
 
-        return std::make_tuple(score, std::move(action_probs));
+        return { score, action_probs };
     }
 
     static void backPropogate(Policy* policy, Node* node, Board& board, double value) {
