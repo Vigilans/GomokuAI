@@ -2,6 +2,7 @@
 #include "policies/Default.h"
 
 using namespace std;
+using namespace Eigen;
 using namespace Gomoku;
 using namespace Gomoku::Policies;
 
@@ -33,6 +34,10 @@ Policy::Policy(
 
 }
 
+unique_ptr<Node> Policy::createNode(Node* parent, Position pose, Player player, float value, float prob) {
+    return make_unique<Node>(Node{ parent, pose, player, value, prob });
+}
+
 MCTS::MCTS(
     Position last_move,
     Player last_player,
@@ -40,8 +45,8 @@ MCTS::MCTS(
     size_t c_iterations,
     double c_puct
 ) :
-    m_root(new Node{ nullptr, last_move, last_player, 0.0, 1.0 }),   
     m_policy(policy ? policy : new Policy),
+    m_root(m_policy->createNode(nullptr, last_move, last_player, 0.0, 1.0)),
     m_size(1),
     c_iterations(c_iterations),
     c_puct(c_puct) { 
@@ -59,10 +64,11 @@ Policy::EvalResult MCTS::evalState(Board& board) {
     for (int i = 0; i < c_iterations; ++i) {
         m_size += playout(board);
     }
-    vector<double> action_probs(BOARD_SIZE);
+    VectorXd action_probs((int)BOARD_SIZE);
     for (auto&& node : m_root->children) {
-        action_probs[node->position] = 1.0 * node->node_visits / m_root->node_visits;
+        action_probs[node->position] = node->node_visits;
     }
+    action_probs /= m_root->node_visits;
     return { m_root->state_value, action_probs };
 }
 
@@ -80,7 +86,7 @@ Node* MCTS::stepForward(Position next_move) {
         return node->position == next_move;
     });
     if (iter == m_root->children.end()) { // 这个迷之hack是为了防止python模块中出现引用Bug...
-        iter = m_root->children.insert(m_root->children.end(), make_unique<Node>(Node{ nullptr, next_move, -m_root->player, 0.0f, 1.0f }));
+        iter = m_root->children.emplace(m_root->children.end(), m_policy->createNode(nullptr, next_move, -m_root->player, 0.0f, 1.0f));
     }
     return updateRoot(*this, std::move(*iter));
 }
@@ -99,6 +105,9 @@ size_t MCTS::playout(Board& board) {
         node_value = -state_value; // 由于node保存的是「下出变成当前局面的一手」的玩家，因此其价值应取相反数
     } else {
         _ASSERT(node->player == board.m_winner);
+        if (node->player != board.m_winner) {
+            throw node->player;
+        }
         expand_size = 0;
         node_value = calcScore(node->player, board.m_winner); // 根据绝对价值(winner)获取当前局面于玩家的相对价值
     }
@@ -107,7 +116,7 @@ size_t MCTS::playout(Board& board) {
 }
 
 void Gomoku::MCTS::reset() {
-    m_size = 1;
-    auto iter = m_root->children.insert(m_root->children.end(), make_unique<Node>(Node{ nullptr, Position(-1), Player::White, 0.0f, 1.0f }));
+    auto iter = m_root->children.emplace(m_root->children.end(), m_policy->createNode(nullptr, Position(-1), Player::White, 0.0f, 1.0f));
     m_root = std::move(*iter);
+    m_size = 1;
 }

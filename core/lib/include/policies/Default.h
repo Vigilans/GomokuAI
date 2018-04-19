@@ -48,13 +48,13 @@ struct Default {
     }
 
     // 根据传入的概率扩张结点。概率为0的Action将不被加入子结点中。
-    static size_t expand(Policy* policy, Node* node, Board& board, const std::vector<double> action_probs) {
+    static size_t expand(Policy* policy, Node* node, Board& board, const Eigen::VectorXd action_probs) {
         node->children.reserve(action_probs.size());
         for (int i = 0; i < GameConfig::BOARD_SIZE; ++i) {
             // 后一个条件是额外的检查，防止不允许下的点意外添进树中。
             // 一般情况下会被短路，不影响性能。
             if (action_probs[i] != 0.0 && board.checkMove(i)) {
-                node->children.emplace_back(new Node{ node, Position(i), -node->player, 0.0f, float(action_probs[i]) });
+                node->children.emplace_back(policy->createNode(node, Position(i), -node->player, 0.0f, float(action_probs[i])));
             }
         }
         return node->children.size();
@@ -75,19 +75,16 @@ struct Default {
             }
 
             //score += calcScore(Player::Black, board.m_winner); // 计算绝对价值，黑棋越赢越接近1，白棋越赢越接近-1
-            score += calcScore(init_player, board.m_winner); // 计算相对于局面初始应下玩家的价值
-
-            // 重置棋盘至传入时状态，注意赢家会被重新设为Player::None！
-            board.revertMove(total_moves);
+            score += calcScore(init_player, board.m_winner);     // 计算相对于局面初始应下玩家的价值
+  
+            board.revertMove(total_moves); // 重置棋盘至传入时状态，注意赢家会重设为Player::None。
         }
         
         score /= rollout_count;
 
-        auto action_probs = std::vector<double>(BOARD_SIZE);
-        for (int i = 0; i < BOARD_SIZE; ++i) {
-            //double noise = (1.0 * rand() / RAND_MAX) * 0.999998;
-            action_probs[i] = board.moveStates(Player::None)[i] ? 1.0 / board.moveCounts(Player::None) : 0.0; // 随机生成(0, 1)之间的概率
-        }
+        using namespace Eigen;
+        VectorXd action_probs = Map<Matrix<bool, -1, 1>>(board.moveStates(Player::None).data(), BOARD_SIZE).cast<double>();
+        action_probs /= board.moveCounts(Player::None);
 
         return { score, action_probs };
     }

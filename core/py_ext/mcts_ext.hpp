@@ -1,6 +1,5 @@
 #include "pch.h"
 #include "lib/include/MCTS.h"
-#include <vector>
 
 using namespace Gomoku;
 using namespace std;
@@ -26,7 +25,7 @@ inline void MCTS_Ext(py::module& mod) {
         .def_property_readonly("children", [](const Node* n) {   
             py::list children(n->children.size());
             for (int i = 0; i < children.size(); ++i) {  // py::list do not support writing by iterator
-                children[i] = n->children[i].get();
+                children[i] = n->children[i].get();                
             }
             return children;
         })

@@ -1,15 +1,16 @@
 #ifndef GOMOKU_MCTS_H_
 #define GOMOKU_MCTS_H_
 #include "Game.h" // Gomoku::Player, Gomoku::Position, Gomoku::Board
-#include <vector> // std::vector
-#include <memory> // std::unique_ptr
-#include <functional> // std::function
-#include <any> // std::any
+#include <vector>      // std::vector
+#include <memory>      // std::unique_ptr
+#include <functional>  // std::function
+#include <any>         // std::any
+#include <Eigen/Dense> 
 
 #ifdef _DEBUG
 #define C_ITERATIONS 2000
 #else
-#define C_ITERATIONS 100000
+#define C_ITERATIONS 50000
 #endif
 
 namespace Gomoku {
@@ -73,14 +74,14 @@ public:
         ② 已经有子的位置概率应为0，防止被添加进树中。可以额外加一层在正常情况下会被短路的检查。
         ③ 返回值为新增的结点数。
     */
-    using ExpandFunc = std::function<size_t(Node*, Board&, std::vector<double> action_probs)>;
+    using ExpandFunc = std::function<size_t(Node*, Board&, const Eigen::VectorXd action_probs)>;
 
     /*
         当Tree-Policy抵达中止点时，用于将棋下完（可选）并评估场面价值的Default-Policy：
         ① 在函数调用前后，一般应保证棋盘的状态不变。
         ② 返回值为 <场面价值, 各处落子的概率> 。
     */
-    using EvalResult = std::tuple<double, std::vector<double>>;
+    using EvalResult = std::tuple<double, Eigen::Ref<Eigen::VectorXd>>;
     using EvalFunc = std::function<EvalResult(Board&)>;
 
     /*
@@ -92,6 +93,9 @@ public:
 
     // 当其中某一项传入nullptr时，该项将使用一个默认策略初始化。
     Policy(SelectFunc = nullptr, ExpandFunc = nullptr, EvalFunc = nullptr, UpdateFunc = nullptr);
+    
+    // 用于多态生成树节点的Factory函数。
+    virtual std::unique_ptr<Node> createNode(Node* parent, Position pose, Player player, float value, float prob);
 
 public:
     SelectFunc select;
@@ -130,8 +134,8 @@ public:
     void reset();
 
 public:
-    std::unique_ptr<Node> m_root;
     std::unique_ptr<Policy> m_policy;
+    std::unique_ptr<Node> m_root;
     size_t m_size; // FIXME: 由于unique_ptr的自动销毁，目前暂不能正确计数。
     size_t c_iterations;
     double c_puct;
