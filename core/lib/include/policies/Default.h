@@ -48,7 +48,7 @@ struct Default {
     }
 
     // 根据传入的概率扩张结点。概率为0的Action将不被加入子结点中。
-    static size_t expand(Policy* policy, Node* node, Board& board, const Eigen::VectorXd action_probs) {
+    static size_t expand(Policy* policy, Node* node, Board& board, const Eigen::VectorXf action_probs) {
         node->children.reserve(action_probs.size());
         for (int i = 0; i < GameConfig::BOARD_SIZE; ++i) {
             // 后一个条件是额外的检查，防止不允许下的点意外添进树中。
@@ -83,7 +83,7 @@ struct Default {
         score /= rollout_count;
 
         using namespace Eigen;
-        VectorXd action_probs = Map<Matrix<bool, -1, 1>>(board.moveStates(Player::None).data(), BOARD_SIZE).cast<double>();
+        VectorXf action_probs = Map<Matrix<bool, -1, 1>>(board.moveStates(Player::None).data(), BOARD_SIZE).cast<float>();
         action_probs /= board.moveCounts(Player::None);
 
         return { score, action_probs };

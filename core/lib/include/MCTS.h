@@ -5,7 +5,7 @@
 #include <memory>      // std::unique_ptr
 #include <functional>  // std::function
 #include <any>         // std::any
-#include <Eigen/Dense> 
+#include <Eigen/Dense> // Eigen::VectorXf
 
 #ifdef _DEBUG
 #define C_ITERATIONS 2000
@@ -66,7 +66,7 @@ public:
     /*
         Tree-Policy中的选择阶段策略函数。
     */
-    using SelectFunc = std::function<Node*(const Node*, double expl_param)>;
+    using SelectFunc = std::function<Node*(const Node*, double)>;
 
     /*
         Tree-Policy中的扩展策略函数：
@@ -74,14 +74,14 @@ public:
         ② 已经有子的位置概率应为0，防止被添加进树中。可以额外加一层在正常情况下会被短路的检查。
         ③ 返回值为新增的结点数。
     */
-    using ExpandFunc = std::function<size_t(Node*, Board&, const Eigen::VectorXd action_probs)>;
+    using ExpandFunc = std::function<size_t(Node*, Board&, const Eigen::VectorXf)>;
 
     /*
         当Tree-Policy抵达中止点时，用于将棋下完（可选）并评估场面价值的Default-Policy：
         ① 在函数调用前后，一般应保证棋盘的状态不变。
         ② 返回值为 <场面价值, 各处落子的概率> 。
     */
-    using EvalResult = std::tuple<double, Eigen::Ref<Eigen::VectorXd>>;
+    using EvalResult = std::tuple<float, const Eigen::VectorXf>;
     using EvalFunc = std::function<EvalResult(Board&)>;
 
     /*
@@ -89,7 +89,7 @@ public:
         ① 此阶段棋盘将被重置回初始状态（与Select过程的路线对称）
         ② 结点的各种属性均在此函数中被更新。
     */
-    using UpdateFunc = std::function<void(Node*, Board&, double state_value)>;
+    using UpdateFunc = std::function<void(Node*, Board&, double)>;
 
     // 当其中某一项传入nullptr时，该项将使用一个默认策略初始化。
     Policy(SelectFunc = nullptr, ExpandFunc = nullptr, EvalFunc = nullptr, UpdateFunc = nullptr);
@@ -110,12 +110,12 @@ public:
 
 class MCTS {
 public:
-    MCTS(
+    MCTS(       
         Position last_move    = -1,
-        Player   last_player  = Player::White,
-        Policy*  policy       = nullptr,
+        Player   last_player  = Player::White,     
         size_t   c_iterations = C_ITERATIONS,
-        double   c_puct       = 7//sqrt(2)
+        double   c_puct       = 7,//sqrt(2)
+        std::shared_ptr<Policy> policy = nullptr
     );
 
     Position getNextMove(Board& board);
@@ -134,7 +134,7 @@ public:
     void reset();
 
 public:
-    std::unique_ptr<Policy> m_policy;
+    std::shared_ptr<Policy> m_policy;
     std::unique_ptr<Node> m_root;
     size_t m_size; // FIXME: 由于unique_ptr的自动销毁，目前暂不能正确计数。
     size_t c_iterations;

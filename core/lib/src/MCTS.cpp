@@ -41,11 +41,11 @@ unique_ptr<Node> Policy::createNode(Node* parent, Position pose, Player player, 
 MCTS::MCTS(
     Position last_move,
     Player last_player,
-    Policy* policy,
     size_t c_iterations,
-    double c_puct
+    double c_puct,
+    shared_ptr<Policy> policy
 ) :
-    m_policy(policy ? policy : new Policy),
+    m_policy(policy ? policy : make_shared<Policy>()),
     m_root(m_policy->createNode(nullptr, last_move, last_player, 0.0, 1.0)),
     m_size(1),
     c_iterations(c_iterations),
@@ -64,7 +64,7 @@ Policy::EvalResult MCTS::evalState(Board& board) {
     for (int i = 0; i < c_iterations; ++i) {
         m_size += playout(board);
     }
-    VectorXd action_probs((int)BOARD_SIZE);
+    VectorXf action_probs((int)BOARD_SIZE);
     for (auto&& node : m_root->children) {
         action_probs[node->position] = node->node_visits;
     }

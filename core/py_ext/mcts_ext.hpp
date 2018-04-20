@@ -22,7 +22,7 @@ inline void MCTS_Ext(py::module& mod) {
         .def_readwrite("state_value", &Node::state_value)
         .def_readwrite("action_prob", &Node::action_prob)
         .def_readwrite("node_visits", &Node::node_visits)
-        .def_property_readonly("children", [](const Node* n) {   
+        .def_property_readonly("children", [](const Node* n) {
             py::list children(n->children.size());
             for (int i = 0; i < children.size(); ++i) {  // py::list do not support writing by iterator
                 children[i] = n->children[i].get();                
@@ -38,7 +38,8 @@ inline void MCTS_Ext(py::module& mod) {
         });
 
 
-    py::class_<Policy>(mod, "Policy", "MCTS Tree Policy")
+    // Register Policy class with shared_ptr holder type
+    py::class_<Policy, std::shared_ptr<Policy>>(mod, "Policy", "MCTS Tree Policy")
         .def(py::init<Policy::SelectFunc, Policy::ExpandFunc, Policy::EvalFunc, Policy::UpdateFunc>(),
             py::arg("select") = nullptr,
             py::arg("expand") = nullptr,
@@ -52,12 +53,12 @@ inline void MCTS_Ext(py::module& mod) {
 
 
     py::class_<MCTS>(mod, "MCTS", "Monte Carlo Tree Search")
-        .def(py::init<Position, Player, Policy*, size_t, double>(),
+        .def(py::init<Position, Player, size_t, double, shared_ptr<Policy>>(),
             py::arg("last_move") = Position(-1),
             py::arg("last_player") = Player::White,
-            py::arg_v("policy", nullptr, "Default Policy"),
             py::arg("c_iterations") = C_ITERATIONS,
-            py::arg("c_puct") = sqrt(2)
+            py::arg("c_puct") = sqrt(2),
+            py::arg_v("policy", nullptr, "Default Policy")
         )
         .def_readonly("size", &MCTS::m_size)
         .def_readonly("c_puct", &MCTS::c_puct)
