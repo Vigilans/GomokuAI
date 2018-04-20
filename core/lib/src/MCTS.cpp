@@ -1,5 +1,6 @@
 #include "MCTS.h"
 #include "policies/Default.h"
+#include "policies/RAVE.h"
 
 using namespace std;
 using namespace Eigen;
@@ -20,16 +21,16 @@ Policy::Policy(
     UpdateFunc f4
 ) : 
     select(f1 ? f1 : [this](auto node, auto c_puct) {
-        return Default::select(this, node, c_puct);
+        return Default::Select(this, node, c_puct);
     }),
     expand(f2 ? f2 : [this](auto node, auto& board, auto action_probs) {
-        return Default::expand(this, node, board, std::move(action_probs));
+        return Default::Expand(this, node, board, std::move(action_probs));
     }),
     simulate(f3 ? f3 : [this](auto& board) {
-        return Default::simulate(this, board);
+        return Default::Simulate(this, board);
     }),
     backPropogate(f4 ? f4 : [this](auto node, auto& board, auto value) {
-        return Default::backPropogate(this, node, board, value);
+        return Default::BackPropogate(this, node, board, value);
     }) {
 
 }
@@ -109,7 +110,7 @@ size_t MCTS::playout(Board& board) {
             throw node->player;
         }
         expand_size = 0;
-        node_value = calcScore(node->player, board.m_winner); // 根据绝对价值(winner)获取当前局面于玩家的相对价值
+        node_value = CalcScore(node->player, board.m_winner); // 根据绝对价值(winner)获取当前局面于玩家的相对价值
     }
     m_policy->backPropogate(node, board, node_value);     // 回溯更新，同时重置Board到初始传入的状态
     return expand_size;

@@ -21,9 +21,9 @@ TEST(PlayerTest, FinalScore) {
                 continue; // ATTENTION: potential bug
             }
             if (player == winner) {
-                ASSERT_GT(calcScore(player, winner), 0);
+                ASSERT_GT(CalcScore(player, winner), 0);
             } else {
-                ASSERT_LE(calcScore(player, winner), 0);
+                ASSERT_LE(CalcScore(player, winner), 0);
             }
         }
     }

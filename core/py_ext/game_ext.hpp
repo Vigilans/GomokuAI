@@ -25,8 +25,8 @@ inline void Game_Ext(py::module& mod) {
         .value("black", Player::Black)
         .def("__float__", [](Player p) { return static_cast<double>(p); })
         .def("__neg__",   [](Player p) { return -p; })
-        .def_static("calc_score", static_cast<double (*)(Player, Player)>(&calcScore))
-        .def_static("calc_score", static_cast<double (*)(Player, double)>(&calcScore));
+        .def_static("calc_score", static_cast<double (*)(Player, Player)>(&CalcScore))
+        .def_static("calc_score", static_cast<double (*)(Player, double)>(&CalcScore));
 
 
     // Definition of Position struct

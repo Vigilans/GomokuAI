@@ -23,12 +23,12 @@ constexpr Player operator-(Player player) {
 }
 
 // 返回游戏结束后的得分。同号（winner与player相同）为正，异号为负，平局为零。
-constexpr double calcScore(Player player, Player winner) { 
+constexpr double CalcScore(Player player, Player winner) { 
     return static_cast<double>(player) * static_cast<double>(winner); 
 }
 
 // 返回当前局面评分相对于参数的player的价值。
-constexpr double calcScore(Player player, double stateValue) {
+constexpr double CalcScore(Player player, double stateValue) {
     return static_cast<double>(player) * stateValue;
 }
 
@@ -72,7 +72,7 @@ public:
     Position getRandomMove() const;
 
     // 越界与无子检查。暂无禁手规则。
-    bool checkMove(Position move);
+    bool checkMove(Position move) const;
 
     // 从性能角度考虑，只需对最后落子周围进行遍历。
     bool checkGameEnd();

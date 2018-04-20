@@ -64,7 +64,7 @@ Position Board::getRandomMove() const {
     return Position(id);
 }
 
-bool Board::checkMove(Position move) {
+bool Board::checkMove(Position move) const {
     return move.id >= 0 && move.id < BOARD_SIZE && moveStates(Player::None)[move];
 }
 
@@ -102,8 +102,8 @@ bool Board::checkGameEnd() {
         return renju >= MAX_RENJU;
     };
         
-    // 从 左上->右下 || 左下->右上 || 左->右 || 下->上  进行搜索
-    if (search(1, -1) || search(1, 1) || search(1, 0) || search(0, 1)) {
+    // 从 左->右 || 下->上 || 左上->右下 || 左下->右上 进行搜索
+    if (search(1, 0) || search(0, 1) || search(1, -1) || search(1, 1)) {
         m_winner = lastPlayer; // 赢家为下最后一手的玩家
         m_curPlayer = Player::None;
         return true;
