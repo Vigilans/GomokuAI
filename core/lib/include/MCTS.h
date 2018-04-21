@@ -12,6 +12,7 @@
 #else
 #define C_ITERATIONS 50000
 #endif
+#define C_PUCT 7
 
 namespace Gomoku {
 
@@ -66,7 +67,7 @@ public:
     /*
         Tree-Policy中的选择阶段策略函数。
     */
-    using SelectFunc = std::function<Node*(const Node*, double)>;
+    using SelectFunc = std::function<Node*(const Node*)>;
 
     /*
         Tree-Policy中的扩展策略函数：
@@ -92,7 +93,7 @@ public:
     using UpdateFunc = std::function<void(Node*, Board&, double)>;
 
     // 当其中某一项传入nullptr时，该项将使用一个默认策略初始化。
-    Policy(SelectFunc = nullptr, ExpandFunc = nullptr, EvalFunc = nullptr, UpdateFunc = nullptr);
+    Policy(SelectFunc = nullptr, ExpandFunc = nullptr, EvalFunc = nullptr, UpdateFunc = nullptr, double = C_PUCT);
     
     // 用于多态生成树节点的Factory函数。
     virtual std::unique_ptr<Node> createNode(Node* parent, Position pose, Player player, float value, float prob);
@@ -103,8 +104,9 @@ public:
     EvalFunc   simulate;
     UpdateFunc backPropogate;
 
-public:
-    std::any container; // 用以存放Actions的容器，可以在不同的Policy中表现为任何形式。
+public: // 共通属性
+    double c_puct; // PUCT公式的Exploit-Explore平衡因子
+    std::any m_placeholder; // 可以在不同的Policy中表现为任何形式的占位符。
 };
 
 
@@ -114,7 +116,6 @@ public:
         Position last_move    = -1,
         Player   last_player  = Player::White,     
         size_t   c_iterations = C_ITERATIONS,
-        double   c_puct       = 7,//sqrt(2)
         std::shared_ptr<Policy> policy = nullptr
     );
 
@@ -138,7 +139,6 @@ public:
     std::unique_ptr<Node> m_root;
     size_t m_size; // FIXME: 由于unique_ptr的自动销毁，目前暂不能正确计数。
     size_t c_iterations;
-    double c_puct;
 };
 
 }

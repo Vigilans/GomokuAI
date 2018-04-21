@@ -1,10 +1,10 @@
 #include "MCTS.h"
-#include "policies/Default.h"
-#include "policies/RAVE.h"
+#include "policies/Random.h"
 
 using namespace std;
 using namespace Eigen;
 using namespace Gomoku;
+using namespace Gomoku::Algorithms;
 using namespace Gomoku::Policies;
 
 // 更新后，原根节点由unique_ptr自动释放，其余的非子树结点也会被链式自动销毁。
@@ -14,44 +14,39 @@ inline Node* updateRoot(MCTS& mcts, unique_ptr<Node>&& next_node) {
     return mcts.m_root.get();
 }
 
-Policy::Policy(
-    SelectFunc f1, 
-    ExpandFunc f2, 
-    EvalFunc f3, 
-    UpdateFunc f4
-) : 
-    select(f1 ? f1 : [this](auto node, auto c_puct) {
-        return Default::Select(this, node, c_puct);
-    }),
-    expand(f2 ? f2 : [this](auto node, auto& board, auto action_probs) {
-        return Default::Expand(this, node, board, std::move(action_probs));
-    }),
-    simulate(f3 ? f3 : [this](auto& board) {
-        return Default::Simulate(this, board);
-    }),
-    backPropogate(f4 ? f4 : [this](auto node, auto& board, auto value) {
-        return Default::BackPropogate(this, node, board, value);
-    }) {
-
-}
-
+// 若未被重写，则创建基类结点
 unique_ptr<Node> Policy::createNode(Node* parent, Position pose, Player player, float value, float prob) {
     return make_unique<Node>(Node{ parent, pose, player, value, prob });
+}
+
+Policy::Policy(SelectFunc f1, ExpandFunc f2, EvalFunc f3, UpdateFunc f4, double c_puct)
+    : select(f1 ? f1 : [this](auto node) { 
+        return Default::Select(this, node); 
+    }),
+    expand(f2 ? f2 : [this](auto node, auto& board, auto probs) { 
+        return Default::Expand(this, node, board, std::move(probs)); 
+    }),
+    simulate(f3 ? f3 : [this](auto& board) { 
+        return Default::Simulate(board); 
+    }),
+    backPropogate(f4 ? f4 : [this](auto node, auto& board, auto value) { 
+        return Default::BackPropogate(this, node, board, value); 
+    }), 
+    c_puct(c_puct) { 
+
 }
 
 MCTS::MCTS(
     Position last_move,
     Player last_player,
     size_t c_iterations,
-    double c_puct,
     shared_ptr<Policy> policy
 ) :
-    m_policy(policy ? policy : make_shared<Policy>()),
+    m_policy(policy ? policy : shared_ptr<Policy>(new RandomPolicy)),
     m_root(m_policy->createNode(nullptr, last_move, last_player, 0.0, 1.0)),
     m_size(1),
-    c_iterations(c_iterations),
-    c_puct(c_puct) { 
-
+    c_iterations(c_iterations) { 
+    
 }
 
 Position MCTS::getNextMove(Board& board) {
@@ -95,7 +90,7 @@ Node* MCTS::stepForward(Position next_move) {
 size_t MCTS::playout(Board& board) {
     Node* node = m_root.get();      // 裸指针用作观察指针，不对树结点拥有所有权
     while (!node->isLeaf()) {   // 检测当前结点是否所有可行手都被拓展过
-        node = m_policy->select(node, c_puct);  // 若当前结点已拓展完毕，则根据价值公式选出下一个探索结点
+        node = m_policy->select(node);  // 若当前结点已拓展完毕，则根据价值公式选出下一个探索结点
         board.applyMove(node->position, false); // 重要性能点：非终点节点无需检查是否胜利（此前已检查过了）
     }
     double node_value;
@@ -106,9 +101,6 @@ size_t MCTS::playout(Board& board) {
         node_value = -state_value; // 由于node保存的是「下出变成当前局面的一手」的玩家，因此其价值应取相反数
     } else {
         _ASSERT(node->player == board.m_winner);
-        if (node->player != board.m_winner) {
-            throw node->player;
-        }
         expand_size = 0;
         node_value = CalcScore(node->player, board.m_winner); // 根据绝对价值(winner)获取当前局面于玩家的相对价值
     }
