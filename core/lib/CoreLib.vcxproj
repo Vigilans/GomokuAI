@@ -160,9 +160,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="include\algorithms\RAVE.h" />
     <ClInclude Include="include\Game.h" />
     <ClInclude Include="include\MCTS.h" />
-    <ClInclude Include="include\policies\Default.h" />
+    <ClInclude Include="include\algorithms\Default.h" />
+    <ClInclude Include="include\policies\Random.h" />
+    <ClInclude Include="include\policies\Traditional.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game.cpp" />

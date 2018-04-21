@@ -88,6 +88,7 @@ Node* MCTS::stepForward(Position next_move) {
 }
 
 size_t MCTS::playout(Board& board) {
+    m_policy->m_initActs = board.m_moveRecord.size(); // 记录棋盘起始位置
     Node* node = m_root.get();      // 裸指针用作观察指针，不对树结点拥有所有权
     while (!node->isLeaf()) {   // 检测当前结点是否所有可行手都被拓展过
         node = m_policy->select(node);  // 若当前结点已拓展完毕，则根据价值公式选出下一个探索结点

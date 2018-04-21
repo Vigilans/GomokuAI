@@ -20,7 +20,16 @@
     <ClInclude Include="include\MCTS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\policies\Default.h">
+    <ClInclude Include="include\algorithms\Default.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\policies\Random.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\algorithms\RAVE.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\policies\Traditional.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

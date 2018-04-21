@@ -1,7 +1,7 @@
 #ifndef GOMOKU_POLICY_RANDOM_H_
 #define GOMOKU_POLICY_RANDOM_H_
-#include "MCTS.h"
-#include "algorithms/Default.h"
+#include "../MCTS.h"
+#include "../algorithms/Default.h"
 
 // 每个Policy都是Algorithms名空间中静态方法的拼装
 namespace Gomoku::Policies {
@@ -13,13 +13,13 @@ public:
     using Default = Gomoku::Algorithms::Default; 
 
     RandomPolicy(double c_puct = C_PUCT, size_t c_rollouts = 5) : 
-        Policy(nullptr, nullptr, [this](auto& board) { return this->averagedSimulate(board); }, nullptr, c_puct), 
+        Policy(nullptr, nullptr, [this](auto& board) { return averagedSimulate(board); }, nullptr, c_puct), 
         c_rollouts(c_rollouts) {
 
     }
 
     // 随机下棋直到游戏结束（进行多盘取平均值）
-    Policy::EvalResult averagedSimulate(Board& board) {  
+    EvalResult averagedSimulate(Board& board) {  
         auto init_player = board.m_curPlayer;
         double score = 0;
 

@@ -1,7 +1,7 @@
 #ifndef GOMOKU_ALGORITHMS_DEFAULT_H_
 #define GOMOKU_ALGORITHMS_DEFAULT_H_
 #pragma warning(disable:4244) // 关闭收缩转换警告
-#include "MCTS.h"
+#include "../MCTS.h"
 #include <tuple>
 #include <algorithm>
 
@@ -41,12 +41,11 @@ struct Default {
     }
 
     // 根据传入的概率扩张结点。概率为0的Action将不被加入子结点中。
-    static size_t Expand(Policy* policy, Node* node, Board& board, const Eigen::VectorXf action_probs) {
+    static size_t Expand(Policy* policy, Node* node, Board& board, const Eigen::VectorXf action_probs, bool extraCheck = true) {
         node->children.reserve(action_probs.size());
         for (int i = 0; i < GameConfig::BOARD_SIZE; ++i) {
-            // 后一个条件是额外的检查，防止不允许下的点意外添进树中。
-            // 一般情况下会被短路，不影响性能。
-            if (action_probs[i] != 0.0 && board.checkMove(i)) {
+            // 后一个条件是额外的检查，防止不允许下的点意外添进树中（概率不为0）。
+            if (action_probs[i] != 0.0 && (!extraCheck || board.checkMove(i))) {
                 node->children.emplace_back(policy->createNode(node, Position(i), -node->player, 0.0f, float(action_probs[i])));
             }
         }
@@ -78,12 +77,11 @@ struct Default {
     }
 
     static void BackPropogate(Policy* policy, Node* node, Board& board, float value) {
-        size_t revert_count = -1; // 根节点对应棋子不被悔掉
-        for (; node != nullptr; node = node->parent, value = -value, ++revert_count) {
+        for (; node != nullptr; node = node->parent, value = -value) {
             node->node_visits += 1;
             node->state_value += (value - node->state_value) / node->node_visits;
         }
-        board.revertMove(revert_count);
+        board.revertMove(board.m_moveRecord.size() - policy->m_initActs); // 重置回初始局面
     }
 };
 

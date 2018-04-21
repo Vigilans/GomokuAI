@@ -12,7 +12,7 @@
 #else
 #define C_ITERATIONS 50000
 #endif
-#define C_PUCT 7
+#define C_PUCT 5
 
 namespace Gomoku {
 
@@ -53,6 +53,7 @@ struct Node {
         构造与赋值函数。
         显式声明两个函数的移动版本，以阻止复制版本的自动生成。 
     */
+    Node() = default;
     Node(Node&&) = default;
     Node& operator=(Node&&) = default;
 
@@ -106,7 +107,7 @@ public:
 
 public: // 共通属性
     double c_puct; // PUCT公式的Exploit-Explore平衡因子
-    std::any m_placeholder; // 可以在不同的Policy中表现为任何形式的占位符。
+    size_t m_initActs; // MCTS的一轮Playout开始时，Board已下的棋子数。
 };
 
 
