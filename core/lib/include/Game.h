@@ -38,11 +38,11 @@ struct Position {
     // 内部存储使用short，其余情况均转换为int计算。
     short id;
 
-    Position(int id = -1)              : id(id) {}
-    Position(int x, int y)             : id(y * WIDTH + x) {}
-    Position(std::pair<int, int> pose) : id(pose.second * WIDTH + pose.first) {}
+    constexpr Position(int id = -1)              : id(id) {}
+    constexpr Position(int x, int y)             : id(y * WIDTH + x) {}
+    constexpr Position(std::pair<int, int> pose) : id(pose.second * WIDTH + pose.first) {}
 
-    operator  int  () const { return id; }
+    constexpr operator int () const { return id; }
     constexpr int x() const { return id % WIDTH; }
     constexpr int y() const { return id / WIDTH; }
 };
@@ -91,12 +91,15 @@ public:
     }
 
     // 通过Player枚举获取对应棋盘状态
-    std::array<bool, BOARD_SIZE>&       moveStates(Player player) noexcept { return m_moveStates[static_cast<int>(player) + 1]; }
-    const std::array<bool, BOARD_SIZE>& moveStates(Player player) const noexcept { return m_moveStates[static_cast<int>(player) + 1]; }
+    std::array<bool, BOARD_SIZE>&       moveStates(Player player) { return m_moveStates[static_cast<int>(player) + 1]; }
+    const std::array<bool, BOARD_SIZE>& moveStates(Player player) const { return m_moveStates[static_cast<int>(player) + 1]; }
+    
+    // 获取棋盘在对应Position上的Player状态。仅提供只读接口。
+    bool moveState(Player player, Position pose) const { return m_moveStates[static_cast<int>(player) + 1][pose.id]; }
 
     // 通过Player枚举获取已落子/未落子总数
-    std::size_t& moveCounts(Player player) noexcept { return m_moveCounts[static_cast<int>(player) + 1]; }
-    std::size_t  moveCounts(Player player) const noexcept { return m_moveCounts[static_cast<int>(player) + 1]; }
+    std::size_t& moveCounts(Player player) { return m_moveCounts[static_cast<int>(player) + 1]; }
+    std::size_t  moveCounts(Player player) const { return m_moveCounts[static_cast<int>(player) + 1]; }
 
 // 数据成员部分
 public:
@@ -115,7 +118,6 @@ public:
         当棋局还未结束时（m_curPlayer != Player::None），值始终保持为None，代表还没有赢家。
     */
     Player m_winner = Player::None;
-
 
     /*
         两个数组表示了棋盘上的状态与已落子个数。各下标对应关系为：
@@ -159,4 +161,4 @@ struct tuple_element<N, Gomoku::Position> { using type = int; };
 
 }
 
-#endif // !GAME_H_
+#endif // !GOMOKU_GAME_H_

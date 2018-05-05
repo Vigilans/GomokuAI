@@ -14,9 +14,12 @@ inline Node* updateRoot(MCTS& mcts, unique_ptr<Node>&& next_node) {
     return mcts.m_root.get();
 }
 
-// 若未被重写，则创建基类结点
-unique_ptr<Node> Policy::createNode(Node* parent, Position pose, Player player, float value, float prob) {
-    return make_unique<Node>(Node{ parent, pose, player, value, prob });
+inline void runPlayouts(MCTS& mcts, Board& board) {
+    mcts.m_policy->prepare(board);
+    for (int i = 0; i < mcts.c_iterations; ++i) {
+        mcts.m_size += mcts.playout(board);
+    }
+    mcts.m_policy->cleanup(board);
 }
 
 Policy::Policy(SelectFunc f1, ExpandFunc f2, EvalFunc f3, UpdateFunc f4, double c_puct)
@@ -36,6 +39,31 @@ Policy::Policy(SelectFunc f1, ExpandFunc f2, EvalFunc f3, UpdateFunc f4, double 
 
 }
 
+// 若未被重写，则创建基类结点
+unique_ptr<Node> Policy::createNode(Node* parent, Position pose, Player player, float value, float prob) {
+    return make_unique<Node>(Node{ parent, pose, player, value, prob });
+}
+
+void Policy::prepare(Board & board) {
+    m_initActs = board.m_moveRecord.size(); // 记录棋盘起始位置
+}
+
+void Policy::cleanup(Board & board) {
+    board.revertMove(board.m_moveRecord.size() - m_initActs); // 保证一定重置回初始局面
+}
+
+Player Policy::applyMove(Board & board, Position move) {
+    return board.applyMove(move, false); // 非终点节点无需检查是否胜利（此前已检查过了）
+}
+
+Player Policy::revertMove(Board & board, size_t count) {
+    return board.revertMove(count);
+}
+
+bool Policy::checkGameEnd(Board & board) {
+    return board.checkGameEnd();
+}
+
 MCTS::MCTS(
     Position last_move,
     Player last_player,
@@ -50,16 +78,12 @@ MCTS::MCTS(
 }
 
 Position MCTS::getNextMove(Board& board) {
-    for (int i = 0; i < c_iterations; ++i) {
-        m_size += playout(board);
-    }
+    runPlayouts(*this, board);
     return stepForward()->position;
 }
 
 Policy::EvalResult MCTS::evalState(Board& board) {
-    for (int i = 0; i < c_iterations; ++i) {
-        m_size += playout(board);
-    }
+    runPlayouts(*this, board);
     VectorXf action_probs((int)BOARD_SIZE);
     for (auto&& node : m_root->children) {
         action_probs[node->position] = node->node_visits;
@@ -81,22 +105,21 @@ Node* MCTS::stepForward(Position next_move) {
     auto iter = find_if(m_root->children.begin(), m_root->children.end(), [next_move](auto&& node) {
         return node->position == next_move;
     });
-    if (iter == m_root->children.end()) { // 这个迷之hack是为了防止python模块中出现引用Bug...
+    if (iter == m_root->children.end()) { // 这个迷之hack是为了防止Python模块中出现引用Bug...
         iter = m_root->children.emplace(m_root->children.end(), m_policy->createNode(nullptr, next_move, -m_root->player, 0.0f, 1.0f));
     }
     return updateRoot(*this, std::move(*iter));
 }
 
 size_t MCTS::playout(Board& board) {
-    m_policy->m_initActs = board.m_moveRecord.size(); // 记录棋盘起始位置
     Node* node = m_root.get();      // 裸指针用作观察指针，不对树结点拥有所有权
     while (!node->isLeaf()) {   // 检测当前结点是否所有可行手都被拓展过
         node = m_policy->select(node);  // 若当前结点已拓展完毕，则根据价值公式选出下一个探索结点
-        board.applyMove(node->position, false); // 重要性能点：非终点节点无需检查是否胜利（此前已检查过了）
+        m_policy->applyMove(board, node->position);
     }
     double node_value;
     size_t expand_size;
-    if (!board.checkGameEnd()) {  // 检查终结点游戏是否结束  
+    if (!m_policy->checkGameEnd(board)) {  // 检查终结点游戏是否结束  
         auto [state_value, action_probs] = m_policy->simulate(board); // 获取当前盘面相对于「当前应下玩家」的价值与概率分布
         expand_size = m_policy->expand(node, board, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
         node_value = -state_value; // 由于node保存的是「下出变成当前局面的一手」的玩家，因此其价值应取相反数
@@ -105,7 +128,8 @@ size_t MCTS::playout(Board& board) {
         expand_size = 0;
         node_value = CalcScore(node->player, board.m_winner); // 根据绝对价值(winner)获取当前局面于玩家的相对价值
     }
-    m_policy->backPropogate(node, board, node_value);     // 回溯更新，同时重置Board到初始传入的状态
+    m_policy->backPropogate(node, board, node_value);     
+    m_policy->revertMove(board, board.m_moveRecord.size() - m_policy->m_initActs); // 重置回初始局面
     return expand_size;
 }
 

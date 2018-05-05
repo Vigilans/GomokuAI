@@ -58,14 +58,14 @@ Position Board::getRandomMove() const {
         throw overflow_error("board is already full");
     }
     int id = rnd(rnd_eng);
-    while (!moveStates(Player::None)[id]) {
+    while (!moveState(Player::None, id)) {
         id = (id + 1) % moveStates(Player::None).size();
     }
     return Position(id);
 }
 
 bool Board::checkMove(Position move) const {
-    return move.id >= 0 && move.id < BOARD_SIZE && moveStates(Player::None)[move];
+    return move.id >= 0 && move.id < BOARD_SIZE && moveState(Player::None, move);
 }
 
 bool Board::checkGameEnd() {
@@ -94,7 +94,7 @@ bool Board::checkGameEnd() {
                 x += sgn * dx, y += sgn * dy;
                 // 判断坐标的格子是否未越界且归属为当前棋子
                 if ((x >= 0 && x < WIDTH) && (y >= 0 && y < HEIGHT)
-                    && moveStates(lastPlayer)[y*WIDTH + x]) ++renju;
+                    && moveState(lastPlayer, y*WIDTH + x)) ++renju;
                 else break;
             }
         }

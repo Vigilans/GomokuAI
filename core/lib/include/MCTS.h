@@ -4,13 +4,12 @@
 #include <vector>      // std::vector
 #include <memory>      // std::unique_ptr
 #include <functional>  // std::function
-#include <any>         // std::any
 #include <Eigen/Dense> // Eigen::VectorXf
 
 #ifdef _DEBUG
 #define C_ITERATIONS 2000
 #else
-#define C_ITERATIONS 50000
+#define C_ITERATIONS 5000
 #endif
 #define C_PUCT 5
 
@@ -81,7 +80,7 @@ public:
     /*
         当Tree-Policy抵达中止点时，用于将棋下完（可选）并评估场面价值的Default-Policy：
         ① 在函数调用前后，一般应保证棋盘的状态不变。
-        ② 返回值为 <场面价值, 各处落子的概率> 。
+        ② 返回值为 <场面价值, 各处落子的概率/得分> 。
     */
     using EvalResult = std::tuple<float, const Eigen::VectorXf>;
     using EvalFunc = std::function<EvalResult(Board&)>;
@@ -93,13 +92,20 @@ public:
     */
     using UpdateFunc = std::function<void(Node*, Board&, double)>;
 
+public:
     // 当其中某一项传入nullptr时，该项将使用一个默认策略初始化。
     Policy(SelectFunc = nullptr, ExpandFunc = nullptr, EvalFunc = nullptr, UpdateFunc = nullptr, double = C_PUCT);
-    
+
     // 用于多态生成树节点的Factory函数。
     virtual std::unique_ptr<Node> createNode(Node* parent, Position pose, Player player, float value, float prob);
 
-public:
+    virtual void prepare(Board& board); // 在执行所有Playout前的准备操作。
+    virtual void cleanup(Board& board); // 在执行所有Playout后的清理工作。
+
+    virtual Player applyMove(Board& board, Position move);
+    virtual Player revertMove(Board& board, size_t count = 1);
+    virtual bool checkGameEnd(Board& board);
+
     SelectFunc select;
     ExpandFunc expand;
     EvalFunc   simulate;

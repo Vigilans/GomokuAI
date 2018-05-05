@@ -10,7 +10,7 @@ namespace Gomoku::Policies {
 class RandomPolicy : public Policy {
 public:
     // 引入默认算法
-    using Default = Gomoku::Algorithms::Default; 
+    using Default = Algorithms::Default; 
 
     RandomPolicy(double c_puct = C_PUCT, size_t c_rollouts = 5) : 
         Policy(nullptr, nullptr, [this](auto& board) { return averagedSimulate(board); }, nullptr, c_puct), 
