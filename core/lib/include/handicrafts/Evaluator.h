@@ -1,28 +1,24 @@
 #ifndef GOMOKU_HANDICRAFTS_EVALUATOR_H_
 #define GOMOKU_HANDICRAFTS_EVALUATOR_H_
 #include "Pattern.h"
+#include <unordered_map>
 
 namespace Gomoku::Handicrafts {
 
 class Evaluator {
 public:
-    Board* m_board;
-    std::vector<Pattern> m_patterns;
+    std::array<int, BOARD_SIZE> m_distribution[2][(int)PatternType::Size - 1]; // 不统计五子连珠分布
+    std::unordered_map<unsigned, Pattern> m_patterns;
     std::vector<unsigned> m_masks;
-    std::array<char, BOARD_SIZE> m_distribution[2][(int)PatternType::Size];
-
+    Board m_board; // 需要内部维护一个Board,以免受到外部变动的干扰。
+    
 public:
-    Evaluator() {
-        buildPatterns();
-        buildMasks();
-    }
+    Evaluator();
 
-    const auto& distribution(Player player, PatternType type) {
-        return m_distribution[2 * (int)player - 1][(int)type];
-    }
+    auto& distribution(Player player, PatternType type) { return m_distribution[player == Player::Black][(int)type]; }
 
-    // Evalutor应完全接管Board的职能，以避免出现bug。
-    void setBoard(Board* board) { if (m_board == nullptr) { m_board = board; } }
+    // 同步Evaluator至传入的Board状态。
+    void syncWithBoard(Board& board);
 
     unsigned getBitmap(Position move, Direction dir, Player perspect);
 
@@ -30,6 +26,7 @@ public:
 
     Player revertMove(size_t count = 1);
 
+    // 利用Evaluator，我们可以做到快速检查游戏是否结束。
     bool checkGameEnd();
 
 private:
@@ -38,6 +35,10 @@ private:
     void buildMasks();
 
     void updateMove(Position move, Player src_player);
+
+    void updatePattern(int bitmap, int delta, Position move, Direction dir, Player perspect);
+
+    void updateOnePiece(int delta, Position move, Player src_player);
 };
 
 }

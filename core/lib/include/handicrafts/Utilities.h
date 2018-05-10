@@ -1,11 +1,14 @@
 #ifndef GOMOKU_HANDICRAFTS_UTILITIES_H_
 #define GOMOKU_HANDICRAFTS_UTILITIES_H_
 #include "../Game.h"
+#include <Eigen/Dense>
 
 namespace Gomoku::Handicrafts {
 
 enum {
-    SAMPLE_LEN = 2 * MAX_RENJU + 1
+    MAX_PATTERN_LEN = 6,
+    MAX_SURROUNDING_SIZE = 7,
+    SAMPLE_LEN = 2 * MAX_PATTERN_LEN + 1
 };
 
 enum class Direction : char {
@@ -30,23 +33,84 @@ constexpr unsigned Bitmap(Player player, Player perspect) {
     }
 }
 
-template <typename View_t>
-constexpr auto BoardView(const std::array<View_t, BOARD_SIZE>& src, Position move, Direction dir) {
-    std::vector<View_t*> view_ptrs(SAMPLE_LEN, nullptr);
+/*
+    * Encoding a pattern to a bitmap, making it suitable for computing
+      and serving as hash index.
+    * Pattern format : "{$perspect}{$pattern}"
+        perspect:
+          binary state indicating the perspect of view.
+          '+' for black, '-' for white.
+        pattern: 
+          list of chars representing player states.
+          'x' for black, 'o' for white.
+          '_' for valuable blank,
+          '^' for invaluable blank.
+*/
+constexpr unsigned Encode(std::string_view str) {
+    Player perspect = Player::None;
+    switch (str[0]) {
+    case '+': perspect = Player::Black; break;
+    case '-': perspect = Player::White; break;
+    }
+    unsigned bitmap = 0u;
+    for (auto i = 1; i < str.length(); ++i) {
+        auto piece = 0b00u;
+        switch (str[i]) {
+        case 'x': 
+            piece = Bitmap(Player::Black, perspect); break;
+        case 'o': 
+            piece = Bitmap(Player::White, perspect); break;
+        case '_':
+        case '^':
+            piece = Bitmap(Player::None, perspect); break;
+        }
+        bitmap <<= 2;
+        bitmap |= piece;
+    }
+    return bitmap;
+}
+
+/*
+    * Convert a bitmap to a human-readable string.
+      'x' for black, 'o' for white, '-' for blank, '?' for invalid states.
+    * NOTE: encode & decode is not symmetric! 
+            information will be lost during encoding. 
+*/
+inline std::string Decode(unsigned bits, Player perspect = Player::Black) {
+    std::string result;
+    for (auto i = 0; i < SAMPLE_LEN; ++i) {
+        switch (bits & 0b11u) {
+        case 0b00: result.push_back('?'); break;
+        case 0b01: result.push_back(perspect == Player::Black ? 'x' : 'o'); break;
+        case 0b10: result.push_back(perspect == Player::Black ? 'o' : 'x'); break;
+        case 0b11: result.push_back('-'); break;
+        }
+        bits >>= 2;
+    }
+    return result;
+}
+
+template <size_t Length = SAMPLE_LEN, typename View_t>
+constexpr auto& LineView(std::array<View_t, BOARD_SIZE>& src, Position move, Direction dir) {
+    static std::vector<View_t*> view_ptrs(Length);
     auto [dx, dy] = DeltaXY(dir);
-    for (auto i = 0, j = i - SAMPLE_LEN / 2; i < SAMPLE_LEN; ++i, ++j) {
-        auto x = move.x() - dx * j, y = move.y() - dy * j;
+    for (int i = 0, j = i - Length / 2; i < Length; ++i, ++j) {
+        auto x = move.x() + dx * j, y = move.y() + dy * j;
         if ((x >= 0 && x < WIDTH) && (y >= 0 && y < HEIGHT)) {
             view_ptrs[i] = &src[Position{ x, y }];
+        } else {
+            view_ptrs[i] = nullptr;
         }
     }
     return view_ptrs;
 }
 
-constexpr size_t PatternLength(unsigned bits) {
-    size_t length = 0;
-    for (; bits; bits >>= 2) ++length;
-    return length;
+template <size_t Size = MAX_SURROUNDING_SIZE, typename View_t>
+constexpr auto& BlockView(std::array<View_t, BOARD_SIZE>& src, Position move) {
+    static Eigen::Map<Eigen::Matrix<View_t, HEIGHT, WIDTH>> view(nullptr);
+    new (&view) decltype(view)(src.data()); // placement new
+    
+    return view.block<Size, Size>(move.x() - Size/2, move.y() - Size/2);
 }
 
 }
