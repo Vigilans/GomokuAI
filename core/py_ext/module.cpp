@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "game_ext.hpp"
 #include "mcts_ext.hpp"
+#include "policy_ext.hpp"
 
 // General definitions
 PYBIND11_MODULE(CorePyExt, mod) {
@@ -8,4 +9,5 @@ PYBIND11_MODULE(CorePyExt, mod) {
     
     Game_Ext(mod);
     MCTS_Ext(mod);
+    Policy_Ext(mod);
 }

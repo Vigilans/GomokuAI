@@ -28,7 +28,6 @@ inline void Game_Ext(py::module& mod) {
         .def_static("calc_score", static_cast<double (*)(Player, Player)>(&CalcScore))
         .def_static("calc_score", static_cast<double (*)(Player, double)>(&CalcScore));
 
-
     // Definition of Position struct
     py::class_<Position>(mod, "Position", "Gomoku board positions")
         .def(py::init<int>()) // id
@@ -47,7 +46,7 @@ inline void Game_Ext(py::module& mod) {
     py::class_<Board>(mod, "Board", "Gomoku game board")
         .def(py::init<>())
         .def("apply_move",  &Board::applyMove, py::arg("move"), py::arg("checkVictory") = true)
-        .def("revert_move", &Board::revertMove)
+        .def("revert_move", &Board::revertMove, py::arg("count") = 1)
         .def("random_move", &Board::getRandomMove)
         .def("check_move",  &Board::checkMove)
         .def("check_end",   &Board::checkGameEnd)

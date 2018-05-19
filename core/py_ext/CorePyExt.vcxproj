@@ -199,6 +199,7 @@
     <ClInclude Include="game_ext.hpp" />
     <ClInclude Include="mcts_ext.hpp" />
     <ClInclude Include="pch.h" />
+    <ClInclude Include="policy_ext.hpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

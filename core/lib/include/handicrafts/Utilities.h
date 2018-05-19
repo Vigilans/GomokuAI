@@ -23,6 +23,7 @@ constexpr std::pair<int, int> DeltaXY(Direction direction) {
     case Direction::UpRight:   return { 1, 1 };
     case Direction::DownRight: return { 1, -1 };
     }
+    return { 0, 0 };
 }
 
 constexpr unsigned Bitmap(Player player, Player perspect) {

@@ -5,9 +5,15 @@
 using namespace Gomoku;
 using namespace Gomoku::Policies;
 
+#if _DEBUG
+#define C_ITERATIONS 500
+#else
+#define C_ITERATIONS 20000
+#endif
+
 class MCTSTest : public ::testing::Test {
 protected:
-    MCTSTest() : traditional_mcts(-1, Player::White, 20000, std::shared_ptr<Policy>(new TraditionalPolicy)) {}
+    MCTSTest() : traditional_mcts(C_ITERATIONS, -1, Player::White, std::shared_ptr<Policy>(new TraditionalPolicy)) {}
 
     Board board;
     MCTS random_mcts;
