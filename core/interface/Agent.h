@@ -59,23 +59,24 @@ public:
 
     virtual std::string name() {
         using namespace std::chrono;
-        return "MCTSAgent:" + std::to_string(duration_cast<milliseconds>(c_duration).count()) + "ms";
+        return "MCTSAgent:" + std::to_string(c_duration.count()) + "ms";
     }
 
     virtual Position getAction(Board& board) {
-        return m_mcts->getNextMove(board);
+        return m_mcts->getAction(board);
     }
 
     virtual json debugMessage() {
-        json debug;
-        debug["iterations"] = m_mcts->c_iterations;
-        return debug;
+        return {
+            { "iterations", m_mcts->m_iterations },
+            { "duration",   std::to_string(m_mcts->m_duration.count()) + "ms" }
+        };
     };
 
     virtual void syncWithBoard(Board& board) {
         if (m_mcts == nullptr) {
             auto last_action = board.m_moveRecord.empty() ? Position(-1) : board.m_moveRecord.back();
-            m_mcts = std::make_unique<MCTS>(last_action, -board.m_curPlayer, c_duration, m_policy);
+            m_mcts = std::make_unique<MCTS>(c_duration, last_action, -board.m_curPlayer, m_policy);
         } else {
             m_mcts->syncWithBoard(board);
         }

@@ -12,6 +12,12 @@
     <Filter Include="Header Files\Policy">
       <UniqueIdentifier>{9416fb1e-9215-4d2c-b4c8-a6173eaefaac}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Algorithm">
+      <UniqueIdentifier>{1e8ca234-da95-4b15-b314-b19b7700d2fe}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files\Pattern Matching">
+      <UniqueIdentifier>{5969dac9-d11f-4e43-8e9e-9777eeeb5e1d}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\Game.h">
@@ -21,34 +27,34 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="include\algorithms\Default.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\policies\Random.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Algorithm</Filter>
     </ClInclude>
     <ClInclude Include="include\algorithms\RAVE.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Algorithm</Filter>
     </ClInclude>
     <ClInclude Include="include\policies\Traditional.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Policy</Filter>
     </ClInclude>
-    <ClInclude Include="include\algorithms\Handicraft.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\handicrafts\Pattern.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\policies\Random.h">
+      <Filter>Header Files\Policy</Filter>
     </ClInclude>
     <ClInclude Include="include\handicrafts\Evaluator.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Pattern Matching</Filter>
     </ClInclude>
-    <ClInclude Include="include\handicrafts\Utilities.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="include\policies\PoolRAVE.h">
-      <Filter>Header Files</Filter>
+    <ClInclude Include="include\algorithms\Handicraft.h">
+      <Filter>Header Files\Algorithm</Filter>
     </ClInclude>
     <ClInclude Include="include\handicrafts\MSTree.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Pattern Matching</Filter>
+    </ClInclude>
+    <ClInclude Include="include\handicrafts\Pattern.h">
+      <Filter>Header Files\Pattern Matching</Filter>
+    </ClInclude>
+    <ClInclude Include="include\handicrafts\Utilities.h">
+      <Filter>Header Files\Pattern Matching</Filter>
+    </ClInclude>
+    <ClInclude Include="include\policies\PoolRAVE.h">
+      <Filter>Header Files\Policy</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

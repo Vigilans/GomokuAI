@@ -15,18 +15,6 @@ inline Node* updateRoot(MCTS& mcts, unique_ptr<Node>&& next_node) {
     return mcts.m_root.get();
 }
 
-inline void runPlayouts(MCTS& mcts, Board& board) {
-    mcts.syncWithBoard(board);
-    mcts.m_policy->prepare(board);
-    mcts.c_iterations = 0;
-    for (auto start = system_clock::now(), end = start;
-        end - start < mcts.c_duration; 
-        end = system_clock::now(), ++mcts.c_iterations) {
-        mcts.m_size += mcts.playout(board);
-    }
-    mcts.m_policy->cleanup(board);
-}
-
 Policy::Policy(SelectFunc f1, ExpandFunc f2, EvalFunc f3, UpdateFunc f4, double c_puct)
     : select(f1 ? f1 : [this](auto node) { 
         return Default::Select(this, node); 
@@ -70,26 +58,42 @@ bool Policy::checkGameEnd(Board & board) {
 }
 
 MCTS::MCTS(
+    milliseconds c_duration,
     Position last_move,
     Player last_player,
-    milliseconds c_duration,
     shared_ptr<Policy> policy
 ) :
     m_policy(policy ? policy : shared_ptr<Policy>(new RandomPolicy)),
     m_root(m_policy->createNode(nullptr, last_move, last_player, 0.0, 1.0)),
     m_size(1),
-    c_iterations(0),
-    c_duration(c_duration){ 
+    m_iterations(0),
+    m_duration(c_duration),
+    c_constraint(Constraint::Duration) { 
     
 }
 
-Position MCTS::getNextMove(Board& board) {
-    runPlayouts(*this, board);
+MCTS::MCTS(
+    size_t   c_iterations,
+    Position last_move,
+    Player   last_player,
+    std::shared_ptr<Policy> policy
+) :
+    m_policy(policy ? policy : shared_ptr<Policy>(new RandomPolicy)),
+    m_root(m_policy->createNode(nullptr, last_move, last_player, 0.0, 1.0)),
+    m_size(1),
+    m_iterations(c_iterations),
+    m_duration(0ms),
+    c_constraint(Constraint::Iterations) {
+
+};
+
+Position MCTS::getAction(Board& board) {
+    runPlayouts(board);
     return stepForward()->position;
 }
 
 Policy::EvalResult MCTS::evalState(Board& board) {
-    runPlayouts(*this, board);
+    runPlayouts(board);
     VectorXf action_probs((int)BOARD_SIZE);
     for (auto&& node : m_root->children) {
         action_probs[node->position] = node->node_visits;
@@ -120,9 +124,21 @@ Node* MCTS::stepForward(Position next_move) {
         return node->position == next_move;
     });
     if (iter == m_root->children.end()) { // 这个迷之hack是为了防止Python模块中出现引用Bug...
-        iter = m_root->children.emplace(m_root->children.end(), m_policy->createNode(nullptr, next_move, -m_root->player, 0.0f, 1.0f));
+        iter = m_root->children.emplace(
+            m_root->children.end(), 
+            m_policy->createNode(nullptr, next_move, -m_root->player, 0.0f, 1.0f)
+        );
     }
     return updateRoot(*this, std::move(*iter));
+}
+
+void MCTS::reset() {
+    auto iter = m_root->children.emplace(
+        m_root->children.end(), 
+        m_policy->createNode(nullptr, Position(-1), Player::White, 0.0f, 1.0f)
+    );
+    m_root = std::move(*iter);
+    m_size = 1;
 }
 
 size_t MCTS::playout(Board& board) {
@@ -146,8 +162,23 @@ size_t MCTS::playout(Board& board) {
     return expand_size;
 }
 
-void Gomoku::MCTS::reset() {
-    auto iter = m_root->children.emplace(m_root->children.end(), m_policy->createNode(nullptr, Position(-1), Player::White, 0.0f, 1.0f));
-    m_root = std::move(*iter);
-    m_size = 1;
+void MCTS::runPlayouts(Board& board) {
+    syncWithBoard(board);
+    m_policy->prepare(board);    
+    if (c_constraint == Constraint::Duration) {
+        m_iterations = 0;
+        for (auto start = system_clock::now(), end = start;
+            end - start < m_duration;
+            end = system_clock::now(), ++m_iterations) {
+            m_size += playout(board);
+        }
+    } else if (c_constraint == Constraint::Iterations) {
+        m_duration = 0ms;
+        auto start = system_clock::now();
+        for (auto i = 0; i < m_iterations; ++i) {
+            m_size += playout(board);
+        }
+        m_duration = duration_cast<milliseconds>(system_clock::now() - start);
+    }
+    m_policy->cleanup(board);
 }

@@ -7,7 +7,7 @@ using namespace Gomoku;
 using std::begin;
 using std::end;
 
-// Problem found 1: getNextMove() 无限循环
+// Problem found 1: getAction() 无限循环
 // Problem found 2: isCuurentPlayer函数参数不能直接设为Position，因为要做越界检查
 // Problem found 3: std::array::empty()总是返回false 不能作为条件判断使用
 // Problem found 4: checkVictory::search中把正反向搜索合而为一的逻辑是有问题的

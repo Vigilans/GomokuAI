@@ -15,7 +15,7 @@ protected:
 };
 
 TEST_F(MCTSTest, OneEvaluation) {
-    board.applyMove(traditional_mcts.getNextMove(board));
+    board.applyMove(traditional_mcts.getAction(board));
 }
 
 //TEST_F(MCTSTest, EvaluateSymmetry) {
@@ -28,8 +28,8 @@ TEST_F(MCTSTest, OneEvaluation) {
 //        ASSERT_EQ(random_mcts.m_root->position, board.m_moveRecord.back()) << "Root position not equal to last move";
 //        random_mcts.m_policy->simulate(board);
 //        ASSERT_EQ(board, board_cpy) << "DefaultPolicy::simulate changed board state"; // board state invariant
-//        Position next_move = random_mcts.getNextMove(board);
-//        ASSERT_EQ(board, board_cpy) << "MCTS::getNextMove changed board state"; // board state invariant
+//        Position next_move = random_mcts.getAction(board);
+//        ASSERT_EQ(board, board_cpy) << "MCTS::getAction changed board state"; // board state invariant
 //        board.applyMove(next_move);
 //        board_cpy.applyMove(next_move);
 //    }

@@ -16,7 +16,7 @@ public:
     using AMAFNode = Algorithms::AMAFNode; // 选择AMAFNode作为结点类型
     using Handicraft = Algorithms::Handicraft; // 引入人工算法
 
-    TraditionalPolicy(double puct = 1e-4, double bias = 1e-1, bool useRave = true) :
+    TraditionalPolicy(double puct = 1e-4, double bias = 1e-1, bool useRave = false) :
         Policy(
             [this](auto node)                          { return RAVE::Select(this, node); },
             [this](auto node, auto& board, auto probs) { return heuristicExpand(node, m_evaluator.m_board, std::move(probs)); },
@@ -122,18 +122,18 @@ public:
 
         // Fallback to default policy
         float state_value = Handicraft::ScoreBasedValue(m_evaluator, board, self_scores, rival_scores);
-        auto [winner, _] = Handicraft::RestrictedRollout(m_evaluator, board);
-        state_value = 0.5*state_value + 0.5*CalcScore(init_player, winner);
-        //for (int i = 0; i < 5; ++i) {
-        //    auto [winner, total_moves] = Default::RandomRollout(board);
-        //    auto score = CalcScore(init_player, winner);
-        //    state_value = 0.8*state_value + 0.2*score;
-        //    if (state_value * score < 0) { // 不同号，则回退棋盘后继续下棋
-        //        board.revertMove(total_moves);
-        //    } else {
-        //        break;
-        //    }
-        //}
+        //auto [winner, _] = Handicraft::RestrictedRollout(m_evaluator, board);
+        //state_value = 0.5*state_value + 0.5*CalcScore(init_player, winner);
+        for (int i = 0; i < 5; ++i) {
+            auto [winner, total_moves] = Default::RandomRollout(board);
+            auto score = CalcScore(init_player, winner);
+            state_value = 0.8*state_value + 0.2*score;
+            if (state_value * score < 0) { // 不同号，则回退棋盘后继续下棋
+                board.revertMove(total_moves);
+            } else {
+                break;
+            }
+        }
         
         return { state_value, action_probs };
     }

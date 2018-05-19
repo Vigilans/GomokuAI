@@ -117,37 +117,49 @@ using std::chrono_literals::operator""ms;
 
 class MCTS {
 public:
-    MCTS(       
-        Position last_move    = -1,
-        Player   last_player  = Player::White,     
-        milliseconds c_duration = 1000ms,
+    // 通过时间控制模拟迭代。为默认构造方法。
+    MCTS(
+        milliseconds c_duration  = 1000ms,
+        Position     last_move   = -1,
+        Player       last_player = Player::White,
         std::shared_ptr<Policy> policy = nullptr
     );
 
-    Position getNextMove(Board& board);
+    // 通过次数控制模拟迭代。
+    MCTS(
+        size_t   c_iterations,
+        Position last_move   = -1,
+        Player   last_player = Player::White,
+        std::shared_ptr<Policy> policy = nullptr
+    );
 
-    // Tree-policy的评估函数
-    Policy::EvalResult evalState(Board& board);
-
-    // 同步MCTS与棋盘，使得树的根节点为棋盘的最后一手
-    void syncWithBoard(Board& board);
+    Position getAction(Board& board);
+    Policy::EvalResult evalState(Board& board); // 作为Tree-policy的评估函数
     
     // 将蒙特卡洛树往深推进一层
     Node* stepForward();                      // 选出子结点中的最好手
     Node* stepForward(Position next_move);    // 根据提供的动作往下走
 
+    void syncWithBoard(Board& board); // 同步MCTS与棋盘，使得树的根节点为棋盘的最后一手
+    void reset(); // 重置蒙特卡洛树
+
+private:
     // 蒙特卡洛树的一轮迭代
     size_t playout(Board& board);
 
-    // 重置蒙特卡洛树
-    void reset();
+    void runPlayouts(Board& board);
 
 public:
     std::shared_ptr<Policy> m_policy;
     std::unique_ptr<Node> m_root;
     size_t m_size; // FIXME: 由于unique_ptr的自动销毁，目前暂不能正确计数。
-    size_t c_iterations;
-    milliseconds c_duration;
+    size_t m_iterations;
+    milliseconds m_duration;
+
+private:
+    enum class Constraint {
+        Iterations, Duration
+    } c_constraint;
 };
 
 }
