@@ -80,7 +80,9 @@ bool Board::checkGameEnd() {
     }
 
     // 获取最后一手的坐标
-    const auto [curX, curY] = m_moveRecord.back();
+    //const auto [curX, curY] = m_moveRecord.back();
+    const auto curX = m_moveRecord.back().x();
+    const auto curY = m_moveRecord.back().y();
     const auto lastPlayer = -m_curPlayer;
         
     // 沿不同方向的搜索方法复用

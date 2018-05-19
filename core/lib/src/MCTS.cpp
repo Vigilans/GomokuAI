@@ -2,6 +2,7 @@
 #include "policies/Random.h"
 
 using namespace std;
+using namespace std::chrono;
 using namespace Eigen;
 using namespace Gomoku;
 using namespace Gomoku::Algorithms;
@@ -15,8 +16,12 @@ inline Node* updateRoot(MCTS& mcts, unique_ptr<Node>&& next_node) {
 }
 
 inline void runPlayouts(MCTS& mcts, Board& board) {
+    mcts.syncWithBoard(board);
     mcts.m_policy->prepare(board);
-    for (int i = 0; i < mcts.c_iterations; ++i) {
+    mcts.c_iterations = 0;
+    for (auto start = system_clock::now(), end = start;
+        end - start < mcts.c_duration; 
+        end = system_clock::now(), ++mcts.c_iterations) {
         mcts.m_size += mcts.playout(board);
     }
     mcts.m_policy->cleanup(board);
@@ -67,13 +72,14 @@ bool Policy::checkGameEnd(Board & board) {
 MCTS::MCTS(
     Position last_move,
     Player last_player,
-    size_t c_iterations,
+    milliseconds c_duration,
     shared_ptr<Policy> policy
 ) :
     m_policy(policy ? policy : shared_ptr<Policy>(new RandomPolicy)),
     m_root(m_policy->createNode(nullptr, last_move, last_player, 0.0, 1.0)),
     m_size(1),
-    c_iterations(c_iterations) { 
+    c_iterations(0),
+    c_duration(c_duration){ 
     
 }
 
@@ -90,6 +96,14 @@ Policy::EvalResult MCTS::evalState(Board& board) {
     }
     action_probs /= m_root->node_visits;
     return { m_root->state_value, action_probs };
+}
+
+void Gomoku::MCTS::syncWithBoard(Board & board) {
+    auto iter = std::find(board.m_moveRecord.begin(), board.m_moveRecord.end(), m_root->position);
+    for (iter = iter == board.m_moveRecord.end() ? board.m_moveRecord.begin() : ++iter;
+        iter != board.m_moveRecord.end(); ++iter) {
+        stepForward(*iter);
+    }
 }
 
 // AlphaZero的论文中，对MCTS的再利用策略
@@ -124,7 +138,6 @@ size_t MCTS::playout(Board& board) {
         expand_size = m_policy->expand(node, board, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
         node_value = -state_value; // 由于node保存的是「下出变成当前局面的一手」的玩家，因此其价值应取相反数
     } else {
-        _ASSERT(node->player == board.m_winner);
         expand_size = 0;
         node_value = CalcScore(node->player, board.m_winner); // 根据绝对价值(winner)获取当前局面于玩家的相对价值
     }

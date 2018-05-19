@@ -3,14 +3,10 @@
 #include "Game.h" // Gomoku::Player, Gomoku::Position, Gomoku::Board
 #include <vector>      // std::vector
 #include <memory>      // std::unique_ptr
+#include <chrono>
 #include <functional>  // std::function
 #include <Eigen/Dense> // Eigen::VectorXf
 
-#ifdef _DEBUG
-#define C_ITERATIONS 2000
-#else
-#define C_ITERATIONS 5000
-#endif
 #define C_PUCT 5
 
 namespace Gomoku {
@@ -116,13 +112,15 @@ public: // 共通属性
     size_t m_initActs; // MCTS的一轮Playout开始时，Board已下的棋子数。
 };
 
+using std::chrono::milliseconds;
+using std::chrono_literals::operator""ms;
 
 class MCTS {
 public:
     MCTS(       
         Position last_move    = -1,
         Player   last_player  = Player::White,     
-        size_t   c_iterations = C_ITERATIONS,
+        milliseconds c_duration = 1000ms,
         std::shared_ptr<Policy> policy = nullptr
     );
 
@@ -130,6 +128,9 @@ public:
 
     // Tree-policy的评估函数
     Policy::EvalResult evalState(Board& board);
+
+    // 同步MCTS与棋盘，使得树的根节点为棋盘的最后一手
+    void syncWithBoard(Board& board);
     
     // 将蒙特卡洛树往深推进一层
     Node* stepForward();                      // 选出子结点中的最好手
@@ -146,6 +147,7 @@ public:
     std::unique_ptr<Node> m_root;
     size_t m_size; // FIXME: 由于unique_ptr的自动销毁，目前暂不能正确计数。
     size_t c_iterations;
+    milliseconds c_duration;
 };
 
 }
