@@ -26,8 +26,8 @@ public:
         for (int i = 0; i < c_rollouts; ++i) {
             auto [winner, total_moves] = Default::RandomRollout(board);
             // score += CalcScore(Player::Black, winner);   // 计算绝对价值，黑棋越赢越接近1，白棋越赢越接近-1
-            score += CalcScore(init_player, winner); // 计算相对于局面初始应下玩家的价值
-            board.revertMove(total_moves);  // 重置棋盘至传入时状态，注意赢家会重设为Player::None。
+            score += CalcScore(init_player, winner);      // 计算相对于局面初始应下玩家的价值
+            board.revertMove(total_moves); // 重置棋盘至传入时状态，注意赢家会重设为Player::None。
         }
         score /= c_rollouts;
 
