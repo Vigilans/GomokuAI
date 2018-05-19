@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.27130.2024
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreTest", "core\test\CoreTest.vcxproj", "{0E0E2503-F3D7-479E-BA29-65789CA0B359}"
 EndProject
-Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreUI", "core\ui\CoreUI.vcxproj", "{E0712A74-B0D1-4A47-9CBA-6F4DE8DE1314}"
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreInterface", "core\interface\CoreInterface.vcxproj", "{E0712A74-B0D1-4A47-9CBA-6F4DE8DE1314}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreLib", "core\lib\CoreLib.vcxproj", "{38C6C51A-CE17-45E7-A9CB-D6CC7180B78C}"
 EndProject
@@ -75,5 +75,11 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {4D2208D6-E218-4D8B-8477-0EB34B58184D}
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
+	EndGlobalSection
+	GlobalSection(Performance) = preSolution
+		HasPerformanceSessions = true
 	EndGlobalSection
 EndGlobal
