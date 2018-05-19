@@ -3,31 +3,37 @@
 #include "Utilities.h"
 #include <string_view>
 
+// 下面的模板代码需要至少18年4月中旬后的 VS(>=15.7) / GCC(>=7.3) 才能编译……
+#if (defined(_MSC_VER) && _MSC_VER >= 1915) || (defined(__GNUC__) && (__GNUC__ > 7 || (__GUNC == 7 && __GUNC_MINOR__ >=3)))
+#define _COMPILETIME_REVERSE
+#define _CONSTEXPR constexpr
+#else
+#define _CONSTEXPR inline
+#endif
+
 namespace Gomoku::Handicrafts {
 
-using std::string_view_literals::operator""sv;
-
-enum class PatternType { 
+enum class PatternType {
     One, DeadTwo, LiveTwo, DeadThree, LiveThree, DeadFour, LiveFour, Five, Size
 };
 
-struct Pattern {   
+struct Pattern {
     PatternType type;
     std::string_view str;
     unsigned offset; // bits相对于0位的偏移量（2bit为1单位）
     unsigned bits; // 每2bit代表一个棋位，01:己方，10:对手，11:空位，00:任意。
-    
+
     Pattern() = default;
 
-    constexpr Pattern(std::string_view str, PatternType type, unsigned offset = 0, unsigned bits = 0) 
-        : str(str), type(type), offset(offset), bits(bits ? bits : Encode(str)) { }
+    _CONSTEXPR Pattern(const char* const str, PatternType type, unsigned offset = 0, unsigned bits = 0)
+        : str(str, std::char_traits<char>::length(str)), type(type), offset(offset), bits(bits ? bits : Encode(str)) { }
 
-    constexpr size_t length() const { return str.length() - 1; }
+    _CONSTEXPR size_t length() const { return str.length() - 1; }
 
-    constexpr bool test(unsigned bitmap) { return (bits & bitmap) == bits; }
+    _CONSTEXPR bool test(unsigned bitmap) { return (bits & bitmap) == bits; }
 };
 
-constexpr Pattern PATTERN_PROTOS[] = {
+_CONSTEXPR Pattern PATTERN_PROTOS[] = {
     { "+xxxxx",   PatternType::Five },
     { "-_oooo_",  PatternType::LiveFour },
     { "-xoooo_",  PatternType::DeadFour },
@@ -55,21 +61,32 @@ constexpr Pattern PATTERN_PROTOS[] = {
     { "-x_o_o_x", PatternType::DeadTwo }
 };
 
+#undef _CONSTEXPR
+
 inline const auto SURROUNDING_WEIGHTS = []() {
     Eigen::Array<
         int,
         MAX_SURROUNDING_SIZE,
         MAX_SURROUNDING_SIZE
     > W;
-    W << 3, 1, 1, 2, 1, 1, 3,
-         1, 4, 2, 3, 2, 4, 1,
-         1, 2, 5, 4, 5, 2, 1,
-         2, 3, 4, 0, 4, 3, 2,
-         1, 2, 5, 4, 5, 2, 1,
-         1, 4, 2, 3, 2, 4, 1,
-         3, 1, 1, 2, 1, 1, 3;
+    //W << 3, 1, 1, 2, 1, 1, 3,
+    //     1, 4, 2, 3, 2, 4, 1,
+    //     1, 2, 5, 4, 5, 2, 1,
+    //     2, 3, 4, 0, 4, 3, 2,
+    //     1, 2, 5, 4, 5, 2, 1,
+    //     1, 4, 2, 3, 2, 4, 1,
+    //     3, 1, 1, 2, 1, 1, 3;
+    W << 4, 2, 3, 2, 4,
+         2, 5, 4, 5, 2,
+         3, 4, 0, 4, 3,
+         2, 5, 4, 5, 2,
+         4, 2, 3, 2, 4;
     return W;
+
 }();
+
+
+#ifdef _COMPILETIME_REVERSE
 
 template <int N, typename = std::enable_if_t<N >= 0>>
 struct Reverser {
@@ -93,7 +110,7 @@ struct Reverser {
 
     constexpr static auto StrArray = BuildStr(std::make_index_sequence<Length>());
 
-    constexpr static Pattern Pattern = { 
+    constexpr static Pattern RevPattern = { 
         StrArray.data(),
         PATTERN_PROTOS[N].type,
         0, BuildBits() 
@@ -108,7 +125,7 @@ struct PatternBuilder {
             return std::integer_sequence<int, I...>();
         } else {
             constexpr auto original = PATTERN_PROTOS[N];
-            constexpr auto reversed = Reverser<N>::Pattern;
+            constexpr auto reversed = Reverser<N>::RevPattern;
             if constexpr (original.bits == reversed.bits) { // symmetric
                 return IndexHelper<N - 1, N, I...>();
             } else { // asymmetric
@@ -122,7 +139,7 @@ struct PatternBuilder {
         if constexpr (N >= 0) {
             return PATTERN_PROTOS[N];
         } else {
-            return Reverser<-N>::Pattern;
+            return Reverser<-N>::RevPattern;
         }
     }
 
@@ -133,6 +150,11 @@ struct PatternBuilder {
 };
 
 constexpr auto AUGMENTED_PATTERNS = PatternBuilder::Augment(PatternBuilder::IndexHelper<std::size(PATTERN_PROTOS) - 1>());
+
+#undef _COMPILETIME_REVERSE
+#else
+#define AUGMENTED_PATTERNS PATTERN_PROTOS
+#endif
 
 }
 
