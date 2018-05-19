@@ -5,10 +5,11 @@
 
 namespace Gomoku::Handicrafts {
 
-enum {
+enum Config {
     MAX_PATTERN_LEN = 6,
-    MAX_SURROUNDING_SIZE = 7,
-    SAMPLE_LEN = 2 * MAX_PATTERN_LEN + 1
+    MAX_SURROUNDING_SIZE = 5,
+    SAMPLE_LEN = 2 * MAX_PATTERN_LEN + 1,
+    HASH_LEN = 2 * (SAMPLE_LEN + 1) / 3
 };
 
 enum class Direction : char {
@@ -90,8 +91,19 @@ inline std::string Decode(unsigned bits, Player perspect = Player::Black) {
     return result;
 }
 
+struct BitmapHasher {
+    std::size_t operator()(unsigned bits) const {
+        std::size_t hash = 0;
+        hash ^= bits;
+        hash ^= (bits >>= HASH_LEN );
+        hash ^= (bits >>= HASH_LEN - 1) + 1;
+        hash &= (1 << HASH_LEN) - 1;
+        return hash;
+    }
+};
+
 template <size_t Length = SAMPLE_LEN, typename View_t>
-constexpr auto& LineView(std::array<View_t, BOARD_SIZE>& src, Position move, Direction dir) {
+inline auto& LineView(std::array<View_t, BOARD_SIZE>& src, Position move, Direction dir) {
     static std::vector<View_t*> view_ptrs(Length);
     auto [dx, dy] = DeltaXY(dir);
     for (int i = 0, j = i - Length / 2; i < Length; ++i, ++j) {
@@ -105,12 +117,20 @@ constexpr auto& LineView(std::array<View_t, BOARD_SIZE>& src, Position move, Dir
     return view_ptrs;
 }
 
-template <size_t Size = MAX_SURROUNDING_SIZE, typename View_t>
-constexpr auto& BlockView(std::array<View_t, BOARD_SIZE>& src, Position move) {
+template <int Size = MAX_SURROUNDING_SIZE, typename View_t>
+inline auto BlockView(std::array<View_t, BOARD_SIZE>& src, Position move) {
     static Eigen::Map<Eigen::Matrix<View_t, HEIGHT, WIDTH>> view(nullptr);
     new (&view) decltype(view)(src.data()); // placement new
-    
-    return view.block<Size, Size>(move.x() - Size/2, move.y() - Size/2);
+    auto left_bound  = std::max(move.x() - Size / 2, 0);
+    auto right_bound = std::min(move.x() + Size / 2, WIDTH - 1);
+    auto up_bound    = std::max(move.y() - Size / 2, 0);
+    auto down_bound  = std::min(move.y() + Size / 2, HEIGHT - 1);
+    Position lr{ left_bound, up_bound }, rd{ right_bound, down_bound };
+    Position origin = move - Position{ Size / 2, Size / 2 };
+    return std::make_tuple(
+        view.block(lr.x(), lr.y(), rd.x() - lr.x() + 1, rd.y() - lr.y() + 1),
+        Position(lr - origin), Position(rd - origin)
+    );
 }
 
 }
