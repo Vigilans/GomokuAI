@@ -23,7 +23,7 @@ class Agent:
         """
         # if not overrided, simply return uniform evaluation and random move
         return (
-            0.0,
+            0,  # value is redundant as only final winner is used for training
             np.full((Game["width"], Game["height"]), 1 / Game["board_size"]),
             self.get_action(state)
         )
@@ -36,5 +36,5 @@ class Agent:
 
 
 if __name__ == "__main__":
-    from utils import botzone_interact
-    botzone_interact(Agent())
+    from utils import botzone_interface
+    botzone_interface(Agent())

@@ -13,6 +13,7 @@ __package__ = "agents"  # fix package name
 """
 Expose inner modules for easily import
 """
-from . import utils
 from .agent import Agent, Agent as RandomAgent
+from .botzone_agent import BotzoneAgent
 from .mcts_agent import MCTSAgent, MCTSAgent as DefaultMCTSAgent
+from .alphazero_agent import AlphaZeroAgent
