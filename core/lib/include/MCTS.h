@@ -109,7 +109,7 @@ public:
 
 public: // 共通属性
     double c_puct; // PUCT公式的Exploit-Explore平衡因子
-    size_t m_initActs; // MCTS的一轮Playout开始时，Board已下的棋子数。
+    size_t m_initActs = 0; // MCTS的一轮Playout开始时，Board已下的棋子数。
 };
 
 using std::chrono::milliseconds;

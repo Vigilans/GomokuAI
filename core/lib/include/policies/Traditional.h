@@ -139,7 +139,7 @@ public:
     }
 
 private:
-    // 将原棋盘与内部棋盘状态同步（尽管原棋盘一个子也没下过）
+    // 将原棋盘与内部棋盘状态同步（尽管原棋盘一个新子也没下过）
     void syncBoardStatus(Board& board) {
         board.m_curPlayer = m_evaluator.m_board.m_curPlayer;
         board.m_winner = m_evaluator.m_board.m_winner;
@@ -148,7 +148,7 @@ private:
 public:
     double c_bias;
     bool c_useRave;
-    size_t m_cachedActs = -1;
+    size_t m_cachedActs = 0;
     Evaluator m_evaluator;
     Evaluator m_backup; // 用于与传入的Board状态同步
     Eigen::VectorXf m_childrenValues; // 为了让Expand函数能获取到子结点价值的dirty hack...

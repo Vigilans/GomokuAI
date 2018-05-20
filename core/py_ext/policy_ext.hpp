@@ -29,7 +29,7 @@ inline void Policy_Ext(py::module& mod) {
         )
         .def("__repr__", [](const PoolRAVEPolicy& p) { 
             return py::str(
-                "RandomPolicy(c_puct: {}, c_bias: {}, init_acts: {})"
+                "PoolRAVEPolicy(c_puct: {}, c_bias: {}, init_acts: {})"
             ).format(p.c_puct, p.c_bias, p.m_initActs); 
         });
 
@@ -44,11 +44,11 @@ inline void Policy_Ext(py::module& mod) {
         .def("__repr__", [](const TraditionalPolicy& p) { 
             if (p.c_useRave) {
                 return py::str(
-                    "RandomPolicy(c_puct: {}, c_bias: {}, init_acts: {}, cached_acts: {})"
+                    "TraditionalPolicy(c_puct: {}, c_bias: {}, init_acts: {}, cached_acts: {})"
                 ).format(p.c_puct, p.c_bias, p.m_initActs, p.m_cachedActs);
             } else {
                 return py::str(
-                    "RandomPolicy(c_puct: {}, init_acts: {}, cached_acts: {})"
+                    "TraditionalPolicy(c_puct: {}, init_acts: {}, cached_acts: {})"
                 ).format(p.c_puct, p.m_initActs, p.m_cachedActs);
             }
         });

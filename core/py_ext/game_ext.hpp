@@ -39,7 +39,8 @@ inline void Game_Ext(py::module& mod) {
         .def("__hash__", [](const Position& p) { return std::hash<Position>()(p); })
         .def("__iter__", [](const Position& p) { return std::make_tuple(p.x(), p.y()); })
         .def("__repr__", [](const Position& p) { return py::str("Position{}").format(std::to_string(p)); })
-        .def("__str__",  [](const Position& p) { return std::to_string(p); });
+        .def("__str__",  [](const Position& p) { return std::to_string(p); })
+        .def("__dict__", [](const Position& p) { return py::dict("x"_a = p.x(), "y"_a = p.y()); });
 
 
     // Definition of Board class
