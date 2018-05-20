@@ -37,10 +37,14 @@ inline void Game_Ext(py::module& mod) {
         .def_property("y", &Position::y, [](Position& p, int y) { p.id += (y - p.y()) * WIDTH; })
         .def("__int__",  [](const Position& p) { return p.id; })
         .def("__hash__", [](const Position& p) { return std::hash<Position>()(p); })
-        .def("__iter__", [](const Position& p) { return std::make_tuple(p.x(), p.y()); })
+        .def("__len__",  [](const Position& p) { return 2; })
         .def("__repr__", [](const Position& p) { return py::str("Position{}").format(std::to_string(p)); })
         .def("__str__",  [](const Position& p) { return std::to_string(p); })
-        .def("__dict__", [](const Position& p) { return py::dict("x"_a = p.x(), "y"_a = p.y()); });
+        .def("__iter__", [](const Position& p) {
+            auto dict = py::dict("x"_a = p.x(), "y"_a = p.y()); // READ-ONLY ITERATOR
+            return py::make_iterator(dict.begin(), dict.end(), py::return_value_policy::copy); // ATTENTION: potential early-stop bug when work with iter()
+        });
+        
 
 
     // Definition of Board class
