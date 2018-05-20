@@ -23,7 +23,8 @@ TRAINING_CONFIG = {
     "batch_size": 32,
     "learning_rate": 0.1,
     "momentum": 0.9,
-    "eval_period": 128,
-    "model_file": "latest",
+    "kl_target": 0.02,
+    "eval_period": 100,
+    "model_file": "model-latest",
     "model_path": "./trained_models"
 }
