@@ -101,7 +101,7 @@ class DataHelper:
             # mark the data file as consumed
             os.rename(file_name, file_name + ".consumed")
 
-        # generate data by automatic game play
+        # then generate data by automatic game play
         self.init_simulation()
         while True:
             if (len(self.buffer) > batch_size):
