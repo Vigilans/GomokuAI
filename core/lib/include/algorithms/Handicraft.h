@@ -97,9 +97,10 @@ struct Handicraft {
     // action_probs = normalize(self_scores + rival_scores)
     static Eigen::VectorXf ScoreBasedProbs(Evaluator& ev, Board& board, 
         Eigen::Ref<Eigen::VectorXf> self_scores, Eigen::Ref<Eigen::VectorXf> rival_scores) {
-        Eigen::VectorXf action_probs = 0.7*self_scores + 0.3*rival_scores;
-        action_probs /= action_probs.sum();
-        return action_probs;
+        Eigen::VectorXf action_logits = 0.7*self_scores + 0.3*rival_scores;
+        auto sigmoid = [](auto x) { return 1 / (1 + std::exp(-x)); };
+        float temperature = 1 - sigmoid((board.m_moveRecord.size() - 40) / 20);
+        return Default::TempBasedProbs(action_logits, temperature);
     }
 
     // state_value = tanh(sum(self_scores - rival_scores))

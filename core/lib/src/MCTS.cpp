@@ -94,11 +94,13 @@ Position MCTS::getAction(Board& board) {
 
 Policy::EvalResult MCTS::evalState(Board& board) {
     runPlayouts(board);
-    VectorXf action_probs((int)BOARD_SIZE);
+    VectorXf child_visits((int)BOARD_SIZE);
     for (auto&& node : m_root->children) {
-        action_probs[node->position] = node->node_visits;
+        child_visits[node->position] = node->node_visits;
     }
-    action_probs /= m_root->node_visits;
+    auto action_probs = Default::TempBasedProbs(
+        child_visits, board.m_moveRecord.size() < 15 ? 1 : 1e-4 
+    );
     return { m_root->state_value, action_probs };
 }
 

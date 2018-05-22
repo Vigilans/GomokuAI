@@ -89,6 +89,16 @@ struct Default {
             node->state_value += (value - node->state_value) / node->node_visits;
         }
     }
+
+    static Eigen::VectorXf Softmax(Eigen::Ref<Eigen::VectorXf> logits) {
+        Eigen::VectorXf exp_logits = logits.array().exp();
+        return exp_logits / exp_logits.sum();
+    }
+
+    static Eigen::VectorXf TempBasedProbs(Eigen::Ref<Eigen::VectorXf> logits, float temperature) {
+        Eigen::VectorXf temp_logits = logits.array().log() / temperature;
+        return Softmax(temp_logits);
+    }
 };
 
 }

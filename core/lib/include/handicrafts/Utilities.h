@@ -7,7 +7,7 @@ namespace Gomoku::Handicrafts {
 
 enum Config {
     MAX_PATTERN_LEN = 6,
-    MAX_SURROUNDING_SIZE = 5,
+    MAX_SURROUNDING_SIZE = 7,
     SAMPLE_LEN = 2 * MAX_PATTERN_LEN + 1,
     HASH_LEN = 2 * (SAMPLE_LEN + 1) / 3
 };

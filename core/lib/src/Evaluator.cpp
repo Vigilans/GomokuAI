@@ -8,9 +8,9 @@ using namespace Gomoku::Handicrafts;
 inline void Evaluator::updatePattern(unsigned bitmap, int delta, Position move, Direction dir, Player perspect) {
     for (auto mask : Masks) {
         int fake_pattern = bitmap & mask;
-        if (/*Patterns.count(fake_pattern)*/auto result = patterns.search(fake_pattern); result != nullptr) {
-            /*auto pattern = Patterns[fake_pattern]*/;
-             auto pattern = *result;
+        if (Patterns.count(fake_pattern)/*auto result = patterns.search(fake_pattern); result != nullptr*/) {
+            auto pattern = Patterns[fake_pattern];
+            /*auto pattern = *result;*/
             if (pattern.bits != fake_pattern) {
                 throw pattern;
             }
