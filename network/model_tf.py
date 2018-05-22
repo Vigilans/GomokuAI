@@ -17,7 +17,8 @@ class PolicyValueNetwork:
                     tf.TensorShape((None, GameConfig["board_size"]))
                 )
             )
-            self.inputs, self.state_value, self.action_probs = self.iter.get_next()
+            self.mini_batch = self.iter.get_next()
+            self.inputs, self.state_value, self.action_probs = self.mini_batch
             inputs_t = tf.transpose(self.inputs, [0, 2, 3, 1])  # channel_last
 
         with tf.variable_scope("SharedNet"):
@@ -62,11 +63,7 @@ class PolicyValueNetwork:
 
         self.session = tf.Session()
         self.saver = tf.train.Saver()
-
-        if model_name is not None:
-            self.model_file = config["model_path"] + "/tf/" + model_name
-        else:
-            self.model_file = None
+        self.model_file = self._parse_path(model_name)
         self.initialized = False
 
     def compile(self):
@@ -127,8 +124,8 @@ class PolicyValueNetwork:
 
             # early stop when KL diverges too much
             if kl > 4 * optimizer["kl_target"]:
-                for _ in range(num_epoches - 1 - i):  # skip redundant data
-                    self.session.run(self.iter.get_next())
+                for _ in range(num_epoches - 1 - i):
+                    self.session.run(self.mini_batch)  # skip redundant data
                 break
 
         return loss, entropy, kl, i + 1
@@ -144,12 +141,18 @@ class PolicyValueNetwork:
         )
         return value[0], probs[0]
 
-    def save_model(self, model_path):
-        self.saver.save(self.session, model_path)
+    def save_model(self, model_name):
+        self.saver.save(self.session, self._parse_path(model_name))
 
-    def restore_model(self, model_path):
-        self.saver.restore(self.session, model_path)
+    def restore_model(self, model_name):
+        self.saver.restore(self.session, self._parse_path(model_name))
         self.initialized = True
+
+    def _parse_path(self, model_name):
+        if model_name is not None:
+            return config["model_path"] + "/tf/" + model_name
+        else:
+            return None
 
     def _lazy_initialize(self):
         if self.initialized:

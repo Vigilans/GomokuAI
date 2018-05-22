@@ -95,7 +95,7 @@ class PolicyValueNetwork:
         Optimization and Loss definition
         """
         self.model.compile(
-            optimizer=sgd(opt["lr"], opt["momentum"]),
+            optimizer=sgd(),
             loss=["mse", "categorical_crossentropy"]
         )
 
@@ -107,16 +107,15 @@ class PolicyValueNetwork:
         # format to (float, np.array((255,1),dtype=float)) structure
         return vp[0][0][0], vp[1][0]
 
-    def train_step(self, inputs, winner, probs, opt):
+    def train_step(self, optimizer):
         """
         One Network Tranning step.
         """
-        K.set_value(self.model.optimizer.lr, opt["lr"])
-        loss = self.model.train_on_batch(inputs, [winner, probs])
-        return loss
-
-    def train_step_generator(self, generator, opt):
-        pass
+        opt = self.model.optimizer
+        K.set_value(opt.lr, optimizer["lr"])
+        K.set_value(opt.momentum, optimizer["momentum"])
+        # loss = self.model.train_on_batch(inputs, [winner, probs])
+        # return loss
 
     def save_model(self, filename):
         base_path = "{}/keras".format(TRAINING_CONFIG["model_path"])
