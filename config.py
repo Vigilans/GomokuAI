@@ -1,6 +1,6 @@
 MCTS_CONFIG = {
     "c_puct": 5,
-    "c_iterations": 1600,
+    "c_iterations": 400,
     "c_duration": 950
 }
 
@@ -24,7 +24,8 @@ TRAINING_CONFIG = {
     "learning_rate": 0.1,
     "momentum": 0.9,
     "kl_target": 0.02,
-    "eval_period": 100,
-    "model_file": "model-latest",
+    "eval_period": 5,
+    "eval_rounds": 11,
+    "model_file": None,
     "model_path": "./trained_models"
 }

@@ -1,4 +1,4 @@
-if __name__ == "__main__":
+if __name__ in ["__main__", "__mp_main__"]:
     import __init__ as __pkg_init__
 
 from core import Board, Player
@@ -48,7 +48,7 @@ def run_proc(buffer, maxlen, lock, keep_alive=True,
         agents = parse_agents()
     while True:
         data = simulate_game_data(board, agents)
-        print("Generated game data with {} samples.".format(len(data)))
+        print("Finished one episode with {} samples.".format(len(data)))
         with lock:
             while len(buffer) >= maxlen:
                 buffer.pop(0)
@@ -106,7 +106,6 @@ class DataHelper:
         while True:
             if (len(self.buffer) > batch_size):
                 mini_batch = random.sample(list(self.buffer), batch_size)
-                print("Sampled one batch with len {}".format(len(mini_batch)))
                 yield self.parse_batch(mini_batch)
 
     def parse_batch(self, mini_batch):
