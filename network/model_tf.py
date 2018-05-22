@@ -145,12 +145,17 @@ class PolicyValueNetwork:
         self.saver.save(self.session, self._parse_path(model_name))
 
     def restore_model(self, model_name):
-        self.saver.restore(self.session, self._parse_path(model_name))
+        if model_name == "latest":
+            checkpoint = tf.train.get_checkpoint_state(self._parse_path(""))
+            model_path = checkpoint.model_checkpoint_path
+        else:
+            model_path = self._parse_path(model_name)
+        self.saver.restore(self.session, model_path)
         self.initialized = True
 
     def _parse_path(self, model_name):
         if model_name is not None:
-            return config["model_path"] + "/tf/" + model_name
+            return os.path.realpath(config["model_path"] + "/tf/" + model_name)
         else:
             return None
 
