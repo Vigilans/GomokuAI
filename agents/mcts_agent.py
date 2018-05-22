@@ -3,42 +3,49 @@ if __name__ == "__main__":
 else:
     from .agent import Agent
 
-from core import MCTS
-from config import mcts_config as config
+from core import MCTS, PoolRAVEPolicy, TraditionalPolicy
+from config import MCTS_CONFIG as config
 
 
 class MCTSAgent(Agent):
-    def __init__(self, policy=None, self_play=False):
-        self.mcts = MCTS(
-            policy=policy,
-            c_iterations=config["c_iterations"],
-            c_puct=config["c_puct"]
-        )
-        self.self_play = self_play
+    """
+    Agent Based on Monte Carlo Tree Search.
+    Use "c_iterations" or "c_duration" as constraint.
+    """
+    def __init__(self, policy=None, **constraint):
+        self.mcts = MCTS(policy=policy, **constraint)
 
     def get_action(self, state):
-        self._check_root(state)
+        self.mcts.sync_with_board(state)
         return self.mcts.get_action(state)
 
     def eval_state(self, state):
-        self._check_root(state)
+        self.mcts.sync_with_board(state)
         Q, pi = self.mcts.eval_state(state)
-        return Q, pi, self.mcts.step_forward().position
+        self.mcts.step_forward()
+        return Q, pi, self.mcts.root.position
 
     def reset(self):
         self.mcts.reset()
 
-    def _check_root(self, state):
-        """ ensure root node to be last player's move when not self-playing"""
-        cur_player = state.status["cur_player"]
-        root_player = self.mcts.root.player
-        if not self.self_play and root_player != -cur_player:
-            self.mcts.step_forward(state.last_move)
-
     def __str__(self):
-        return "MCTS Agent with {} playouts".format(self.mcts.c_iterations)
+        return "MCTS Agent: {}".format(self.mcts.__repr__())
+
+
+def RAVEAgent(c_puct, c_bias, **constraint):
+    return MCTSAgent(
+        policy=PoolRAVEPolicy(c_puct, c_bias),
+        **constraint
+    )
+
+
+def TraditionalAgent(c_puct, c_bias, use_rave=False, **constraint):
+    return MCTSAgent(
+        policy=TraditionalPolicy(c_puct, c_bias, use_rave),
+        **constraint
+    )
 
 
 if __name__ == "__main__":
-    from utils import botzone_interact
-    botzone_interact(MCTSAgent())
+    from utils import botzone_interface
+    botzone_interface(MCTSAgent())
