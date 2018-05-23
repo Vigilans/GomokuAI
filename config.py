@@ -19,13 +19,13 @@ DATA_CONFIG = {
 }
 
 TRAINING_CONFIG = {
-    "num_epoches": 10,
-    "batch_size": 32,
-    "learning_rate": 0.1,
+    "num_epoches": 5,
+    "batch_size": 512,
+    "learning_rate": 2e-3,
     "momentum": 0.9,
     "kl_target": 0.02,
-    "eval_period": 5,
+    "eval_period": 100,
     "eval_rounds": 11,
-    "model_file": None,
+    "model_file": "latest",
     "model_path": "./trained_models"
 }
