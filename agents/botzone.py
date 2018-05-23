@@ -40,3 +40,12 @@ class BotzoneAgent(Agent):
         output, error = bot.communicate(self._parse_state(state))
         bot.terminate()
         return Position(*json.loads(output)["response"].values())
+
+    def __repr__(self):
+        return "Botzone Agent at <{}>".format(self.path)
+
+
+if __name__ == "__main__":
+    from utils import botzone_interface
+    program_path = "your/path/to/program"
+    botzone_interface(BotzoneAgent(program_path))

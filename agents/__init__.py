@@ -14,6 +14,7 @@ __package__ = "agents"  # fix package name
 Expose inner modules for easily import
 """
 from .agent import Agent, Agent as RandomAgent
-from .botzone_agent import BotzoneAgent
-from .mcts_agent import MCTSAgent, MCTSAgent as DefaultMCTSAgent
-from .alphazero_agent import AlphaZeroAgent
+from .human import ConsoleAgent
+from .botzone import BotzoneAgent
+from .mcts import MCTSAgent, MCTSAgent as RandomMCTSAgent, RAVEAgent, TraditionalAgent
+from .alphazero import AlphaZeroAgent, PyConvNetAgent
