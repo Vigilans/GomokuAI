@@ -18,3 +18,14 @@ from .human import ConsoleAgent
 from .botzone import BotzoneAgent
 from .mcts import MCTSAgent, MCTSAgent as RandomMCTSAgent, RAVEAgent, TraditionalAgent
 from .alphazero import AlphaZeroAgent, PyConvNetAgent
+
+
+AGENT_MAP = {
+    "random": RandomAgent,
+    "console": ConsoleAgent,
+    "botzone": BotzoneAgent,
+    "random_mcts": RandomMCTSAgent,
+    "rave": RAVEAgent,
+    "traditional": TraditionalAgent,
+    "alphazero": AlphaZeroAgent
+}

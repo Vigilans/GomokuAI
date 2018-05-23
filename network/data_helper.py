@@ -2,19 +2,14 @@ if __name__ in ["__main__", "__mp_main__"]:
     import __init__ as __pkg_init__
 
 from core import Board, Player
+from agents import AGENT_MAP
 from agents.utils import dual_play
-from agents import BotzoneAgent, RandomAgent
 from config import DATA_CONFIG as config, TRAINING_CONFIG
 from multiprocessing import Process, Manager
 import numpy as np
 import random
 import h5py
 import os
-
-
-AGENT_MAP = {
-    "botzone": BotzoneAgent
-}
 
 
 def parse_agents(conf=config["agents"]):
