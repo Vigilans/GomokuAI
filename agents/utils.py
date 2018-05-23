@@ -2,7 +2,7 @@ from core import Player, Board
 import numpy as np
 
 
-def dual_play(agents, board=None, verbose=False):
+def dual_play(agents, board=None, verbose=False, graphic=False):
     """
     Play with 2 players.
     Params:
@@ -42,10 +42,14 @@ def dual_play(agents, board=None, verbose=False):
             next_move = cur_agent.get_action(board)
         # update board
         board.apply_move(next_move)
+        if graphic:
+            print(board)
 
         # end judge
         if board.status["is_end"]:
             winner = board.status["winner"]
+            if graphic:
+                print("Game ends. winner is {}.".format(winner))
             # format output result
             if verbose is True:
                 result = [(
