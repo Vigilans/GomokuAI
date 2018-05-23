@@ -29,10 +29,7 @@ class MCTSAgent(Agent):
         self.mcts.reset()
 
     def __repr__(self):
-        return "MCTS Agent with {}: {}".format(
-            self.mcts.policy.__class__.__name__,
-            self.mcts.__repr__()
-        )
+        return "MCTS Agent with {}".format(self.mcts.policy.__class__.__name__)
 
 
 def RAVEAgent(c_puct, c_bias, **constraint):
@@ -52,5 +49,5 @@ def TraditionalAgent(c_puct, c_bias=0.0, use_rave=False, **constraint):
 if __name__ == "__main__":
     from utils import botzone_interface
     botzone_interface(TraditionalAgent(
-        config["c_puct"], {"c_duration": config["c_duration"]}
+        config["c_puct"], c_duration=config["c_duration"]
     ))

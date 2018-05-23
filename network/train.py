@@ -5,8 +5,8 @@ else:
     # from .model_keras import PolicyValueNetwork
     from .data_helper import DataHelper
 
-from config import TRAINING_CONFIG as config
-from agents import MCTSAgent
+from config import TRAINING_CONFIG as config, MCTS_CONFIG
+from agents import MCTSAgent, PyConvNetAgent, TraditionalAgent
 from agents.utils import eval_agents
 import itertools
 
@@ -93,16 +93,22 @@ class TrainingPipeline:
             )
         self.network.save_model(name)
 
-    def restore_model(self, full_name):
-        model_infos = full_name.split('-')
+    def restore_model(self, name):
+        self.network.restore_model(name)
+        model_infos = self.network.model_file.split('/')[-1].split('-')
         self.total_steps = int(model_infos[1])
         self.ref_iterations = int(model_infos[2])
         self.best_win_rate = float(model_infos[3])
-        self.network.restore_model(full_name)
 
     def evaluate_network(self):
-        base_agent = MCTSAgent()
-        ref_agent = MCTSAgent()
+        base_agent = PyConvNetAgent(
+            self.network, MCTS_CONFIG["c_puct"],
+            c_iterations=MCTS_CONFIG["c_iterations"]
+        )
+        ref_agent = TraditionalAgent(
+            MCTS_CONFIG["c_puct"],
+            c_iterations=self.ref_iterations
+        )
 
         win_rate, _ = eval_agents([base_agent, ref_agent], self.eval_rounds)
         if win_rate > self.best_win_rate:
@@ -124,12 +130,12 @@ class TrainingPipeline:
         self.network.build_dataset(generator, self.num_epoches)
 
         # Start training
-        for self.total_steps in itertools.count(1):
+        for self.total_steps in itertools.count(self.total_steps + 1):
             # train network with multiple epoches (may be early stopped)
             self.train_network()
             # asynchronously evaluate network performance
             if self.total_steps % self.eval_period == 0:
-                self.evaluate_network()  # wait-free
+                self.evaluate_network()  # who knows how to eval in new proc???
 
 
 if __name__ == "__main__":
