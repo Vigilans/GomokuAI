@@ -22,14 +22,12 @@ def augment_game_data(data):
     for states, value, probs in data:
         for i in range(4):
             rot_states = np.array([
-                np.rot90(
-                    state.reshape(GameConfig["width"], GameConfig["height"]), i
-                ) for state in states
+                np.rot90(state, i) for state in states
             ])
             rot_probs = np.rot90(
-                probs.reshape(GameConfig["width"], GameConfig["height"]), i
+                probs.reshape(GameConfig["height"], GameConfig["width"]), i
             )
-            augmented_data.append((rot_states, value, rot_probs))
+            augmented_data.append((rot_states, value, rot_probs.flatten()))
 
             flip_states = np.array([
                 np.fliplr(state) for state in rot_states
@@ -37,7 +35,7 @@ def augment_game_data(data):
             flip_probs = np.fliplr(
                 rot_probs
             )
-            augmented_data.append((flip_states, value, flip_probs))
+            augmented_data.append((flip_states, value, flip_probs.flatten()))
     return augmented_data
 
 
