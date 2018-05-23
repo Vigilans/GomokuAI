@@ -84,7 +84,7 @@ inline void Game_Ext(py::module& mod) {
             );
         })
         .def("encoded_states", [](const Board& b) {
-            py::array_t<unsigned char> states(std::vector<std::ptrdiff_t>{ 6, HEIGHT, WIDTH });
+            py::array_t<unsigned char> states(std::vector<std::ptrdiff_t>{ 6, HEIGHT, WIDTH }); // 先y再x
 
             int index = 0;  // index将在流式初始化过程中自增
             for (auto player : { b.m_curPlayer, -b.m_curPlayer, Player::None }) {
@@ -100,7 +100,7 @@ inline void Game_Ext(py::module& mod) {
             std::fill(states.mutable_data(index), states.mutable_data(index) + HEIGHT * WIDTH, b.m_curPlayer == Player::Black);
 
             return states;
-        }, "Feature planes: [X_t, Y_t, Z_t, y_t-1, x_t-2, C]")
+        }, "Feature planes: [X_t, Y_t, Z_t, y_t-1, x_t-2, C<is_black>]")
         .def("__repr__", [](const Board& b) { return py::str("Board(cur_player: {})").format(std::to_string(b.m_curPlayer)); })
         .def("__str__",  [](const Board& b) { return std::to_string(b); });
 }

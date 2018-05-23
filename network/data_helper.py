@@ -1,7 +1,7 @@
 if __name__ in ["__main__", "__mp_main__"]:
     import __init__ as __pkg_init__
 
-from core import Board, Player
+from core import Board, Player, GameConfig
 from agents import AGENT_MAP
 from agents.utils import dual_play
 from config import DATA_CONFIG as config, TRAINING_CONFIG
@@ -18,11 +18,27 @@ def parse_agents(conf=config["agents"]):
 
 
 def augment_game_data(data):
-    # augmented_data = []
-    for state, value, probs in data:
+    augmented_data = []
+    for states, value, probs in data:
         for i in range(4):
-            pass
-    return data
+            rot_states = np.array([
+                np.rot90(
+                    state.reshape(GameConfig["width"], GameConfig["height"]), i
+                ) for state in states
+            ])
+            rot_probs = np.rot90(
+                probs.reshape(GameConfig["width"], GameConfig["height"]), i
+            )
+            augmented_data.append((rot_states, value, rot_probs))
+
+            flip_states = np.array([
+                np.fliplr(state) for state in rot_states
+            ])
+            flip_probs = np.fliplr(
+                rot_probs
+            )
+            augmented_data.append((flip_states, value, flip_probs))
+    return augmented_data
 
 
 def simulate_game_data(board, agents):
