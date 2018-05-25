@@ -39,11 +39,17 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
         json input, output;
 
         cin >> input;
-        if (turn == 0) {
-            input = input["requests"][0];
+        if (turn == 0) { // restore board state in first turn
+            int turnID = input.count("responses") ? input["responses"].size() : 0;
+            for (int i = 0; i < turnID; i++) {
+                board.applyMove(input["requests"][i], false);  // requests size: n + 1
+                board.applyMove(input["responses"][i], false); // responses size: n
+            }
+            board.applyMove(input["requests"][turnID], false); // play newest move
+        } else {
+            board.applyMove(input, false); // play newest move           
         }
 
-        board.applyMove(input, false); // play newest move
         agent.syncWithBoard(board);
         board.applyMove(agent.getAction(board)); // response to newest move
         output["response"] = board.m_moveRecord.back(); 

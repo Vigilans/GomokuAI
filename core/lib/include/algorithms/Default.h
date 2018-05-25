@@ -20,8 +20,8 @@ struct Default {
         return expl_param * sqrt(log(N) / n_i);
     }
 
-    // 基于选子概率权重的PUCT公式。
-    static double PUCT(const Node* node, double c_puct) {
+    // 基于选子概率权重的PUCB公式。
+    static double PUCB(const Node* node, double c_puct) {
         const double P_i = node->action_prob;
         const double N = node->parent->node_visits;
         const double n_i = node->node_visits + 1;
@@ -55,7 +55,7 @@ struct Default {
         double max_score = -INFINITY;
         for (int i = 0; i < node->children.size(); ++i) {
             auto child = node->children[i].get();
-            auto score = child->state_value + PUCT(child, policy->c_puct);
+            auto score = child->state_value + PUCB(child, policy->c_puct);
             if (score > max_score) {
                 max_score = score, max_index = i;
             }
