@@ -18,21 +18,21 @@
     <ClCompile Include="pch.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="module.cpp">
+    <ClCompile Include="src\module.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="game_ext.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
-    <ClInclude Include="mcts_ext.hpp">
-      <Filter>头文件</Filter>
-    </ClInclude>
     <ClInclude Include="pch.h">
       <Filter>头文件</Filter>
     </ClInclude>
-    <ClInclude Include="policy_ext.hpp">
+    <ClInclude Include="src\game_ext.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\mcts_ext.hpp">
+      <Filter>头文件</Filter>
+    </ClInclude>
+    <ClInclude Include="src\policy_ext.hpp">
       <Filter>头文件</Filter>
     </ClInclude>
   </ItemGroup>

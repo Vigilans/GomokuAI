@@ -26,22 +26,16 @@
     <ClInclude Include="include\MCTS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\algorithms\Default.h">
-      <Filter>Header Files\Algorithm</Filter>
-    </ClInclude>
-    <ClInclude Include="include\algorithms\RAVE.h">
-      <Filter>Header Files\Algorithm</Filter>
-    </ClInclude>
-    <ClInclude Include="include\policies\Traditional.h">
-      <Filter>Header Files\Policy</Filter>
-    </ClInclude>
-    <ClInclude Include="include\policies\Random.h">
-      <Filter>Header Files\Policy</Filter>
-    </ClInclude>
     <ClInclude Include="include\handicrafts\Evaluator.h">
       <Filter>Header Files\Pattern Matching</Filter>
     </ClInclude>
+    <ClInclude Include="include\algorithms\Default.h">
+      <Filter>Header Files\Algorithm</Filter>
+    </ClInclude>
     <ClInclude Include="include\algorithms\Handicraft.h">
+      <Filter>Header Files\Algorithm</Filter>
+    </ClInclude>
+    <ClInclude Include="include\algorithms\RAVE.h">
       <Filter>Header Files\Algorithm</Filter>
     </ClInclude>
     <ClInclude Include="include\handicrafts\MSTree.h">
@@ -54,6 +48,12 @@
       <Filter>Header Files\Pattern Matching</Filter>
     </ClInclude>
     <ClInclude Include="include\policies\PoolRAVE.h">
+      <Filter>Header Files\Policy</Filter>
+    </ClInclude>
+    <ClInclude Include="include\policies\Random.h">
+      <Filter>Header Files\Policy</Filter>
+    </ClInclude>
+    <ClInclude Include="include\policies\Traditional.h">
       <Filter>Header Files\Policy</Filter>
     </ClInclude>
   </ItemGroup>

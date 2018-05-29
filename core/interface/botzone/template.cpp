@@ -2,4 +2,4 @@
 #include "Game.cpp"
 #include "MCTS.cpp"
 #include "Evaluator.cpp"
-#include "../main.cpp"
+#include "../src/main.cpp"
