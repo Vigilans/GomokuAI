@@ -3,7 +3,8 @@ import os
 
 os_map = {
     "win32": "Windows_NT",
-    "linux": "Linux"
+    "linux2": "Linux",
+    "darwin": "MacOS"
 }
 
 is64bit_map = {

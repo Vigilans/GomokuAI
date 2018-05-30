@@ -1,10 +1,8 @@
-cmake_minimum_required (VERSION 3.6)
+cmake_minimum_required (VERSION 3.8)
 
 project(CoreInterface)
 
-add_subdirectory(../lib)
-include_directories(./)
+add_executable(CoreInterface src/main.cpp)
+target_link_libraries(CoreInterface PRIVATE CoreLib)
 
-add_executable(CoreInterface,
-    src/main.cpp
-)
+install(TARGETS CoreInterface RUNTIME DESTINATION ${OUTPUT_DIR})
