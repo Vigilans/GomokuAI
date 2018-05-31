@@ -154,7 +154,7 @@ class PolicyValueNetwork:
             return model_name  # already parsed
         elif model_name == "latest":
             checkpoint = tf.train.get_checkpoint_state(self._parse_path(""))
-            return checkpoint.model_checkpoint_path
+            return checkpoint.model_checkpoint_path if checkpoint else None
         elif model_name is not None:
             return config["model_path"] + "/tf/" + model_name
         else:

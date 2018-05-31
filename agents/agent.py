@@ -33,5 +33,5 @@ class Agent:
 
 
 if __name__ == "__main__":
-    from utils import botzone_interface
+    from .utils import botzone_interface
     botzone_interface(Agent())

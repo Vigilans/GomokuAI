@@ -42,6 +42,6 @@ class BotzoneAgent(Agent):
 
 
 if __name__ == "__main__":
-    from utils import botzone_interface
+    from .utils import botzone_interface
     program_path = "your/path/to/program"
     botzone_interface(BotzoneAgent(program_path))

@@ -15,7 +15,7 @@ def AlphaZeroAgent(**constraint):
 
 
 if __name__ == "__main__":
-    from utils import botzone_interface
+    from .utils import botzone_interface
     from network import PolicyValueNetwork
     model_file = "path/to/model/file"
     botzone_interface(PyConvNetAgent(PolicyValueNetwork(model_file)))
