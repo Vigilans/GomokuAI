@@ -56,8 +56,8 @@ def run_proc(buffer, maxlen, lock, keep_alive=True,
         data = simulate_game_data(board, agents)
         print("Finished one episode with {} samples.".format(len(data)))
         with lock:
-            while len(buffer) >= maxlen:
-                buffer.pop(0)
+            if len(buffer) >= maxlen:
+                buffer = buffer[len(buffer) - maxlen:]
             buffer.extend(data)
         if not keep_alive:
             return

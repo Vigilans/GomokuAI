@@ -146,8 +146,9 @@ class PolicyValueNetwork:
 
     def restore_model(self, model_name):
         model_file = self._parse_path(model_name)
-        self.saver.restore(self.session, model_file)
-        self.initialized = True
+        if model_file is not None:
+            self.saver.restore(self.session, model_file)
+            self.initialized = True
 
     def _parse_path(self, model_name):
         if '/' in model_name:

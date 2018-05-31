@@ -3,7 +3,7 @@ import os
 
 os_map = {
     "win32": "Windows_NT",
-    "linux2": "Linux",
+    "linux": "Linux",
     "darwin": "MacOS"
 }
 

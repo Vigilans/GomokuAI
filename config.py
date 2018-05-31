@@ -7,8 +7,9 @@ MCTS_CONFIG = {
 DATA_CONFIG = {
     # one of "random", "botzone", "default_mcts", "alpha_zero"
     "agents": [
-        ("botzone", ["./training_data/hdl.exe"]),
-        ("botzone", ["./training_data/deep.exe"])
+        # ("botzone", [".data/training_data/hdl.exe"]),
+        # ("botzone", [".data/training_data/deep.exe"])
+        ("random", [])
     ],
     "process_num": 2,
     "buffer_size": 10000,

@@ -91,10 +91,11 @@ class TrainingPipeline:
 
     def restore_model(self, name):
         self.network.restore_model(name)
-        model_infos = self.network.model_file.split('/')[-1].split('-')
-        self.total_steps = int(model_infos[1])
-        self.ref_iterations = int(model_infos[2])
-        self.best_win_rate = float(model_infos[3])
+        if self.network.model_file:
+            model_infos = self.network.model_file.split('/')[-1].split('-')
+            self.total_steps = int(model_infos[1])
+            self.ref_iterations = int(model_infos[2])
+            self.best_win_rate = float(model_infos[3])
 
     def evaluate_network(self):
         base_agent = PyConvNetAgent(
