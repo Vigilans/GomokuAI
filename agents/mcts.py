@@ -1,6 +1,5 @@
 from .agent import Agent
 from core import MCTS, PoolRAVEPolicy, TraditionalPolicy
-from config import MCTS_CONFIG as config
 
 
 class MCTSAgent(Agent):
@@ -44,6 +43,7 @@ def TraditionalAgent(c_puct, c_bias=0.0, use_rave=False, **constraint):
 
 if __name__ == "__main__":
     from .utils import botzone_interface
+    from config import MCTS_CONFIG as config
     botzone_interface(TraditionalAgent(
         config["c_puct"], c_duration=config["c_duration"]
     ))

@@ -5,17 +5,18 @@ MCTS_CONFIG = {
 }
 
 DATA_CONFIG = {
-    # one of "random", "botzone", "default_mcts", "alpha_zero"
+    # one of "random", "botzone", "mcts", "alpha_zero"
     "agents": [
-        # ("botzone", [".data/training_data/hdl.exe"]),
-        # ("botzone", [".data/training_data/deep.exe"])
-        ("random", [])
+        ("botzone", ["hdl"]),
+        ("botzone", ["deep"])
+        # ("mcts", [])
     ],
     "process_num": 2,
     "buffer_size": 10000,
     "data_path": "./data/training_data",
     "data_files": [
-        # after read out, file name will be marked ".consumed"
+        # after read out,
+        # file name will be marked ".consumed"
     ]
 }
 

@@ -1,6 +1,6 @@
 from .mcts import MCTSAgent
 from core import Policy
-from config import MCTS_CONFIG as config
+from config import MCTS_CONFIG
 
 
 def PyConvNetAgent(network, c_puct, **constraint):

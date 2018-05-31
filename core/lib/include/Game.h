@@ -19,7 +19,7 @@ enum class Player : short {
 
 // 返回对手的Player值。Player::None的对手仍是Player::None。
 constexpr Player operator-(Player player) { 
-    return Player(-static_cast<char>(player)); 
+    return Player(-static_cast<short>(player)); 
 }
 
 // 返回游戏结束后的得分。同号（winner与player相同）为正，异号为负，平局为零。

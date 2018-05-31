@@ -13,6 +13,7 @@ AGENT_MAP = {
     "random": RandomAgent,
     "console": ConsoleAgent,
     "botzone": BotzoneAgent,
+    "mcts": MCTSAgent,
     "random_mcts": RandomMCTSAgent,
     "rave": RAVEAgent,
     "traditional": TraditionalAgent,
