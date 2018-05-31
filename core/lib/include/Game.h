@@ -13,7 +13,7 @@ enum GameConfig {
 
 
 // 玩家概念的抽象封装
-enum class Player : char { 
+enum class Player : short { 
     White = -1, None = 0, Black = 1 
 };
 

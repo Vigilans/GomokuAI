@@ -104,7 +104,7 @@ Policy::EvalResult MCTS::evalState(Board& board) {
     return { m_root->state_value, action_probs };
 }
 
-void Gomoku::MCTS::syncWithBoard(Board & board) {
+void MCTS::syncWithBoard(Board & board) {
     auto iter = std::find(board.m_moveRecord.begin(), board.m_moveRecord.end(), m_root->position);
     for (iter = iter == board.m_moveRecord.end() ? board.m_moveRecord.begin() : ++iter;
         iter != board.m_moveRecord.end(); ++iter) {

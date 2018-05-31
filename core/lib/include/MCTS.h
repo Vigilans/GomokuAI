@@ -3,7 +3,7 @@
 #include "Game.h" // Gomoku::Player, Gomoku::Position, Gomoku::Board
 #include <vector>      // std::vector
 #include <memory>      // std::unique_ptr
-#include <chrono>
+#include <chrono>      // std::milliseconds
 #include <functional>  // std::function
 #include <Eigen/Dense> // Eigen::VectorXf
 
