@@ -57,7 +57,7 @@ struct RAVE {
                     rave_node->amaf_visits += 1;
                     rave_node->amaf_value += (-value - rave_node->amaf_value) / rave_node->amaf_visits;
                 }
-                auto score = useRave ? WeightedValue(rave_node, c_bias) : rave_node->state_value + Default::PUCT(rave_node, policy->c_puct);
+                auto score = useRave ? WeightedValue(rave_node, c_bias) : rave_node->state_value + Default::PUCB(rave_node, policy->c_puct);
                 if (score > max_score) {
                     max_score = score, max_index = i;
                 }

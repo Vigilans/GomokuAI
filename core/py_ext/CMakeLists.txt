@@ -3,17 +3,16 @@ cmake_minimum_required(VERSION 3.8)
 project(CorePyExt)
 
 find_package(pybind11 CONFIG REQUIRED)
-include_directories(./)
+include_directories(./ ${PYTHON_INCLUDE_DIRS})
 
 add_library(CorePyExt MODULE pch.cpp src/module.cpp)
 target_link_libraries(CorePyExt PRIVATE 
-    CoreLib 
-    pybind11::pybind11 
-    pybind11::module 
-    pybind11::embed
+    CoreLib
+    pybind11::module
 )
 set_target_properties(CorePyExt PROPERTIES
-    SUFFIX ${PYTHON_MODULE_EXTENSION}
+    PREFIX "${PYTHON_MODULE_PREFIX}"
+    SUFFIX "${PYTHON_MODULE_EXTENSION}"
 )
 
 install(

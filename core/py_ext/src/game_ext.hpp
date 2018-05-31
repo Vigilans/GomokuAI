@@ -10,12 +10,13 @@ inline void Game_Ext(py::module& mod) {
 
 
     // Definition of Game Config enum
-    mod.add_object("GameConfig", py::dict(
-        "width"_a      = (int)GameConfig::WIDTH,
-        "height"_a     = (int)GameConfig::HEIGHT,
-        "board_size"_a = (int)GameConfig::BOARD_SIZE,
-        "max_renju"_a  = (int)GameConfig::MAX_RENJU
-    ));
+    auto game_config = py::dict(
+            "width"_a      = (int)GameConfig::WIDTH,
+            "height"_a     = (int)GameConfig::HEIGHT,
+            "board_size"_a = (int)GameConfig::BOARD_SIZE,
+            "max_renju"_a  = (int)GameConfig::MAX_RENJU
+    );
+    mod.add_object("GameConfig", game_config);
 
 
     // Definition of Player enum class
@@ -84,7 +85,7 @@ inline void Game_Ext(py::module& mod) {
             );
         })
         .def("encoded_states", [](const Board& b) {
-            py::array_t<unsigned char> states(std::vector<std::ptrdiff_t>{ 6, HEIGHT, WIDTH }); // 先y再x
+            py::array_t<unsigned char> states({ 6, (int)HEIGHT, (int)WIDTH }); // 先y再x
 
             int index = 0;  // index将在流式初始化过程中自增
             for (auto player : { b.m_curPlayer, -b.m_curPlayer, Player::None }) {
