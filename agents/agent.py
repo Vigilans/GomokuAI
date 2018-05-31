@@ -1,6 +1,3 @@
-if __name__ == "__main__":
-    import __init__ as __pkg_init__
-
 from core import Position, Board, GameConfig as Game
 import numpy as np
 

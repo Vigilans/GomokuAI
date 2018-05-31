@@ -1,6 +1,3 @@
-if __name__ in ["__main__", "__mp_main__"]:
-    import __init__ as __pkg_init__
-
 from core import Board, Player, GameConfig
 from agents import AGENT_MAP
 from agents.utils import dual_play

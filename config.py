@@ -12,7 +12,7 @@ DATA_CONFIG = {
     ],
     "process_num": 2,
     "buffer_size": 10000,
-    "data_path": "./training_data",
+    "data_path": "./data/training_data",
     "data_files": [
         # after read out, file name will be marked ".consumed"
     ]
@@ -27,5 +27,5 @@ TRAINING_CONFIG = {
     "eval_period": 100,
     "eval_rounds": 11,
     "model_file": "latest",
-    "model_path": "./trained_models"
+    "model_path": "./data/trained_models"
 }

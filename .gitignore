@@ -5,9 +5,8 @@
 core/[Bb]in/*
 !core/[Bb]in/__init__.py
 core/interface/botzone/gomoku.cpp
-network/trained_models/tf/current_model*
-network/trained_models/tf/checkpoint
-network/trained_models/tf/current_model*
+data/trained_models/tf/current_model*
+data/trained_models/tf/checkpoint
 test/.pytest_cache
 
 # Visual Studio Code

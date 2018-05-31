@@ -1,8 +1,4 @@
-if __name__ == "__main__":
-    from __init__ import Agent
-else:
-    from .agent import Agent
-
+from .agent import Agent
 from core import Position, GameConfig
 import numpy as np
 

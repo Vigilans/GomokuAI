@@ -1,10 +1,6 @@
-if __name__ in ["__main__", "__mp_main__"]:
-    from __init__ import PolicyValueNetwork, DataHelper
-else:
-    from .model_tf import PolicyValueNetwork
-    # from .model_keras import PolicyValueNetwork
-    from .data_helper import DataHelper
-
+from .model_tf import PolicyValueNetwork
+# from .model_keras import PolicyValueNetwork
+from .data_helper import DataHelper
 from config import TRAINING_CONFIG as config, MCTS_CONFIG
 from agents import MCTSAgent, PyConvNetAgent, TraditionalAgent
 from agents.utils import eval_agents
