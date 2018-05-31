@@ -11,6 +11,8 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CoreLib", "core\lib\CoreLib
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CorePyExt", "core\py_ext\CorePyExt.vcxproj", "{E1785E47-7722-4608-82A0-BBBE383D3DF5}"
 EndProject
+Project("{888888A0-9F3D-457C-B088-3A5042F75D52}") = "GomokuAI", "GomokuAI.pyproj", "{6B7A4266-658D-4D13-963A-EA2CB7488091}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -61,6 +63,12 @@ Global
 		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Release|x64.Build.0 = Release|x64
 		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Release|x86.ActiveCfg = Release|Win32
 		{E1785E47-7722-4608-82A0-BBBE383D3DF5}.Release|x86.Build.0 = Release|Win32
+		{6B7A4266-658D-4D13-963A-EA2CB7488091}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{6B7A4266-658D-4D13-963A-EA2CB7488091}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{6B7A4266-658D-4D13-963A-EA2CB7488091}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{6B7A4266-658D-4D13-963A-EA2CB7488091}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{6B7A4266-658D-4D13-963A-EA2CB7488091}.Release|x64.ActiveCfg = Release|Any CPU
+		{6B7A4266-658D-4D13-963A-EA2CB7488091}.Release|x86.ActiveCfg = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

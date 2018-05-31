@@ -1,0 +1,68 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{6b7a4266-658d-4d13-963a-ea2cb7488091}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile>network\train.py</StartupFile>
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId>Global|PythonCore|3.6</InterpreterId>
+    <IsWindowsApplication>False</IsWindowsApplication>
+    <EnableNativeCodeDebugging>False</EnableNativeCodeDebugging>
+    <InterpreterArguments>-m</InterpreterArguments>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="agents\agent.py" />
+    <Compile Include="agents\alphazero.py" />
+    <Compile Include="agents\botzone.py" />
+    <Compile Include="agents\human.py" />
+    <Compile Include="agents\mcts.py" />
+    <Compile Include="agents\utils.py" />
+    <Compile Include="agents\__init__.py" />
+    <Compile Include="config.py" />
+    <Compile Include="core\bin\__init__.py" />
+    <Compile Include="core\__init__.py" />
+    <Compile Include="network\data_helper.py" />
+    <Compile Include="network\model_keras.py" />
+    <Compile Include="network\model_tf.py" />
+    <Compile Include="network\train.py" />
+    <Compile Include="network\__init__.py" />
+    <Compile Include="test\test_agents.py" />
+    <Compile Include="test\test_core.py" />
+    <Compile Include="test\test_network.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="core\CMakeLists.txt" />
+    <Content Include="core\interface\CMakeLists.txt" />
+    <Content Include="core\lib\CMakeLists.txt" />
+    <Content Include="core\py_ext\CMakeLists.txt" />
+    <Content Include="core\test\CMakeLists.txt" />
+    <Content Include="docs\index.html" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="agents" />
+    <Folder Include="core" />
+    <Folder Include="core\bin" />
+    <Folder Include="core\interface" />
+    <Folder Include="core\lib" />
+    <Folder Include="core\py_ext" />
+    <Folder Include="core\test" />
+    <Folder Include="docs" />
+    <Folder Include="network" />
+    <Folder Include="test" />
+  </ItemGroup>
+  <ItemGroup>
+    <InterpreterReference Include="Global|PythonCore|3.6" />
+  </ItemGroup>
+  <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
+</Project>
