@@ -1,44 +1,82 @@
-## Task List
+# Gomoku AI Framework
 
-### Accomplished
+## Usage
 
-- [x] 游戏棋盘与基本规则
-- [x] MCTS基本结构
-- [x] Cpp版Botzone接口程序
-- [x] 标准化core模块的文件结构
-- [x] 将Core模块进一步封装为Python包
-- [x] 自动搜索Core模块路径
-- [ ] 实现AlphaZero神经网络
+### Agents
 
-### WIP
+Run any file(except `utils.py`) under agents module to run as [botzone](https://botzone.org.cn/)-adapted program.
 
-- [x] 为Core模块编写测试代码
+```
+python -m agents.human
+```
 
-- [ ] 训练AlphaZero网络
-- [x] 更加模块化的Botzone交互接口
+### Network
 
-### To-do
-暂无。
+Run train.py for training network in a pipeline.
+```
+python -m network.train
+```
 
+Run data_helper.py for simply generating AlphaZero self-play data.
+```
+python -m network.data_helper
+```
 
-## 版本
+### Core
 
-* C++ 17
-* Python 3.6
+Switch to `Visual Studio`/`CLion`/`CMake for Visual Studio` for a better developing experience.
 
-## 第三方库使用
+* Use `CoreInterface` project for generating botzone-adapted executable.
+* Use `CorePyExt` project for generating Python Extension module library.
 
-### C++
+## Prerequisities
 
-* gtest（Adapter先装扩展再装vs_installer)
-* nlohmann::json
-* pybind11
-* Eigen3
-* tensorflow_cc
+### Toolchain
 
-### Python
+* C++ >=17
+* Python >=3.6
+* CMake >=3.8
+* Visual Studio >=15.7.1 or GCC >=7.3
+* [Vcpkg](https://github.com/Microsoft/vcpkg)
+
+### Libraries
+
+#### C++
+
+[Vcpkg](https://github.com/Microsoft/vcpkg) are strongly recommended for managing library dependencies.
+
+* Eigen >=3
+* nlohmann-json
+* pybind11 >= 2.11
+* gtest
+* [tensorflow_cc](https://github.com/FloopCZ/tensorflow_cc)
+
+#### Python
 
 * numpy
 * h5py
+* tensorflow >= 1.7
 * keras
-* tensorflow
+
+## To-dos
+
+Any kind of contributions are welcomed!
+
+### Agents
+- [ ] Implement BotzoneAgent's keep_alive version
+- [ ] [Network interface](https://wiki.botzone.org/index.php?title=%E6%9C%AC%E5%9C%B0AI) for botzone
+- [ ] Directly run botzone's WebAssembly program as an Agent
+- [ ] PygameAgent for human-friendly interaction with bots
+
+### Network
+- [ ] Implement Kera's version of PolicyValueNetwork correctly
+
+### Core
+- [ ] Try to make RAVE policy behave well
+- [ ] Implement PoolRAVE policy
+- [ ] **Implement AlphaBeta Search and integrate with existing structure**
+- [ ] Make Policy class more scalable
+- [ ] Adaption for more varieties of board games
+
+### Others
+- [ ] More test code
