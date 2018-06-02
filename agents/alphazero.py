@@ -1,4 +1,3 @@
-from config import MCTS_CONFIG
 from core import Policy
 from .mcts import MCTSAgent
 
@@ -14,8 +13,14 @@ def AlphaZeroAgent(**constraint):
     pass
 
 
-if __name__ == "__main__":
+def main():
     from .utils import botzone_interface
+    from config import MCTS_CONFIG
     from network import PolicyValueNetwork
     model_file = "path/to/model/file"
-    botzone_interface(PyConvNetAgent(PolicyValueNetwork(model_file)))
+    network = PolicyValueNetwork(model_file)
+    botzone_interface(PyConvNetAgent(network, **MCTS_CONFIG))
+
+
+if __name__ == "__main__":
+    main()

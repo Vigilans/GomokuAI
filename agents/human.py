@@ -28,6 +28,10 @@ class ConsoleAgent(Agent):
         return "Human Console Agent"
 
 
-if __name__ == "__main__":
+def main():
     from .utils import botzone_interface
     botzone_interface(ConsoleAgent())
+
+
+if __name__ == "__main__":
+    main()

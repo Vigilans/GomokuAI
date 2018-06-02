@@ -48,9 +48,11 @@ def TraditionalAgent(c_puct, c_bias=0.0, use_rave=False, **constraint):
     )
 
 
-if __name__ == "__main__":
+def main():
     from .utils import botzone_interface
-    from config import MCTS_CONFIG as config
-    botzone_interface(TraditionalAgent(
-        config["c_puct"], c_duration=config["c_duration"]
-    ))
+    from config import MCTS_CONFIG
+    botzone_interface(TraditionalAgent(**MCTS_CONFIG))
+
+
+if __name__ == "__main__":
+    main()

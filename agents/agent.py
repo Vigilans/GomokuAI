@@ -33,6 +33,10 @@ class Agent:
         return "Base Random Agent"
 
 
-if __name__ == "__main__":
+def main():
     from .utils import botzone_interface
     botzone_interface(Agent())
+
+
+if __name__ == "__main__":
+    main()

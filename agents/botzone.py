@@ -44,7 +44,11 @@ class BotzoneAgent(Agent):
         return f"Botzone Agent at <{self.working_dir}/{self.program}>"
 
 
-if __name__ == "__main__":
+def main():
     from .utils import botzone_interface
     program_path = "your/path/to/program"
     botzone_interface(BotzoneAgent(program_path))
+
+
+if __name__ == "__main__":
+    main()
