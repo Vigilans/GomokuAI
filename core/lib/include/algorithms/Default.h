@@ -96,7 +96,7 @@ struct Default {
     }
 
     static Eigen::VectorXf TempBasedProbs(Eigen::Ref<Eigen::VectorXf> logits, float temperature) {
-        Eigen::VectorXf temp_logits = logits.array().log() / temperature;
+        Eigen::VectorXf temp_logits = (logits.array() + 1e-10).log() / temperature;
         return Softmax(temp_logits);
     }
 };

@@ -64,6 +64,7 @@ public:
         Tree-Policy中的选择阶段策略函数。
     */
     using SelectFunc = std::function<Node*(const Node*)>;
+    SelectFunc select;
 
     /*
         Tree-Policy中的扩展策略函数：
@@ -72,6 +73,7 @@ public:
         ③ 返回值为新增的结点数。
     */
     using ExpandFunc = std::function<size_t(Node*, Board&, const Eigen::VectorXf)>;
+    ExpandFunc expand;
 
     /*
         当Tree-Policy抵达中止点时，用于将棋下完（可选）并评估场面价值的Default-Policy：
@@ -80,6 +82,7 @@ public:
     */
     using EvalResult = std::tuple<float, const Eigen::VectorXf>;
     using EvalFunc = std::function<EvalResult(Board&)>;
+    EvalFunc simulate;
 
     /*
         Tree-Policy中的反向传播策略函数：
@@ -87,6 +90,7 @@ public:
         ② 结点的各种属性均在此函数中被更新。
     */
     using UpdateFunc = std::function<void(Node*, Board&, double)>;
+    UpdateFunc backPropogate;
 
 public:
     // 当其中某一项传入nullptr时，该项将使用一个默认策略初始化。
@@ -95,17 +99,24 @@ public:
     // 用于多态生成树节点的Factory函数。
     virtual std::unique_ptr<Node> createNode(Node* parent, Position pose, Player player, float value, float prob);
 
-    virtual void prepare(Board& board); // 在执行所有Playout前的准备操作。
-    virtual void cleanup(Board& board); // 在执行所有Playout后的清理工作。
+    // 在执行所有Playout前的准备操作。
+    virtual void prepare(Board& board); 
 
+    // 在执行所有Playout后的清理工作。
+    virtual void cleanup(Board& board); 
+
+    // 下棋策略。若策略类采用缓存机制，可在该处同时完成下棋悔棋工作。
     virtual Player applyMove(Board& board, Position move);
+    
+    // 悔棋策略。若策略类采用缓存机制，可以不用在此悔棋。
     virtual Player revertMove(Board& board, size_t count = 1);
+    
+    // 判断游戏结束的策略。若策略类有更好的方案，可在此替代。
     virtual bool checkGameEnd(Board& board);
 
-    SelectFunc select;
-    ExpandFunc expand;
-    EvalFunc   simulate;
-    UpdateFunc backPropogate;
+    // 重置策略类。一般在不应通过prepare(board)恢复状态时复写。将被MCTS::reset调用。
+    // prepare在每回合都会调用，而reset在一整局游戏至多调用一次。
+    virtual void reset() { }
 
 public: // 共通属性
     double c_puct; // PUCT公式的Exploit-Explore平衡因子
@@ -134,14 +145,14 @@ public:
     );
 
     Position getAction(Board& board);
-    Policy::EvalResult evalState(Board& board); // 作为Tree-policy的评估函数
+    Policy::EvalResult evalState(Board& board); // Tree-policy的评估函数
     
     // 将蒙特卡洛树往深推进一层
     Node* stepForward();                      // 选出子结点中的最好手
     Node* stepForward(Position next_move);    // 根据提供的动作往下走
 
     void syncWithBoard(Board& board); // 同步MCTS与棋盘，使得树的根节点为棋盘的最后一手
-    void reset(); // 重置蒙特卡洛树
+    void reset(); // 重置蒙特卡洛树与其所用的策略
 
 private:
     // 蒙特卡洛树的一轮迭代
