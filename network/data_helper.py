@@ -17,7 +17,8 @@ def parse_schedule(level=-1):
     if candidates[level] is not None:
         return [supervisor, candidates[level]]
     else:
-        return [("alphazero", {"model_path": "latest"})]  # self-play
+        # return [("alphazero", {"model_path": "latest"})]  # self-play
+        raise NotImplementedError("No trivial metadata for alphazero currently")
 
 
 def parse_agents_meta(metadata):

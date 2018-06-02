@@ -1,4 +1,5 @@
 from core import Player, GameConfig as Game
+from config import MCTS_CONFIG
 from network.data_helper import augment_game_data
 from agents import RandomMCTSAgent
 from agents.utils import dual_play
@@ -6,7 +7,7 @@ import numpy as np
 
 
 def test_augment_game_data():
-    agent = RandomMCTSAgent(c_iterations=400)
+    agent = RandomMCTSAgent(**MCTS_CONFIG)
     game_data = dual_play({
         Player.black: agent,
         Player.white: agent
