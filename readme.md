@@ -72,6 +72,7 @@ Any kind of contributions are welcomed!
 - [ ] Implement Kera's version of PolicyValueNetwork correctly
 
 ### Core
+- [ ] **Implement tensorflow-based AlphaZero policy**
 - [ ] Try to make RAVE policy behave well
 - [ ] Implement PoolRAVE policy
 - [ ] **Implement AlphaBeta Search and integrate with existing structure**
@@ -80,3 +81,4 @@ Any kind of contributions are welcomed!
 
 ### Others
 - [ ] More test code
+- [ ] **KNOWN BUG**: Network weights will diverge to NaN suddenly with unknown reason
