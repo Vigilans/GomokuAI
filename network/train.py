@@ -1,10 +1,12 @@
-from .model_tf import PolicyValueNetwork
-# from .model_keras import PolicyValueNetwork
-from .data_helper import DataHelper
-from config import TRAINING_CONFIG as config, MCTS_CONFIG
-from agents import MCTSAgent, PyConvNetAgent, TraditionalAgent
-from agents.utils import eval_agents
 import itertools
+
+from agents import AlphaZeroAgent, MCTSAgent
+from agents.utils import eval_agents
+from config import TRAINING_CONFIG, DATA_CONFIG, MCTS_CONFIG
+
+# from .model_keras import PolicyValueNetwork
+from .data_helper import DataHelper, parse_agents_meta
+from .model_tf import PolicyValueNetwork
 
 
 class TrainingPipeline:
@@ -12,30 +14,31 @@ class TrainingPipeline:
         """
         Training hyper parameters
         """
-        self.lr = config["learning_rate"]
+        self.num_epoches = TRAINING_CONFIG["num_epoches"]
+        self.batch_size = TRAINING_CONFIG["batch_size"]
+        self.kl_target = TRAINING_CONFIG["kl_target"]
+        self.momentum = TRAINING_CONFIG["momentum"]
+        self.lr = TRAINING_CONFIG["learning_rate"]
         self.lr_multiplier = 1.0
-        self.momentum = config["momentum"]
-        self.kl_target = config["kl_target"]
-        self.batch_size = config["batch_size"]
-        self.num_epoches = config["num_epoches"]
-
+        
         """
         Record variables during training
         """
-        self.eval_period = config["eval_period"]
-        self.eval_rounds = config["eval_rounds"]
+        self.eval_period = TRAINING_CONFIG["eval_period"]
+        self.eval_rounds = TRAINING_CONFIG["eval_rounds"]
         self.total_steps = 0
-        self.ref_iterations = 400
-        self.best_win_rate = 0.0  # base win rate
+        self.schedule_level = 0
+        self.ref_iterations = MCTS_CONFIG["c_iterations"]
+        self.best_win_rate = 0.0
 
         """
-        Policy Network with certain interface
+        Policy Network with generic interface
         """
         self.network = PolicyValueNetwork(model_name)
         self.network.compile()
 
         """
-        Data Helper with chosen agents to generate data
+        Data Helper to generate data according to schedule
         """
         self.data_helper = DataHelper()
 
@@ -52,7 +55,7 @@ class TrainingPipeline:
         def generator():
             while True:
                 mini_batch = next(gen_iter)
-                for i in range(num_epoches):
+                for _ in range(num_epoches):
                     yield mini_batch
         return generator
 
@@ -82,10 +85,52 @@ class TrainingPipeline:
             "epoches: %d" % epoches
         )
 
+    def evaluate_network(self):
+        # prepare agents metadata
+        # agents_meta = [("alphazero", {"model_path": "latetst"})]
+        agents_meta = [("alphazero", {"network": self.network, **MCTS_CONFIG})]
+        supervisor, candidates = DATA_CONFIG["schedule"].values()
+        if candidates[self.schedule_level] is not None:
+            agents_meta.append(candidates[self.schedule_level])
+        else:
+            agents_meta.append(supervisor)
+        
+        if "mcts" in agents_meta[-1][0]:  # power up mcts candidates
+            agents_meta[-1][1]["c_iterations"] = self.ref_iterations
+
+        # start evaluation
+        base_agent, ref_agent = parse_agents_meta(agents_meta)
+        win_rate, _ = eval_agents([base_agent, ref_agent], self.eval_rounds)
+
+        # best policy check
+        if win_rate > self.best_win_rate:
+            print("New best policy found!")
+            self.save_model("best_model-{}-{}".format(
+                agents_meta[-1][0], self.ref_iterations
+            ))
+            # schedule levelup check
+            if win_rate >= 1.0 - 0.05*self.schedule_level:  # levelup threshold decay
+                if isinstance(ref_agent, MCTSAgent):
+                    self.ref_iterations += 2 * MCTS_CONFIG["c_iterations"]
+                if not isinstance(ref_agent, MCTSAgent) or self.ref_iterations > 20000:
+                    self.ref_iterations = MCTS_CONFIG["c_iterations"]
+                    self.schedule_level += 1  # go to next candidate
+                    self.data_helper.stop_simulation()
+                    self.data_helper.set_agents_meta(level=self.schedule_level)
+                    self.data_helper.init_simulation()
+                self.best_win_rate = 0.0
+            else:
+                self.best_win_rate = win_rate
+
+        # new checkpoint after every evaluation
+        self.save_model("current_model", rich_info=True)
+
     def save_model(self, name, rich_info=False):
         if rich_info:
-            name = "{}-{}-{}-{:.2f}".format(
-                name, self.total_steps, self.ref_iterations, self.best_win_rate
+            name = "{}-{}-{}-{}-{:.2f}".format(
+                name, self.total_steps, 
+                self.schedule_level, self.ref_iterations, 
+                self.best_win_rate
             )
         self.network.save_model(name)
 
@@ -94,31 +139,10 @@ class TrainingPipeline:
         if self.network.model_file:
             model_infos = self.network.model_file.split('/')[-1].split('-')
             self.total_steps = int(model_infos[1])
-            self.ref_iterations = int(model_infos[2])
-            self.best_win_rate = float(model_infos[3])
-
-    def evaluate_network(self):
-        base_agent = PyConvNetAgent(
-            self.network, MCTS_CONFIG["c_puct"],
-            c_iterations=MCTS_CONFIG["c_iterations"]
-        )
-        ref_agent = TraditionalAgent(
-            MCTS_CONFIG["c_puct"],
-            c_iterations=self.ref_iterations
-        )
-
-        win_rate, _ = eval_agents([base_agent, ref_agent], self.eval_rounds)
-        if win_rate > self.best_win_rate:
-            print("New best policy found!")
-            self.save_model("best_model-{}".format(self.ref_iterations))
-            if win_rate == 1.0:
-                self.ref_iterations += 600
-                self.best_win_rate = 0.0
-            else:
-                self.best_win_rate = win_rate
-
-        # checkpoint
-        self.save_model("current_model", rich_info=True)
+            self.schedule_level = int(model_infos[2])
+            self.ref_iterations = int(model_infos[3])
+            self.best_win_rate = float(model_infos[4])
+        self.data_helper.set_agents_meta(level=self.schedule_level)
 
     def run(self):
         # Initialize data generation
@@ -135,10 +159,14 @@ class TrainingPipeline:
                 self.evaluate_network()  # who knows how to eval in new proc???
 
 
-if __name__ == "__main__":
+def main():
     try:
-        pipeline = TrainingPipeline(config["model_file"])
+        pipeline = TrainingPipeline(TRAINING_CONFIG["model_file"])
         pipeline.run()
     except KeyboardInterrupt:
         pipeline.save_model("current_model", rich_info=True)
         print("\nQuit")
+
+
+if __name__ == "__main__":
+    main()

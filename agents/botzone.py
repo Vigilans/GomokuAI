@@ -1,10 +1,11 @@
-from .agent import Agent
-from core import Position, GameConfig
-from config import DATA_CONFIG
-from subprocess import Popen, PIPE
-import numpy as np
 import json
 import os
+import numpy as np
+from subprocess import PIPE, Popen
+from config import DATA_CONFIG
+from core import GameConfig as Game
+from core import Position
+from .agent import Agent
 
 
 class BotzoneAgent(Agent):
@@ -19,7 +20,7 @@ class BotzoneAgent(Agent):
 
     def eval_state(self, state):
         action = self._communicate(state)
-        action_probs = np.zeros(GameConfig["board_size"])
+        action_probs = np.zeros(Game["board_size"])
         action_probs[int(action)] = 1.0
         return 0.0, action_probs, action
 
@@ -35,12 +36,12 @@ class BotzoneAgent(Agent):
     def _communicate(self, state):
         bot = Popen(self.program, shell=True, stdin=PIPE, cwd=self.working_dir,
                     stdout=PIPE, universal_newlines=True)
-        output, error = bot.communicate(self._parse_state(state))
+        output, _ = bot.communicate(self._parse_state(state))
         bot.terminate()
         return Position(*json.loads(output)["response"].values())
 
     def __repr__(self):
-        return "Botzone Agent at <{}>".format(self.path)
+        return f"Botzone Agent at <{self.working_dir}/{self.program}>"
 
 
 if __name__ == "__main__":

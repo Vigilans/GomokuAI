@@ -1,4 +1,4 @@
-from core import Player, GameConfig
+from core import Player, GameConfig as Game
 from network.data_helper import augment_game_data
 from agents import RandomMCTSAgent
 from agents.utils import dual_play
@@ -15,7 +15,7 @@ def test_augment_game_data():
 
     fake_data = []
     for data in game_data:
-        fake_data.append((*data[:2], np.arange(GameConfig["board_size"])))
+        fake_data.append((*data[:2], np.arange(Game["board_size"])))
     id_data = augment_game_data(fake_data)
 
     test_data = []

@@ -1,8 +1,11 @@
-from core import GameConfig, Board
-from config import TRAINING_CONFIG as config
-import tensorflow as tf
-import numpy as np
 import os
+
+import numpy as np
+import tensorflow as tf
+
+from config import TRAINING_CONFIG
+from core import GameConfig as Game
+from core import Board
 
 
 class PolicyValueNetwork:
@@ -14,12 +17,13 @@ class PolicyValueNetwork:
                 (
                     tf.TensorShape((None, *input_shape)),
                     tf.TensorShape((None, )),
-                    tf.TensorShape((None, GameConfig["board_size"]))
+                    tf.TensorShape((None, Game["board_size"]))
                 )
             )
             self.mini_batch = self.iter.get_next()
             self.inputs, self.state_value, self.action_probs = self.mini_batch
             inputs_t = tf.transpose(self.inputs, [0, 2, 3, 1])  # channel_last
+            self.inputs_t = inputs_t
 
         with tf.variable_scope("SharedNet"):
             conv_blocks = []
@@ -45,8 +49,8 @@ class PolicyValueNetwork:
                 activation=tf.nn.relu
             )
             policy_flatten = tf.layers.flatten(policy_conv)
-            self.policy_logits = tf.layers.dense(policy_flatten, GameConfig["board_size"])
-            self.policy_output = tf.nn.softmax(self.policy_logits)
+            self.policy_logits = tf.layers.dense(policy_flatten, Game["board_size"])
+            self.policy_output = tf.nn.softmax(self.policy_logits, name="policy_output")
 
         with tf.variable_scope("ValueHead"):
             value_conv = tf.layers.conv2d(
@@ -59,7 +63,7 @@ class PolicyValueNetwork:
             value_flatten = tf.layers.flatten(value_conv)
             value_hidden = tf.layers.dense(value_flatten, 64, tf.nn.relu)
             value_logits = tf.layers.dense(value_hidden, 1)
-            self.value_output = tf.reshape(tf.nn.tanh(value_logits), [-1])
+            self.value_output = tf.reshape(tf.nn.tanh(value_logits), [-1], name="value_output")
 
         self.session = tf.Session()
         self.saver = tf.train.Saver()
@@ -117,7 +121,7 @@ class PolicyValueNetwork:
 
             if i == 0:
                 old_probs = new_probs + 1e-10
-                kl = 0  # KL divergence is apparently zero
+                kl = 0.0  # KL divergence is apparently zero
             else:
                 new_probs += 1e-10
                 kl = (old_probs * np.log(old_probs / new_probs)).sum(1).mean()
@@ -157,7 +161,7 @@ class PolicyValueNetwork:
             checkpoint = tf.train.get_checkpoint_state(self._parse_path(""))
             return checkpoint.model_checkpoint_path if checkpoint else None
         elif model_name is not None:
-            return config["model_path"] + "/tf/" + model_name
+            return f"{TRAINING_CONFIG['model_path']}/tf/{model_name}"
         else:
             return None
 

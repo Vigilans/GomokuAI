@@ -1,5 +1,5 @@
+from core import MCTS, RandomPolicy, PoolRAVEPolicy, TraditionalPolicy
 from .agent import Agent
-from core import MCTS, PoolRAVEPolicy, TraditionalPolicy
 
 
 class MCTSAgent(Agent):
@@ -25,6 +25,13 @@ class MCTSAgent(Agent):
 
     def __repr__(self):
         return "MCTS Agent with {}".format(self.mcts.policy.__class__.__name__)
+
+
+def RandomMCTSAgent(c_puct, c_rollouts=5, **constraint):
+    return MCTSAgent(
+        policy=RandomPolicy(c_puct, c_rollouts),
+        **constraint
+    )
 
 
 def RAVEAgent(c_puct, c_bias, **constraint):

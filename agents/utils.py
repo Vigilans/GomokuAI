@@ -1,12 +1,12 @@
-from core import Player, Board
 import numpy as np
+from core import Board, Player
 
 
 def dual_play(agents, board=None, verbose=False, graphic=False):
     """
     Play with 2 players.
     Params:
-      players: { Player.black: agent1, Player.white: agent2 }.
+      agents:  { Player.black: agent1, Player.white: agent2 }.
       board:   initial board state. Start player will be determined here.
       verbose: if true, then return value will be in the form of training data.
     Returns:

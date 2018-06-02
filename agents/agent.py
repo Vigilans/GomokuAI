@@ -1,5 +1,6 @@
-from core import Position, Board, GameConfig as Game
 import numpy as np
+from core import GameConfig as Game
+from core import Board, Position
 
 
 class Agent:

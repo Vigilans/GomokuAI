@@ -1,6 +1,7 @@
-from .agent import Agent
-from core import Position, GameConfig
 import numpy as np
+from core import GameConfig as Game
+from core import Position
+from .agent import Agent
 
 
 class ConsoleAgent(Agent):
@@ -19,7 +20,7 @@ class ConsoleAgent(Agent):
         for separator in [' ', ',']:
             if separator in action:
                 action = Position(map(int, action.split(separator)))
-                action_probs = np.zeros(GameConfig["board_size"])
+                action_probs = np.zeros(Game["board_size"])
                 action_probs[int(action)] = 1.0
                 return state_value, action_probs, action
 

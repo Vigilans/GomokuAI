@@ -1,4 +1,5 @@
-from core import GameConfig, Board
+from core import GameConfig as Game
+from core import Board
 from config import TRAINING_CONFIG
 from keras import Sequential, Model, Input
 from keras.layers import InputLayer
@@ -69,7 +70,7 @@ class PolicyValueNetwork:
             shared_net,
             *ConvBlock(4, (1, 1), "relu"),
             Flatten(),
-            Dense(GameConfig["board_size"], kernel_regularizer=l2()),
+            Dense(Game["board_size"], kernel_regularizer=l2()),
             Activation("softmax")
         ], "policy_head")
 
