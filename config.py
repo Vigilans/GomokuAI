@@ -13,7 +13,7 @@ DATA_CONFIG = {
         "candidates": [
             ("random_mcts", MCTS_CONFIG),
             ("rave_mcts", MCTS_CONFIG),
-            ("botzone", {"program": "deep"}),
+            ("botzone", {"program": "deeeeep"}),
             ("botzone", {"program": "genm"}),
             None
         ]
@@ -29,11 +29,11 @@ DATA_CONFIG = {
 
 TRAINING_CONFIG = {
     "num_epoches": 5,
-    "batch_size": 32,
+    "batch_size": 512,
     "learning_rate": 2e-3,
     "momentum": 0.9,
     "kl_target": 0.02,
-    "eval_period": 50,
+    "eval_period": 100,
     "eval_rounds": 11,
     "model_file": "latest",
     "model_path": "./data/trained_models"
