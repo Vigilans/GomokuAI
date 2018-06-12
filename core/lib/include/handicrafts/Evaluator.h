@@ -6,6 +6,12 @@
 
 namespace Gomoku::Handicrafts {
 
+/*
+    TODO:
+      1. Pattern的空位变成三种('_', '^'及'-')
+      2. 直接在Pattern中指明分数
+      3. 添加Bitmap类，每行/每列/每斜边维护一个Bitset。
+*/
 class Evaluator {
 public:
     // 在不同的Evaluator间共享的变量
@@ -21,8 +27,10 @@ public:
 
     auto& distribution(Player player, PatternType type) { return m_distributions[player == Player::Black][(int)type]; }
 
+    int patternCount(Position move, PatternType type, Player perspect, Player curPlayer);
+
     // 同步Evaluator至传入的Board状态。
-    void syncWithBoard(Board& board);
+    void syncWithBoard(const Board& board);
 
     unsigned getBitmap(Position move, Direction dir, Player perspect);
 

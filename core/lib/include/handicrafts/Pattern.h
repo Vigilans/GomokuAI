@@ -14,7 +14,7 @@
 namespace Gomoku::Handicrafts {
 
 enum class PatternType {
-    One, DeadTwo, LiveTwo, DeadThree, LiveThree, DeadFour, LiveFour, Five, Size
+    One, DeadOne, LiveOne, DeadTwo, LiveTwo, DeadThree, LiveThree, DeadFour, LiveFour, Five, Size
 };
 
 struct Pattern {
@@ -39,26 +39,30 @@ _CONSTEXPR Pattern PATTERN_PROTOS[] = {
     { "-xoooo_",  PatternType::DeadFour },
     { "-o_ooo",   PatternType::DeadFour },
     { "-oo_oo",   PatternType::DeadFour },
-    { "-_ooo_",   PatternType::LiveThree },
-    { "-o_oo^",   PatternType::LiveThree },
-    { "-oo_o^",   PatternType::LiveThree },
-    { "-x^ooo_^", PatternType::LiveThree },
+    { "-^_ooo^",  PatternType::LiveThree },
+    { "-^o_oo^",  PatternType::LiveThree },
     { "-xooo__",  PatternType::DeadThree },
     { "-xoo_o_",  PatternType::DeadThree },
     { "-xo_oo_",  PatternType::DeadThree },
     { "-oo__o",   PatternType::DeadThree },
     { "-o_o_o",   PatternType::DeadThree },
     { "-x_ooo_x", PatternType::DeadThree },
-    { "-__oo__",  PatternType::LiveTwo },
-    { "-x^oo__",  PatternType::LiveTwo },
-    { "-_o_o_",   PatternType::LiveTwo },
-    { "-o__o^",   PatternType::LiveTwo },
+    { "-^oo__^",  PatternType::LiveTwo },
+    { "-^_o_o_^", PatternType::LiveTwo },
+    { "-x^o_o_^", PatternType::LiveTwo },
+    { "-^o__o^",  PatternType::LiveTwo },
     { "-xoo___",  PatternType::DeadTwo },
     { "-xo_o__",  PatternType::DeadTwo },
     { "-xo__o_",  PatternType::DeadTwo },
     { "-o___o",   PatternType::DeadTwo },
     { "-x_oo__x", PatternType::DeadTwo },
-    { "-x_o_o_x", PatternType::DeadTwo }
+    { "-x_o_o_x", PatternType::DeadTwo },
+    { "-^o___^",  PatternType::LiveOne },
+    { "-x^_o__^", PatternType::LiveOne },
+    { "-x^__o_^", PatternType::LiveOne },
+    { "-xo___^",  PatternType::DeadOne },
+    { "-x_o___x", PatternType::DeadOne },
+    { "-x__o__x", PatternType::DeadOne },
 };
 
 #undef _CONSTEXPR
@@ -69,18 +73,18 @@ inline const auto SURROUNDING_WEIGHTS = []() {
         MAX_SURROUNDING_SIZE,
         MAX_SURROUNDING_SIZE
     > W;
-    W << 2, 0, 0, 2, 0, 0, 2,
-         0, 4, 2, 3, 2, 4, 0,
-         0, 2, 5, 4, 5, 2, 0,
-         1, 3, 4, 0, 4, 3, 1,
-         0, 2, 5, 4, 5, 2, 0,
-         0, 4, 2, 3, 2, 4, 0,
-         2, 0, 0, 2, 0, 0, 2;
-    //W << 4, 2, 3, 2, 4,
-    //     2, 5, 4, 5, 2,
-    //     3, 4, 0, 4, 3,
-    //     2, 5, 4, 5, 2,
-    //     4, 2, 3, 2, 4;
+    //W << 2, 0, 0, 2, 0, 0, 2,
+    //     0, 4, 2, 3, 2, 4, 0,
+    //     0, 2, 5, 4, 5, 2, 0,
+    //     1, 3, 4, 0, 4, 3, 1,
+    //     0, 2, 5, 4, 5, 2, 0,
+    //     0, 4, 2, 3, 2, 4, 0,
+    //     2, 0, 0, 2, 0, 0, 2;
+    W << 3, 1, 2, 1, 3,
+         1, 4, 3, 4, 1,
+         2, 3, 0, 3, 2,
+         1, 4, 3, 4, 1,
+         3, 1, 2, 1, 3;
     return W;
 
 }();

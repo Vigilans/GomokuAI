@@ -7,7 +7,7 @@ namespace Gomoku::Handicrafts {
 
 enum Config {
     MAX_PATTERN_LEN = 6,
-    MAX_SURROUNDING_SIZE = 7,
+    MAX_SURROUNDING_SIZE = 5,
     SAMPLE_LEN = 2 * MAX_PATTERN_LEN + 1,
     HASH_LEN = 2 * (SAMPLE_LEN + 1) / 3
 };
@@ -45,8 +45,8 @@ constexpr unsigned Bitmap(Player player, Player perspect) {
         pattern: 
           list of chars representing player states.
           'x' for black, 'o' for white.
-          '_' for valuable blank,
-          '^' for invaluable blank.
+          '_' for critical blank,
+          '^' for irrelevant blank.
 */
 constexpr unsigned Encode(std::string_view str) {
     Player perspect = Player::None;
