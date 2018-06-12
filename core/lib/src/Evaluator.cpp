@@ -4,30 +4,32 @@ using namespace std;
 using namespace Gomoku;
 using namespace Gomoku::Handicrafts;
 
-// 该方法被设为inline，不暴露给外部使用。下同。
-inline void Evaluator::updatePattern(unsigned bitmap, int delta, Position move, Direction dir, Player perspect) {
+void Evaluator::updatePattern(unsigned bitmap, int delta, Position move, Direction dir, Player perspect) {
     for (auto mask : Masks) {
         int fake_pattern = bitmap & mask;
         if (Patterns.count(fake_pattern)/*auto result = patterns.search(fake_pattern); result != nullptr*/) {
             auto pattern = Patterns[fake_pattern];
             /*auto pattern = *result;*/
-            if (pattern.bits != fake_pattern) {
-                throw pattern;
-            }
             if (pattern.type == PatternType::Five) { 
                 m_board.m_winner = perspect; // 因更新逻辑与棋盘状态的高耦合，这里只能设置赢家，不能改变其他状态。
             } else {
                 auto view = LineView(distribution(perspect, pattern.type), move, dir);
-                for (auto idx = 0; (idx = pattern.str.find('_', idx + 1)) != string_view::npos;) {
+                for (auto idx = 0; idx < pattern.str.length() ; ++idx) {
+                    auto offset = 0;
+                    switch (pattern.str[idx]) {
+                        case '_': offset = 0; break;
+                        case '^': offset = 8 * sizeof(int) / 2; break;
+                        default: continue;
+                    }
                     auto view_idx = SAMPLE_LEN - (pattern.str.length() - idx + pattern.offset);
-                    *view[view_idx] += delta;
+                    *view[view_idx] += delta * (1 << offset);
                 }
             }
         }
     }
 }
 
-inline void Evaluator::updateOnePiece(int delta, Position move, Player src_player) {
+void Evaluator::updateOnePiece(int delta, Position move, Player src_player) {
     auto sgn = [](int x) { return x < 0 ? -1 : 1; }; // 0以上记为正（认为原位置没有棋）
     auto[view, lr, rd] = BlockView(distribution(src_player, PatternType::One), move);
     auto weight_block = SURROUNDING_WEIGHTS.block(lr.x(), lr.y(), rd.x() - lr.x() + 1, rd.y() - lr.y() + 1);
@@ -62,13 +64,22 @@ void Evaluator::updateMove(Position move, Player src_player) {
     }
 }
 
-void Evaluator::syncWithBoard(Board& board) {
+// 如果是己方的棋型，则必须下在有效空位('_'型空位）
+// 否则，下在其他空位也可能封住该棋型('_' + '^'型空位）（'^'不一定有作用，但会在1~2次迭代内被软剪枝掉）
+int Evaluator::patternCount(Position move, PatternType type, Player perspect, Player curPlayer) {
+    auto raw_counts = distribution(perspect, type)[move];
+    auto critical_blanks = raw_counts & ((1 << 8 * sizeof(int) / 2) - 1); // '_'型空位
+    auto irrelevant_blanks = raw_counts >> (8 * sizeof(int) / 2); // '^'型空位
+    return perspect == curPlayer ? critical_blanks : critical_blanks + irrelevant_blanks;
+}
+
+void Evaluator::syncWithBoard(const Board& board) {
     for (int i = 0; i < board.m_moveRecord.size(); ++i) {
         if (i < m_board.m_moveRecord.size()) {
             if (m_board.m_moveRecord[i] == board.m_moveRecord[i]) {
                 continue;
             } else {
-                revertMove(m_board.m_moveRecord.size() - i);
+                revertMove(m_board.m_moveRecord.size() - i); // 回退到首次不同步的状态
             }
         }
         applyMove(board.m_moveRecord[i]);
