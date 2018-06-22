@@ -6,11 +6,13 @@
 
 namespace Gomoku {
 
+inline namespace Config {
 // 游戏的基本配置
 enum GameConfig {
-    WIDTH = 15, HEIGHT = 15, MAX_RENJU = 5, BOARD_SIZE = WIDTH*HEIGHT
+    WIDTH = 15, HEIGHT = 15, MAX_RENJU = 5, 
+    BOARD_SIZE = WIDTH*HEIGHT
 };
-
+}
 
 // 玩家概念的抽象封装
 enum class Player : short { 
@@ -20,6 +22,11 @@ enum class Player : short {
 // 返回对手的Player值。Player::None的对手仍是Player::None。
 constexpr Player operator-(Player player) { 
     return Player(-static_cast<short>(player)); 
+}
+
+// 从左往右求值，返回首个非Player::None的一方。
+constexpr Player operator|(Player lhs, Player rhs) {
+    return lhs != Player::None ? lhs : rhs;
 }
 
 // 返回游戏结束后的得分。同号（winner与player相同）为正，异号为负，平局为零。
