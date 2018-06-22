@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include "Game.h"
 #include "MCTS.h"
+#include "algorithms/Handicraft.h"
 
 namespace Gomoku {
 
@@ -90,6 +91,55 @@ protected:
     std::unique_ptr<MCTS> m_mcts;
     std::shared_ptr<Policy> m_policy;
     std::chrono::milliseconds c_duration;
+};
+
+class PatternEvalAgent : public Agent {
+public:
+    virtual std::string name() {
+        return "PatternEvalAgent";
+    }
+
+    virtual Position getAction(Board& board) {
+        using Gomoku::Algorithms::Handicraft;
+        auto init_player = board.m_curPlayer;
+        Eigen::VectorXf action_probs;
+
+        // Pre-evaluate the board using handicraft policy
+        auto self_scores = Handicraft::EvalScores(m_evaluator, init_player);
+        auto rival_scores = Handicraft::EvalScores(m_evaluator, -init_player);
+
+        Position next_move;
+
+        auto[decisive_moves, is_antiMove] = Handicraft::CheckDecisive(m_evaluator, board);
+        if (!decisive_moves.empty()) {
+            action_probs = Eigen::VectorXf::Zero(BOARD_SIZE);
+            for (auto move : decisive_moves) {
+                action_probs[move] = 1.0f / decisive_moves.size();
+            }
+            next_move = decisive_moves[rand() % decisive_moves.size()];
+        }
+        else {
+            action_probs = Handicraft::ScoreBasedProbs(m_evaluator, board, self_scores, rival_scores);
+            action_probs.maxCoeff(&next_move.id);
+        }
+
+        return next_move;
+    }
+
+    virtual json debugMessage() {
+        return json();
+    };
+
+    virtual void syncWithBoard(Board& board) {
+        m_evaluator.syncWithBoard(board);
+    };
+
+    virtual void reset() {
+        m_evaluator.reset();
+    }
+
+private:
+    Handicrafts::Evaluator m_evaluator;
 };
 
 }
