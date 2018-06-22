@@ -39,6 +39,22 @@ inline auto BlockView(array<View_t, BOARD_SIZE>& src, Position move) {
     );
 }
 
+/* ------------------- Pattern类实现 ------------------- */
+
+Pattern::Pattern(std::string_view proto, Type type, int score) 
+    : str(proto.begin() + 1, proto.end()), score(score), type(type),
+      belonging(proto[0] == '+' ? Player::Black : Player::White) {
+    
+}
+
+/* ------------------- PatternSearch类实现 ------------------- */
+
+PatternSearch::PatternSearch(std::initializer_list<Pattern> protos) {
+    for (auto&& pattern : protos) {
+        // TODO
+    }
+}
+
 /* ------------------- BoardMap类实现 ------------------- */
 
 BoardMap::BoardMap(Board* board) : m_board(board ? board : new Board) {
@@ -123,7 +139,7 @@ void Evaluator::updateMove(Position move, Player src_player) {
     } else {
         m_boardMap.revertMove();
         updateOnePiece(-1, move, -board().m_curPlayer | board().m_winner);
-    } 
+    }
     for (auto dir : Directions) {
         auto target = m_boardMap.lineView(move, dir);
         updatePattern(target, 1, move, dir); // update pattern count on new state
@@ -159,33 +175,33 @@ bool Evaluator::checkGameEnd() {
 }
 
 PatternSearch Evaluator::Patterns = {
-    { "+xxxxx",   Pattern::Five },
-    { "-_oooo_",  Pattern::LiveFour },
-    { "-xoooo_",  Pattern::DeadFour },
-    { "-o_ooo",   Pattern::DeadFour },
-    { "-oo_oo",   Pattern::DeadFour },
-    { "-^_ooo^",  Pattern::LiveThree },
-    { "-^o_oo^",  Pattern::LiveThree },
-    { "-xooo__",  Pattern::DeadThree },
-    { "-xoo_o_",  Pattern::DeadThree },
-    { "-xo_oo_",  Pattern::DeadThree },
-    { "-oo__o",   Pattern::DeadThree },
-    { "-o_o_o",   Pattern::DeadThree },
-    { "-x_ooo_x", Pattern::DeadThree },
-    { "-^oo__^",  Pattern::LiveTwo },
-    { "-^_o_o_^", Pattern::LiveTwo },
-    { "-x^o_o_^", Pattern::LiveTwo },
-    { "-^o__o^",  Pattern::LiveTwo },
-    { "-xoo___",  Pattern::DeadTwo },
-    { "-xo_o__",  Pattern::DeadTwo },
-    { "-xo__o_",  Pattern::DeadTwo },
-    { "-o___o",   Pattern::DeadTwo },
-    { "-x_oo__x", Pattern::DeadTwo },
-    { "-x_o_o_x", Pattern::DeadTwo },
-    { "-^o___^",  Pattern::LiveOne },
-    { "-x^_o__^", Pattern::LiveOne },
-    { "-x^__o_^", Pattern::LiveOne },
-    { "-xo___^",  Pattern::DeadOne },
-    { "-x_o___x", Pattern::DeadOne },
-    { "-x__o__x", Pattern::DeadOne },
+    { "+xxxxx",   Pattern::Five,      99999 },
+    { "-_oooo_",  Pattern::LiveFour,  75000 },
+    { "-xoooo_",  Pattern::DeadFour,  2500 },
+    { "-o_ooo",   Pattern::DeadFour,  3000 },
+    { "-oo_oo",   Pattern::DeadFour,  2600 },
+    { "-~_ooo^",  Pattern::LiveThree, 3000 },
+    { "-^o_oo^",  Pattern::LiveThree, 2800 },
+    { "-xooo__",  Pattern::DeadThree, 500 },
+    { "-xoo_o_",  Pattern::DeadThree, 800 },
+    { "-xo_oo_",  Pattern::DeadThree, 999 },
+    { "-oo__o",   Pattern::DeadThree, 600 },
+    { "-o_o_o",   Pattern::DeadThree, 550 },
+    { "-x_ooo_x", Pattern::DeadThree, 400 },
+    { "-^oo__~",  Pattern::LiveTwo,   650 },
+    { "-^_o_o_^", Pattern::LiveTwo,   600 },
+    { "-x^o_o_^", Pattern::LiveTwo,   550 },
+    { "-^o__o^",  Pattern::LiveTwo,   550 },
+    { "-xoo___",  Pattern::DeadTwo,   150 },
+    { "-xo_o__",  Pattern::DeadTwo,   250 },
+    { "-xo__o_",  Pattern::DeadTwo,   200 },
+    { "-o___o",   Pattern::DeadTwo,   180 },
+    { "-x_oo__x", Pattern::DeadTwo,   100 },
+    { "-x_o_o_x", Pattern::DeadTwo,   100 },
+    { "-^o___~",  Pattern::LiveOne,   150 },
+    { "-x^_o__^", Pattern::LiveOne,   140 },
+    { "-x^__o_^", Pattern::LiveOne,   150 },
+    { "-xo___~",  Pattern::DeadOne,   30 },
+    { "-x_o___x", Pattern::DeadOne,   50 },
+    { "-x__o__x", Pattern::DeadOne,   60 },
 };

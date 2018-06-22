@@ -30,19 +30,20 @@ constexpr std::pair<int, int> operator*(Direction direction) {
     }
 }
 
+
 struct Pattern {
     enum Type {
-        One, DeadOne, LiveOne, 
-        DeadTwo, LiveTwo, 
-        DeadThree, LiveThree, 
-        DeadFour, LiveFour, 
-        Five, Size
-    } type;
-    Player belonging;
-    std::string_view str;
+        One, DeadOne, LiveOne, DeadTwo, LiveTwo, DeadThree, LiveThree, DeadFour, LiveFour, Five, Size
+    };
 
-    Pattern() = default;
-    Pattern(std::string_view str, Type type, int score = 0);
+    std::string str;
+    Player belonging;
+    Type type;
+    int score;
+
+    Pattern(std::string_view proto, Type type, int score);
+    Pattern(const Pattern&) = default;
+    Pattern(Pattern&&) = default;
 };
 
 
@@ -62,6 +63,9 @@ public:
     PatternSearch(std::initializer_list<Pattern> protos);
     
     generator matches(std::string_view str);
+
+public:
+
 };
 
 
