@@ -157,12 +157,12 @@ string std::to_string(const Board& board) {
         }
     }
     oss << hex << "  ";
-    for (int i = 0; i < WIDTH; ++i) {
-        oss << i + 1 << " ";
+    for (int x = 0; x < WIDTH; ++x) {
+        oss << x << " ";
     }
     oss << "\n";
     for (int y = 0; y < HEIGHT; ++y) {
-        oss << y + 1 << " ";
+        oss << y << " ";
         for (int x = 0; x < WIDTH; ++x) {
             switch (positions[y * WIDTH + x]) {
             case Player::Black: oss << "x"; break;

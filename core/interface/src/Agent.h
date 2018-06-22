@@ -39,7 +39,7 @@ public:
         int x, y;
         cout << "\nInput your move: ";
         cin >> hex >> x >> y;
-        return { x - 1, y - 1 };
+        return { x, y };
     }
 };
 
