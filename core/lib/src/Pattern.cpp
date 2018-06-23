@@ -1,4 +1,6 @@
 #include "Pattern.h"
+#include <Eigen/Dense>
+#include <cassert>
 
 using namespace std;
 using namespace Gomoku;
@@ -7,7 +9,7 @@ constexpr Direction Directions[] = {
     Direction::Vertical, Direction::Horizontal, Direction::LeftDiag, Direction::RightDiag
 };
 
-template <size_t Length = SAMPLE_LEN, typename View_t>
+template <size_t Length = TARGET_LEN, typename View_t>
 inline auto& LineView(array<View_t, BOARD_SIZE>& src, Position move, Direction dir) {
     static vector<View_t*> view_ptrs(Length);
     auto [dx, dy] = *dir;
@@ -27,10 +29,10 @@ template <int Size = MAX_SURROUNDING_SIZE, typename View_t>
 inline auto BlockView(array<View_t, BOARD_SIZE>& src, Position move) {
     static Eigen::Map<Eigen::Matrix<View_t, HEIGHT, WIDTH>> view(nullptr);
     new (&view) decltype(view)(src.data()); // placement new
-    auto left_bound  = std::max(move.x() - Size / 2, 0);
-    auto right_bound = std::min(move.x() + Size / 2, WIDTH - 1);
-    auto up_bound    = std::max(move.y() - Size / 2, 0);
-    auto down_bound  = std::min(move.y() + Size / 2, HEIGHT - 1);
+    auto left_bound  = max(move.x() - Size / 2, 0);
+    auto right_bound = min(move.x() + Size / 2, WIDTH - 1);
+    auto up_bound    = max(move.y() - Size / 2, 0);
+    auto down_bound  = min(move.y() + Size / 2, HEIGHT - 1);
     Position lr{ left_bound, up_bound }, rd{ right_bound, down_bound };
     Position origin = move - Position{ Size / 2, Size / 2 };
     return make_tuple(
@@ -38,6 +40,20 @@ inline auto BlockView(array<View_t, BOARD_SIZE>& src, Position move) {
         Position(lr - origin), Position(rd - origin)
     );
 }
+
+inline const auto SURROUNDING_WEIGHTS = []() {
+    Eigen::Array<
+        int, MAX_SURROUNDING_SIZE, MAX_SURROUNDING_SIZE
+    > W;
+    W << 2, 0, 0, 2, 0, 0, 2,
+         0, 4, 3, 3, 3, 4, 0,
+         0, 3, 5, 4, 5, 3, 0,
+         1, 3, 4, 0, 4, 3, 1,
+         0, 3, 5, 4, 5, 3, 0,
+         0, 4, 3, 3, 3, 4, 0,
+         2, 0, 0, 2, 0, 0, 2;
+    return W;
+}();
 
 /* ------------------- Pattern类实现 ------------------- */
 
@@ -63,7 +79,7 @@ BoardMap::BoardMap(Board* board) : m_board(board ? board : new Board) {
 
 string_view BoardMap::lineView(Position pose, Direction direction) {
     const auto [index, offset] = parseIndex(pose, direction);
-    return string_view(&m_lineMap[index][offset - SAMPLE_LEN / 2],  SAMPLE_LEN);
+    return string_view(&m_lineMap[index][offset - TARGET_LEN / 2],  TARGET_LEN);
 }
 
 Player BoardMap::applyMove(Position move) {
@@ -86,21 +102,34 @@ Player BoardMap::revertMove(size_t count) {
 }
 
 void BoardMap::reset() {
-    
+    m_hash = 0ul;
+    m_board->reset();
+    for (auto& line : m_lineMap) {
+        line.resize(MAX_PATTERN_LEN - 1, '?'); // 在线前填充越界位('?')
+    }
+    for (auto i = 0; i < BOARD_SIZE; ++i) 
+    for (auto direction : Directions) {
+        auto [index, _] = parseIndex(i, direction);
+        m_lineMap[index].push_back('-'); // 按每个位置填充空位('-')
+    }
+    for (auto& line : m_lineMap) {
+        line.append(MAX_PATTERN_LEN - 1, '?'); // 在线后填充越界位('?')
+    }
 }
 
-tuple<int, int> BoardMap::parseIndex(Position pose, Direction direction) {
-    switch (direction) {
-    case Direction::Horizontal: // 0 + x∈[0, WIDTH), y
-        return { pose.x(), pose.y() };
-    case Direction::Vertical:   // WIDTH + y∈[0, HEIGHT), x
-        return { WIDTH + pose.y(), pose.x() };
-    case Direction::LeftDiag:   // (WIDTH + HEIGHT) + (HEIGHT - 1) + x-y∈[-(HEIGHT - 1), WIDTH) // TODO: implement here
-        return { WIDTH + 2*HEIGHT - 1 + pose.x() - pose.y(), 1 };
-    case Direction::RightDiag:  // 2*(WIDTH + HEIGHT) - 1 + x+y∈[0, WIDTH + HEIGHT - 1)
-        return { 2*(WIDTH + HEIGHT) - 1 + pose.x() + pose.y(), 1 };
-    default:
-        throw direction; 
+inline tuple<int, int> BoardMap::parseIndex(Position pose, Direction direction) {
+    // 由于前与后MAX_PATTERN_LEN - 1位均为'?'（越界位），故需设初始offset
+    switch (int offset = MAX_PATTERN_LEN - 1; direction) {      
+        case Direction::Horizontal: // 0 + x∈[0, WIDTH) | y: 0 -> HEIGHT
+            return { pose.x(), offset + pose.y() };
+        case Direction::Vertical:   // WIDTH + y∈[0, HEIGHT) | x: 0 -> WIDTH
+            return { WIDTH + pose.y(), offset + pose.x() };
+        case Direction::LeftDiag:   // (WIDTH + HEIGHT) + (HEIGHT - 1) + x-y∈[-(HEIGHT - 1), WIDTH) | min(x, y): (x, y) -> (x+1, y+1)
+            return { WIDTH + 2*HEIGHT - 1 + pose.x() - pose.y(), offset + min(pose.x(), pose.y()) };
+        case Direction::RightDiag:  // 2*(WIDTH + HEIGHT) - 1 + x+y∈[0, WIDTH + HEIGHT - 1) | min(WIDTH - x, y): (x, y) -> (x-1, y+1)
+            return { 2*(WIDTH + HEIGHT) - 1 + pose.x() + pose.y(), offset + min(WIDTH - pose.x(), pose.y()) };
+        default:
+            throw direction; 
     }
 }
 
@@ -124,6 +153,26 @@ void Evaluator::updatePattern(string_view target, int delta, Position move, Dire
                 auto view_idx = offset + idx;
                 *view[view_idx] += delta * (1 << offset);
             }
+        }
+    }
+}
+
+void Evaluator::updateOnePiece(int delta, Position move, Player src_player) {
+    auto sgn = [](int x) { return x < 0 ? -1 : 1; }; // 0以上记为正（认为原位置没有棋）
+    auto [view, lr, rd] = BlockView(distribution(src_player, Pattern::One), move);
+    auto weight_block = SURROUNDING_WEIGHTS.block(lr.x(), lr.y(), rd.x() - lr.x() + 1, rd.y() - lr.y() + 1);
+    view.array() += view.array().unaryExpr(sgn) * delta * weight_block; // sgn对应原位置是否有棋，delta对应下棋还是悔棋
+    for (auto perspect : { Player::Black, Player::White }) {
+        auto& count = distribution(perspect, Pattern::One)[move];
+        switch (delta) {
+        case 1: // 代表这里下了一子
+            count *= -1; // 反转计数，表明这个位置已有棋子占用
+            count -= 1; // 保证count一定是负数
+            break;
+        case -1: // 代表悔了这一子
+            count += 1; // 除去之前减掉的辅助数
+            count *= -1; // 反转计数，表明这里可以用来计分了
+            break;
         }
     }
 }

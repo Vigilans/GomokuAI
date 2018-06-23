@@ -10,8 +10,8 @@ inline namespace Config {
 // 模式匹配模块的相关配置
 enum PatternConfig {
     MAX_PATTERN_LEN = 7,
-    MAX_SURROUNDING_SIZE = 5,
-    SAMPLE_LEN = 2 * MAX_PATTERN_LEN - 1
+    MAX_SURROUNDING_SIZE = 2*3 + 1,
+    TARGET_LEN = 2 * MAX_PATTERN_LEN - 1
 };
 }
 
