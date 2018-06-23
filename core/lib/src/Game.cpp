@@ -5,10 +5,13 @@
 
 using namespace std;
 using namespace Gomoku;
+using Eigen::VectorXf;
 
 static uniform_int_distribution<unsigned> rnd(0, BOARD_SIZE - 1); // 注意区间是[a, b]!
 static mt19937 rnd_eng((random_device())());
 static ostringstream oss;
+
+/* ------------------- Board类实现 ------------------- */
 
 // 由于是内联使用，不暴露成外部接口，因此无需进行额外参数检查，下同
 inline void setState(Board* board, Player player, Position position) {
@@ -62,6 +65,11 @@ Position Board::getRandomMove() const {
         id = (id + 1) % moveStates(Player::None).size();
     }
     return Position(id);
+}
+
+Position Board::getRandomMove(Eigen::Ref<VectorXf> probs) const {
+    auto distribution = discrete_distribution<Position>(probs.data(), probs.data() + probs.size());
+    return distribution(rnd_eng);
 }
 
 bool Board::checkMove(Position move) const {

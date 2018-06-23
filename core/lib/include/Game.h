@@ -3,6 +3,7 @@
 #include <utility> // std::pair, std::size_t
 #include <vector>  // std::vector
 #include <array>   // std::array
+#include <Eigen/Dense> // Eigen::VectorXf
 
 namespace Gomoku {
 
@@ -75,8 +76,11 @@ public:
     */
     Player revertMove(size_t count = 1);
 
-    // 获取随机的可行着点。
+    // 获取均匀概率分布的随机的可行落点。
     Position getRandomMove() const;
+
+    // 根据提供的概率分布随机获取可行落点。若非法点概率不为0，则不保证返回的点一定合法。
+    Position getRandomMove(Eigen::Ref<Eigen::VectorXf> probs) const;
 
     // 越界与无子检查。暂无禁手规则。
     bool checkMove(Position move) const;
