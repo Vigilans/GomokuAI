@@ -49,12 +49,14 @@ struct Pattern {
 
 class PatternSearch {
 public:
+    using Record = std::tuple<const Pattern&, int>;
+
     struct generator {
         generator();
 
         const generator& operator++();
-        bool operator!=(const generator&) const;
-        std::tuple<const Pattern&, int> operator*();
+        bool operator!=(const generator&) const;   
+        Record operator*() const;
 
         const generator& begin();
         const generator& end();
@@ -64,8 +66,11 @@ public:
     
     generator matches(std::string_view str);
 
-public:
-
+private:
+    std::vector<int> m_base;
+    std::vector<int> m_check;
+    std::vector<int> m_fail;
+    std::vector<Pattern> m_patterns;
 };
 
 
@@ -92,13 +97,10 @@ public:
 
 class Evaluator {
 public:
-    // 在不同的Evaluator间共享的变量
+    // 基于AC自动机实现的多模式匹配器。
     static PatternSearch Patterns;
-    BoardMap m_boardMap;
-    std::array<int, BOARD_SIZE> m_distributions[2][Pattern::Type::Size - 1]; // 不统计五子连珠分布
 
-public:
-    Evaluator();
+    Evaluator(Board* board = nullptr);
 
     auto& distribution(Player player, Pattern::Type type) { return m_distributions[player == Player::Black][(int)type]; }
     auto& board() { return *m_boardMap.m_board; }
@@ -110,14 +112,12 @@ public:
     Player revertMove(size_t count = 1);
 
     // 利用Evaluator，我们可以做到快速检查游戏是否结束。
-    bool checkGameEnd();
+    bool checkGameEnd(); 
 
     // 同步Evaluator至传入的Board状态。
     void syncWithBoard(const Board& board);
 
     void reset();
-
-    void updateOnePiece(int delta, Position move, Player src_player);
 
 private:
     void initDistributions();
@@ -125,6 +125,12 @@ private:
     void updateMove(Position move, Player src_player);
 
     void updatePattern(std::string_view target, int delta, Position move, Direction dir);
+
+    void updateOnePiece(int delta, Position move, Player src_player);
+
+public:
+    BoardMap m_boardMap; // 内部维护了一个Board, 避免受到外部的干扰
+    std::vector<int> m_distributions[2][Pattern::Type::Size - 1]; // 不统计五子连珠分布
 };
 
 }
