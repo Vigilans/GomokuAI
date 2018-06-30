@@ -3,17 +3,14 @@
 
 using namespace std;
 using namespace std::chrono;
-using namespace Eigen;
-using namespace Gomoku;
-using namespace Gomoku::Algorithms;
-using namespace Gomoku::Policies;
+using Eigen::VectorXf;
 
-// 更新后，原根节点由unique_ptr自动释放，其余的非子树结点也会被链式自动销毁。
-inline Node* updateRoot(MCTS& mcts, unique_ptr<Node>&& next_node) {
-    mcts.m_root = std::move(next_node);
-    mcts.m_root->parent = nullptr;
-    return mcts.m_root.get();
-}
+namespace Gomoku {
+
+using Algorithms::Default;
+using Policies::RandomPolicy;
+
+/* ------------------- Policy类实现 ------------------- */
 
 Policy::Policy(SelectFunc f1, ExpandFunc f2, EvalFunc f3, UpdateFunc f4, double c_puct)
     : select(f1 ? f1 : [this](auto node) { 
@@ -23,7 +20,7 @@ Policy::Policy(SelectFunc f1, ExpandFunc f2, EvalFunc f3, UpdateFunc f4, double 
         return Default::Expand(this, node, board, std::move(probs)); 
     }),
     simulate(f3 ? f3 : [this](auto& board) { 
-        return Default::Simulate(board); 
+        return Default::Simulate(this, board); 
     }),
     backPropogate(f4 ? f4 : [this](auto node, auto& board, auto value) { 
         return Default::BackPropogate(this, node, board, value); 
@@ -37,24 +34,33 @@ unique_ptr<Node> Policy::createNode(Node* parent, Position pose, Player player, 
     return make_unique<Node>(Node{ parent, pose, player, value, prob });
 }
 
-void Policy::prepare(Board & board) {
+void Policy::prepare(Board& board) {
     m_initActs = board.m_moveRecord.size(); // 记录棋盘起始位置
 }
 
-void Policy::cleanup(Board & board) {
+void Policy::cleanup(Board& board) {
     board.revertMove(board.m_moveRecord.size() - m_initActs); // 保证一定重置回初始局面
 }
 
-Player Policy::applyMove(Board & board, Position move) {
+Player Policy::applyMove(Board& board, Position move) {
     return board.applyMove(move, false); // 非终点节点无需检查是否胜利（此前已检查过了）
 }
 
-Player Policy::revertMove(Board & board, size_t count) {
+Player Policy::revertMove(Board& board, size_t count) {
     return board.revertMove(count);
 }
 
-bool Policy::checkGameEnd(Board & board) {
+bool Policy::checkGameEnd(Board& board) {
     return board.checkGameEnd();
+}
+
+/* ------------------- MCTS类实现 ------------------- */
+
+// 更新后，原根节点由unique_ptr自动释放，其余的非子树结点也会被链式自动销毁。
+inline Node* updateRoot(MCTS& mcts, unique_ptr<Node>&& next_node) {
+    mcts.m_root = std::move(next_node);
+    mcts.m_root->parent = nullptr;
+    return mcts.m_root.get();
 }
 
 MCTS::MCTS(
@@ -76,7 +82,7 @@ MCTS::MCTS(
     size_t   c_iterations,
     Position last_move,
     Player   last_player,
-    std::shared_ptr<Policy> policy
+    shared_ptr<Policy> policy
 ) :
     m_policy(policy ? policy : shared_ptr<Policy>(new RandomPolicy)),
     m_root(m_policy->createNode(nullptr, last_move, last_player, 0.0, 1.0)),
@@ -106,7 +112,7 @@ Policy::EvalResult MCTS::evalState(Board& board) {
 
 void MCTS::syncWithBoard(Board & board) {
     auto iter = std::find(board.m_moveRecord.begin(), board.m_moveRecord.end(), m_root->position);
-    for (iter = iter == board.m_moveRecord.end() ? board.m_moveRecord.begin() : ++iter;
+    for (iter = (iter == board.m_moveRecord.end() ? board.m_moveRecord.begin() : ++iter);
         iter != board.m_moveRecord.end(); ++iter) {
         stepForward(*iter);
     }
@@ -183,4 +189,6 @@ void MCTS::runPlayouts(Board& board) {
         m_duration = duration_cast<milliseconds>(system_clock::now() - start);
     }
     m_policy->cleanup(board);
+}
+
 }

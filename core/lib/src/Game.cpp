@@ -4,8 +4,9 @@
 #include <random>
 
 using namespace std;
-using namespace Gomoku;
 using Eigen::VectorXf;
+
+namespace Gomoku {
 
 static uniform_int_distribution<unsigned> rnd(0, BOARD_SIZE - 1); // 注意区间是[a, b]!
 static mt19937 rnd_eng((random_device())());
@@ -92,7 +93,7 @@ bool Board::checkGameEnd() {
     const auto curX = m_moveRecord.back().x();
     const auto curY = m_moveRecord.back().y();
     const auto lastPlayer = -m_curPlayer;
-        
+
     // 沿不同方向的搜索方法复用
     const auto search = [curX, curY, lastPlayer, this](int dx, int dy) {
         int renju = 1; // 当前落子构成的最大连珠数
@@ -111,7 +112,7 @@ bool Board::checkGameEnd() {
 
         return renju >= MAX_RENJU;
     };
-        
+
     // 从 左->右 || 下->上 || 左上->右下 || 左下->右上 进行搜索
     if (search(1, 0) || search(0, 1) || search(1, -1) || search(1, 1)) {
         m_winner = lastPlayer; // 赢家为下最后一手的玩家
@@ -135,6 +136,10 @@ void Board::reset() {
     m_curPlayer = Player::Black;
     m_winner = Player::None;
 }
+
+}
+
+using namespace Gomoku;
 
 string std::to_string(Player player) {
     switch (player) {
