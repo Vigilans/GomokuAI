@@ -49,6 +49,9 @@ struct Pattern {
 
 class PatternSearch {
 public:
+    // 利用friend指明类实现里使用了AC自动机。
+    friend class AhoCorasickBuilder;
+
     using Record = std::tuple<const Pattern&, int>;
 
     struct generator {
@@ -86,14 +89,12 @@ public:
 
     void reset();
 
-private:
-    std::tuple<int, int> parseIndex(Position pose, Direction direction);
-
 public:
     std::unique_ptr<Board> m_board;
     std::array<std::string, 3*(WIDTH + HEIGHT) - 2> m_lineMap;
     unsigned long long m_hash;
 };
+
 
 class Evaluator {
 public:
