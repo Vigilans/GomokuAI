@@ -55,19 +55,22 @@ public:
     using Record = std::tuple<const Pattern&, int>;
 
     struct generator {
-        generator();
+        std::string_view target = "";
+        PatternSearch* ref = nullptr;
+        size_t offset = 0, state = 0;
 
-        const generator& operator++();
-        bool operator!=(const generator&) const;   
+        const generator& begin() { return state == 0 ? ++(*this) : *this; }
+        const generator& end()   { return generator{}; }
+
         Record operator*() const;
-
-        const generator& begin();
-        const generator& end();
+        const generator& operator++();
+        bool operator!=(const generator& other) const { return target != other.target; }
     };
 
     PatternSearch(std::initializer_list<Pattern> protos);
     
-    generator matches(std::string_view str);
+    generator execute(std::string_view target);
+    std::vector<Record> matches(std::string_view target);
 
 private:
     std::vector<int> m_base;
@@ -79,7 +82,7 @@ private:
 
 class BoardMap {
 public:
-    BoardMap(Board* board = nullptr);
+    explicit BoardMap(Board* board = nullptr);
 
     std::string_view lineView(Position pose, Direction direction);
 
@@ -101,7 +104,7 @@ public:
     // 基于AC自动机实现的多模式匹配器。
     static PatternSearch Patterns;
 
-    Evaluator(Board* board = nullptr);
+    explicit Evaluator(Board* board = nullptr);
 
     auto& distribution(Player player, Pattern::Type type) { return m_distributions[player == Player::Black][(int)type]; }
     auto& board() { return *m_boardMap.m_board; }

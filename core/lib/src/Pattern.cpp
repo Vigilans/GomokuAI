@@ -269,6 +269,37 @@ PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
     builder.build(this);
 }
 
+// 持续转移，直到匹配下一个成功的模式或查询结束
+const PatternSearch::generator& PatternSearch::generator::operator++() {
+    while (ref->m_base[state] >= 0 && !target.empty()) {
+        int next = ref->m_base[state] + EncodeCharset(target[0]);
+        if (ref->m_check[next] == state) { // 尝试往下匹配target
+            state = next; // 匹配成功转移
+        } else {
+            state = ref->m_fail[state]; // 匹配失败转移
+        }
+        ++offset, target.remove_prefix(1);
+    }
+    return *this;
+}
+
+// 解析当前成功匹配到的模式
+PatternSearch::Record PatternSearch::generator::operator*() const {
+    return { ref->m_patterns[-ref->m_base[state]], offset };
+}
+
+PatternSearch::generator PatternSearch::execute(string_view target) {
+    return generator{ target, this };
+}
+
+vector<PatternSearch::Record> PatternSearch::matches(string_view target) {
+    vector<Record> records;
+    for (auto record : execute(target)) { 
+        records.push_back(record); 
+    }
+    return records;
+}
+
 /* ------------------- BoardMap类实现 ------------------- */
 
 constexpr tuple<int, int> ParseIndex(Position pose, Direction direction) {
@@ -393,7 +424,7 @@ int Evaluator::patternCount(Position move, Pattern::Type type, Player perspect, 
 }
 
 void Evaluator::updatePattern(string_view target, int delta, Position move, Direction dir) {
-    for (auto [pattern, offset] : Patterns.matches(target)) {
+    for (auto [pattern, offset] : Patterns.execute(target)) {
         if (pattern.type == Pattern::Five) {
             // 此前board已完成applyMove，故此处设置curPlayer为None不会发生阻塞。
             board().m_curPlayer = Player::None;
