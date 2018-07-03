@@ -26,15 +26,6 @@ constexpr int EncodeCharset(char ch) {
     }
 }
 
-inline vector<int> Encode(const Pattern& pattern) {
-    vector<int> code;
-    std::transform(
-        pattern.str.begin(), pattern.str.end(), 
-        code.begin(), EncodeCharset
-    );
-    return code;
-}
-
 Pattern::Pattern(std::string_view proto, Type type, int score) 
     : str(proto.begin() + 1, proto.end()), score(score), type(type),
       belonging(proto[0] == '+' ? Player::Black : Player::White) {
@@ -111,16 +102,20 @@ private:
         return this;
     }
 
-    // 编码patterns并根据对应的codes将下标数组排序
+    // 根据编码字典序排序patterns
     AhoCorasickBuilder* sortPatterns() {
         // 根据最终的patterns数量预留空间
-        vector<vector<int>> codes(m_patterns.size());
+        vector<int> codes(m_patterns.size());
         vector<int> indices(m_patterns.size());
         
         // 编码、填充与排序
-        std::transform(m_patterns.begin(), m_patterns.end(), codes.begin(), Encode);    
+        std::transform(m_patterns.begin(), m_patterns.end(), codes.begin(), [](const Pattern& p) {
+            return std::reduce(p.str.begin(), p.str.end(), 0, [](int sum, char ch) { 
+                return sum *= std::size(Codeset), sum += EncodeCharset(ch); 
+            }); // 通过基数排序间接实现对patterns的字典序排序
+        }); 
         std::iota(indices.begin(), indices.end(), 0);
-        std::sort(indices.begin(), indices.end(), [this](auto lhs, auto rhs) { 
+        std::sort(indices.begin(), indices.end(), [&codes](int lhs, int rhs) { 
             return codes[lhs] < codes[rhs]; 
         });
 
@@ -165,30 +160,63 @@ private:
 
     // DFS遍历生成双数组Trie树
     AhoCorasickBuilder* buildDAT(PatternSearch* ps) {
-        using iterator = decltype(m_tree)::iterator;
+        using NodeIter = decltype(m_tree)::iterator;
         // index为node在双数组中的索引，之前的递归中已确定好
-        function<void(int, iterator)> build_recursive = [&](int index, iterator node) {
+        function<void(int, NodeIter)> build_recursive = [&](int index, NodeIter node) {
             if (node->last - node->first <= 1) {
-                // Base case: 已抵达叶结点，设置index的base为(-对应pattern的下标)，指向output表
-                ps->m_base[index] = -ps->m_patterns.size();
-                ps->m_patterns.push_back(std::move(m_patterns[node->first]));
+                // Base case: 已抵达叶结点，设置index的base为(-对应pattern表的下标)
+                ps->m_base[index] = -node->first;
             } else {
-                // Recursive step: 
-                // 找到一个可以容纳index结点的所有子结点的begin值，
-                // 设置设为这个值，并对i的子结点递归
-                //for (;;) {
+                // 准备子节点（利用[first, last)迭代器区间框定）与begin变量
+                auto first = m_tree.lower_bound({ 0, node->depth + 1, node->first }); // 子节点下界（no less than）
+                auto last = m_tree.upper_bound({ 0, node->depth + 1, node->last - 1 }); // 子节点上界（greater than）
+                int begin; // 待寻找的当前结点的base值
 
-                //}
-                //for (int begin = 0; ; ++begin) {
-                //    std::all_of(&m_tree[m_tree[i].first], &m_tree[m_tree[i].last], [&](const Node& node) {
-                //        return ps->m_check[begin + node.code] <= 0;
-                //    });
-                //}
-                //build_recursive(m_tree[i].first, m_tree[i].last);
+                /*
+                    初始条件：begin从根节点0开始
+                    退出条件：找到一个可以容纳index结点的所有子结点的begin值
+                    状态转移：沿前向链表找到下一个空位
+                    注意：根节点由于没有父结点，故其无本义check值，该位置用来作为前向链表的起点。
+                    参考：http://www.aclweb.org/anthology/D13-1023  
+                */
+                for (begin = 0; ; begin = -ps->m_check[begin]) {
+                    // 空间不足时扩充m_base与m_check数组。阈值设为size-1以保证最后一位为空
+                    if (begin + std::size(Codeset) >= ps->m_check.size() - 1) {
+                        // 扩充空间
+                        auto pre_size = ps->m_base.size();
+                        ps->m_base.resize(2*pre_size + 1);
+                        ps->m_check.resize(2*pre_size + 1);
+                        // 填充下标补全双链表
+                        for (int i = pre_size; i < ps->m_base.size(); ++i) {
+                            ps->m_base[i] = -(i-1); // 逆向链表
+                            ps->m_check[i] = -(i+1); // 前向链表
+                        }
+                    }
+
+                    if (std::all_of(first, last, [&](const Node& node) {
+                        return ps->m_check[begin + node.code] <= 0;
+                    })) break;
+                }
+
+                // 遍历子结点，设置相关状态后对子结点递归构建
+                for (auto cur = first; cur != last; ++cur) {
+                    // 取得当前子节点下标
+                    int c_i = begin + cur->code;
+
+                    // 将当前下标移出空闲节点（利用Dancing Links）
+                    ps->m_check[-ps->m_base[c_i]] = ps->m_check[c_i];
+                    ps->m_base[-ps->m_check[c_i]] = ps->m_base[c_i];
+
+                    // 将子结点check值与父结点绑定，对子节点递归
+                    ps->m_check[c_i] = index;
+                    build_recursive(c_i, cur);
+                }
+                ps->m_base[index] = begin;
             }
         };
         auto root = m_tree.find({});
         build_recursive(0, root);
+        ps->m_patterns.swap(m_patterns);
         return this;
     }
 
