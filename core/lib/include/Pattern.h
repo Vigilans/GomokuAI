@@ -10,7 +10,7 @@ inline namespace Config {
 // 模式匹配模块的相关配置
 enum PatternConfig {
     MAX_PATTERN_LEN = 7,
-    MAX_SURROUNDING_SIZE = 2*3 + 1,
+    BLOCK_SIZE = 2*3 + 1,
     TARGET_LEN = 2 * MAX_PATTERN_LEN - 1
 };
 }
@@ -30,14 +30,23 @@ constexpr std::pair<int, int> operator*(Direction direction) {
     }
 }
 
+constexpr Position Shift(Position pose, int offset, Direction dir) {
+    auto [x, y] = pose; auto [dx, dy] = *dir;
+    return { x + offset * dx, y + offset * dy };
+}
+
 
 struct Pattern {
     enum Type {
-        One, DeadOne, LiveOne, DeadTwo, LiveTwo, DeadThree, LiveThree, DeadFour, LiveFour, Five, Size
+        DeadOne, LiveOne, 
+        DeadTwo, LiveTwo, 
+        DeadThree, LiveThree, 
+        DeadFour, LiveFour, 
+        Five, Size
     };
 
     std::string str;
-    Player belonging;
+    Player favour;
     Type type;
     int score;
 
@@ -101,15 +110,34 @@ public:
 
 class Evaluator {
 public:
+    struct Record {
+        unsigned short field; // 4 White/Black组合 * 4 方向位
+        void set(int delta, Player favour, Player perspective, Direction dir);
+        bool get(Player favour, Player perspective, Direction dir) const; // 获取某一组的某一方向位是否设置
+        unsigned get(Player favour, Player perspective) const; // 打包返回一组下的4个方向位
+    };
+
+    struct Compound {
+        static const Pattern::Type Components[2] = { Pattern::LiveTwo };
+
+        std::function<bool(Evaluator*, Position, Player)> check;
+        enum Type { DoubleThree, FourThree, DoubleFour, Size } type;
+        int score;
+    };
+
+public:
     // 基于AC自动机实现的多模式匹配器。
     static PatternSearch Patterns;
 
+    // 基于lambda实现的复合模式匹配器。
+    static std::array<Compound, Compound::Size> Compounds;
+
+    // 基于Eigen向量化操作与Map引用实现的区域棋子密度计数器，tuple组成: { 权重， 分数 }。
+    static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE>, int> BlockWeights;
+
     explicit Evaluator(Board* board = nullptr);
 
-    auto& distribution(Player player, Pattern::Type type) { return m_distributions[player == Player::Black][(int)type]; }
     auto& board() { return *m_boardMap.m_board; }
-
-    int patternCount(Position move, Pattern::Type type, Player perspect, Player curPlayer);
 
     Player applyMove(Position move);
 
@@ -124,17 +152,18 @@ public:
     void reset();
 
 private:
-    void initDistributions();
-
     void updateMove(Position move, Player src_player);
 
-    void updatePattern(std::string_view target, int delta, Position move, Direction dir);
+    void updateLine(std::string_view target, int delta, Position move, Direction dir);
 
-    void updateOnePiece(int delta, Position move, Player src_player);
+    void updateBlock(int delta, Position move, Player src_player);
 
 public:
     BoardMap m_boardMap; // 内部维护了一个Board, 避免受到外部的干扰
-    std::vector<int> m_distributions[2][Pattern::Type::Size - 1]; // 不统计五子连珠分布
+    std::vector<Record> m_patternDist[Pattern::Size - 1]; // 不统计Pattern::Five分布
+    std::vector<Record> m_compoundDist[Compound::Size];
+    std::vector<int> m_density[2];
+    std::vector<float> m_scores[2];
 };
 
 }

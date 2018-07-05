@@ -4,12 +4,12 @@
 #include <set>
 
 using namespace std;
-using Eigen::Matrix;
+using Eigen::Array;
 
 namespace Gomoku {
 
 constexpr Direction Directions[] = {
-    Direction::Vertical, Direction::Horizontal, Direction::LeftDiag, Direction::RightDiag
+    Direction::Horizontal, Direction::Vertical, Direction::LeftDiag, Direction::RightDiag
 };
 
 /* ------------------- Pattern类实现 ------------------- */
@@ -28,7 +28,7 @@ constexpr int EncodeCharset(char ch) {
 
 Pattern::Pattern(std::string_view proto, Type type, int score) 
     : str(proto.begin() + 1, proto.end()), score(score), type(type),
-      belonging(proto[0] == '+' ? Player::Black : Player::White) {
+      favour(proto[0] == '+' ? Player::Black : Player::White) {
 
 }
 
@@ -71,7 +71,7 @@ private:
     AhoCorasickBuilder* flipAugment() {
         for (int i = 0, size = m_patterns.size(); i < size; ++i) {
             Pattern flipped(m_patterns[i]);
-            flipped.belonging = -flipped.belonging;
+            flipped.favour = -flipped.favour;
             for (auto& piece : flipped.str) {
                 if (piece == 'x') piece = 'o';
                 else if (piece == 'o') piece = 'x';
@@ -84,7 +84,7 @@ private:
     // 被边界堵住的pattern与被对手堵住一角的pattern等价
     AhoCorasickBuilder* boundaryAugment() {
         for (int i = 0, size = m_patterns.size(); i < size; ++i) {
-            char enemy = m_patterns[i].belonging == Player::Black ? 'x' : 'o';
+            char enemy = m_patterns[i].favour == Player::Black ? 'x' : 'o';
             auto first = m_patterns[i].str.find_first_of(enemy);
             auto last  = m_patterns[i].str.find_last_of(enemy);
             if (first != string::npos) { // 最多只有三种情况
@@ -380,9 +380,9 @@ inline auto& LineView(Array_t& src, Position move, Direction dir) {
     return view_ptrs;
 }
 
-template <int Size = MAX_SURROUNDING_SIZE, typename Array_t>
+template <int Size = BLOCK_SIZE, typename Array_t>
 inline auto BlockView(Array_t& src, Position move) {
-    static Eigen::Map<Matrix<Array_t::value_type, HEIGHT, WIDTH>> view(nullptr);
+    static Eigen::Map<Array<Array_t::value_type, HEIGHT, WIDTH>> view(nullptr);
     new (&view) decltype(view)(src.data()); // placement new
     auto left_bound  = std::max(move.x() - Size / 2, 0);
     auto right_bound = std::min(move.x() + Size / 2, WIDTH - 1);
@@ -396,91 +396,123 @@ inline auto BlockView(Array_t& src, Position move) {
     );
 }
 
-inline const auto SURROUNDING_WEIGHTS = []() {
-    Eigen::Array<
-        int, MAX_SURROUNDING_SIZE, MAX_SURROUNDING_SIZE
-    > W;
-    W << 2, 0, 0, 2, 0, 0, 2,
-         0, 4, 3, 3, 3, 4, 0,
-         0, 3, 5, 4, 5, 3, 0,
-         1, 3, 4, 0, 4, 3, 1,
-         0, 3, 5, 4, 5, 3, 0,
-         0, 4, 3, 3, 3, 4, 0,
-         2, 0, 0, 2, 0, 0, 2;
-    return W;
-}();
-
-Evaluator::Evaluator(Board * board) : m_boardMap(board) {
-    this->reset();
-}
-
-// 如果是己方的棋型，则必须下在有效空位('_'型空位）
-// 否则，下在其他空位也可能封住该棋型('_' + '^'型空位）（'^'不一定有作用，但会在1~2次迭代内被软剪枝掉）
-int Evaluator::patternCount(Position move, Pattern::Type type, Player perspect, Player curPlayer) {
-    auto raw_counts = distribution(perspect, type)[move];
-    auto critical_blanks = raw_counts & ((1 << 8 * sizeof(int) / 2) - 1); // '_'型空位
-    auto irrelevant_blanks = raw_counts >> (8 * sizeof(int) / 2); // '^'型空位
-    return perspect == curPlayer ? critical_blanks : critical_blanks + irrelevant_blanks;
-}
-
-void Evaluator::updatePattern(string_view target, int delta, Position move, Direction dir) {
+void Evaluator::updateLine(string_view target, int delta, Position move, Direction dir) {
     for (auto [pattern, offset] : Patterns.execute(target)) {
         if (pattern.type == Pattern::Five) {
             // 此前board已完成applyMove，故此处设置curPlayer为None不会发生阻塞。
             board().m_curPlayer = Player::None;
-            board().m_winner = pattern.belonging;
+            board().m_winner = pattern.favour;
         } else {
-            auto view = LineView(distribution(pattern.belonging, pattern.type), move, dir);
-            for (auto idx = 0; idx < pattern.str.length(); ++idx) {
-                auto offset = 0;
-                switch (pattern.str[idx]) {
-                case '-': offset = 0; break;
-                case '^': offset = 8 * sizeof(int) / 2; break;
-                default: continue;
+            for (int i = 0; i < pattern.str.length(); ++i) {
+                auto piece = pattern.str[i];
+                if (piece == '_' || piece == '^') { // '_'代表己方有效空位，'^'代表对方反制空位
+                    auto pose = Shift(move, offset + i - TARGET_LEN / 2, dir);
+                    auto perspective = (piece == '_' ? pattern.favour : -pattern.favour);
+                    auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1);
+                    auto update_pattern = [&]() {
+                        m_patternDist[pattern.type][pose].set(delta, pattern.favour, perspective, dir);
+                        m_patternDist[pattern.type].back().field += delta; // 增加总计数
+                        switch (int idx = (pattern.favour == Player::Black); piece) { // 利用了switch的穿透特性
+                            case '_': m_scores[idx][move] += 0.6 * delta * multiplier * pattern.score;
+                            case '^': m_scores[1-idx][move] += 0.4 * delta * multiplier * pattern.score;
+                        }
+                    };
+                    auto update_compound = [&]() {
+                        unsigned l2_n_d3 = 0; // 下面是个人感觉很妙的算法……
+                        for (auto type : { Pattern::DeadThree, Pattern::LiveTwo }) {
+                            // l2_n_d3汇总了四个方向的LiveTwo与DeadThree设置情况。
+                            // 由于位或的特性，一条线上同时有LiveTwo与DeadThree时，会只计入一次，规避了BUG。
+                            l2_n_d3 |= m_patternDist[type][move].get(pattern.favour, pattern.favour);
+                        }
+                        // is-power-of-2算法，判断是否有>=2个bit位为1（>=2两方向有D2或L3）
+                        if (l2_n_d3 & (l2_n_d3 - 1)) {
+                            // 找出成功匹配的方向
+                            for (auto dir : Directions) {
+                                if (!(l2_n_d3 & 1)) {
+                                    continue;
+                                }
+                                for (auto type : { Pattern::DeadThree, Pattern::LiveTwo }) { // 以D3为高优先级
+                                    if (m_patternDist[type][move].get(pattern.favour, pattern.favour, dir)) {
+
+                                    }
+                                }
+                                l2_n_d3 >>= 1;
+                            }
+                        }
+                    };
+                    if (delta == 1) {
+                        update_pattern(), update_compound();
+                    } else {
+                        update_compound(), update_pattern();
+                    }
                 }
-                auto view_idx = offset + idx;
-                *view[view_idx] += delta * (1 << offset);
             }
         }
     }
 }
 
-void Evaluator::updateOnePiece(int delta, Position move, Player src_player) {
+void Evaluator::updateBlock(int delta, Position move, Player src_player) {
+    // 数据准备
     auto sgn = [](int x) { return x < 0 ? -1 : 1; }; // 0以上记为正（认为原位置没有棋）
-    auto [view, lu, rd] = BlockView(distribution(src_player, Pattern::One), move);
-    auto weight_block = SURROUNDING_WEIGHTS.block(lu.x(), lu.y(), rd.x() - lu.x() + 1, rd.y() - lu.y() + 1);
-    view.array() += view.array().unaryExpr(sgn) * delta * weight_block; // sgn对应原位置是否有棋，delta对应下棋还是悔棋
-    for (auto perspect : { Player::Black, Player::White }) {
-        auto& count = distribution(perspect, Pattern::One)[move];
-        switch (delta) {
+    auto [density_block, lu, rd] = BlockView(m_density[src_player == Player::Black], move);
+    auto [score_block, _, _] = BlockView(m_scores[src_player == Player::Black], move);
+    auto [weight_block, score] = BlockWeights;
+    // 正式更新
+    weight_block = weight_block.block(lu.x(), lu.y(), rd.x() - lu.x() + 1, rd.y() - lu.y() + 1);   
+    // 除去旧density分数（初始情况下density_block为0矩阵，减去也没有影响）
+    score_block -= score * density_block.unaryExpr(sgn);    
+    // 更新density（sgn对应原位置是否有棋，delta对应下棋还是悔棋）。
+    density_block += density_block.unaryExpr(sgn) * delta * weight_block;
+    // 修改中心位置的状态（是否可以用来计分）
+    for (auto perspective : { Player::Black, Player::White }) {
+        switch (auto& count = m_density[perspective == Player::Black][move]; delta) {
         case 1: // 代表这里下了一子
-            count *= -1; // 反转计数，表明这个位置已有棋子占用
-            count -= 1; // 保证count一定是负数
-            break;
+            count *= -1, count -= 1; break; // 反转计数，表明这个位置已有棋子占用，并减去一辅助数，保证count一定是负数
         case -1: // 代表悔了这一子
-            count += 1; // 除去之前减掉的辅助数
-            count *= -1; // 反转计数，表明这里可以用来计分了
-            break;
+            count += 1, count *= -1; break; // 除去之前减掉的辅助数后，反转计数，表明这里可以用来计分了
         }
     }
+    // 补回新density分数
+    score_block += score * density_block.unaryExpr(sgn);
 }
 
 void Evaluator::updateMove(Position move, Player src_player) {
     for (auto dir : Directions) {
         auto target = m_boardMap.lineView(move, dir);
-        updatePattern(target, -1, move, dir); // remove pattern count on original state
+        updateLine(target, -1, move, dir); // remove pattern count on original state
     }
     if (src_player != Player::None) {
         m_boardMap.applyMove(move);
-        updateOnePiece(1, move, board().m_curPlayer);
+        updateBlock(1, move, board().m_curPlayer);
     } else {
         m_boardMap.revertMove();
-        updateOnePiece(-1, move, -board().m_curPlayer | board().m_winner);
+        updateBlock(-1, move, -board().m_curPlayer | board().m_winner);
     }
     for (auto dir : Directions) {
         auto target = m_boardMap.lineView(move, dir);
-        updatePattern(target, 1, move, dir); // update pattern count on new state
+        updateLine(target, 1, move, dir); // update pattern count on new state
     }
+}
+
+Evaluator::Evaluator(Board * board) : m_boardMap(board) {
+    this->reset();
+}
+
+void Evaluator::Record::set(int delta, Player favour, Player perspective, Direction dir) {
+    unsigned group = (favour == Player::Black) << 1 | (perspective == Player::Black);
+    unsigned offset = 4 * group + int(dir);
+    field &= ~(1 << offset) | ((delta == 1) << offset);
+}
+
+unsigned Evaluator::Record::get(Player favour, Player perspective) const {
+    unsigned group = (favour == Player::Black) << 1 | (perspective == Player::Black);
+    return (field >> 4*group) & 0b1111;
+}
+
+bool Evaluator::Record::get(Player favour, Player perspective, Direction dir) const {
+    unsigned group = (favour == Player::Black) << 1 | (perspective == Player::Black);
+    unsigned offset = 4 * group + int(dir);
+    return (field >> offset) & 1;
 }
 
 Player Evaluator::applyMove(Position move) {
@@ -511,9 +543,8 @@ bool Evaluator::checkGameEnd() {
 
 void Evaluator::reset() {
     m_boardMap.reset();
-    for (auto& temp : m_distributions)
-    for (auto& distribution : temp) {
-        distribution.resize(BOARD_SIZE, 0);
+    for (auto& distribution : m_patternDist) {
+        distribution.resize(BOARD_SIZE + 1, Record{}); // 最后一个元素用于总计数
     }
 }
 
@@ -524,7 +555,8 @@ PatternSearch Evaluator::Patterns = {
     { "-xoooo_",  Pattern::DeadFour,  2500 },
     { "-o_ooo",   Pattern::DeadFour,  3000 },
     { "-oo_oo",   Pattern::DeadFour,  2600 },
-    { "-~_ooo^",  Pattern::LiveThree, 3000 },
+    { "-~_ooo_~", Pattern::LiveThree, 3000 },
+    { "-x^ooo_~", Pattern::LiveThree, 2900 },
     { "-^o_oo^",  Pattern::LiveThree, 2800 },
     { "-xooo__",  Pattern::DeadThree, 500 },
     { "-xoo_o_",  Pattern::DeadThree, 800 },
@@ -549,5 +581,26 @@ PatternSearch Evaluator::Patterns = {
     { "-x_o___x", Pattern::DeadOne,   35 },
     { "-x__o__x", Pattern::DeadOne,   40 },
 };
+
+array<Evaluator::Compound, Evaluator::Compound::Size> Evaluator::Compounds = {
+    { 
+        [](Evaluator* ev, Position move, Player player) { 
+            return ev->m_patternDist[Pattern::LiveTwo][move].get(player, player) > 2; 
+        }, Compound::DoubleThree, 6000 
+    }
+};
+
+tuple<Array<int, BLOCK_SIZE, BLOCK_SIZE>, int> Evaluator::BlockWeights = []() {
+    tuple_element_t<0, decltype(BlockWeights)> weight;
+    tuple_element_t<1, decltype(BlockWeights)> score = 15;
+    weight<< 2, 0, 0, 2, 0, 0, 2,
+             0, 4, 3, 3, 3, 4, 0,
+             0, 3, 5, 4, 5, 3, 0,
+             1, 3, 4, 0, 4, 3, 1,
+             0, 3, 5, 4, 5, 3, 0,
+             0, 4, 3, 3, 3, 4, 0,
+             2, 0, 0, 2, 0, 0, 2;
+    return make_tuple(weight, score);
+}();
 
 }
