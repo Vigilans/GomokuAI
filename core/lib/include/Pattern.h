@@ -118,14 +118,18 @@ public:
     };
 
     struct Compound {
-        static const Pattern::Type Components[2] = { Pattern::LiveTwo };
+        //static const Pattern::Type Components[2] = { Pattern::LiveTwo };
 
         std::function<bool(Evaluator*, Position, Player)> check;
         enum Type { DoubleThree, FourThree, DoubleFour, Size } type;
         int score;
     };
 
-public:
+    // 按 { Player::Black, Player::White } 构成的2*2列联表分组
+    static constexpr int Group(Player favour, Player perspective) {
+        return (favour == Player::Black) << 1 | (perspective == Player::Black);
+    }
+
     // 基于AC自动机实现的多模式匹配器。
     static PatternSearch Patterns;
 
@@ -135,19 +139,22 @@ public:
     // 基于Eigen向量化操作与Map引用实现的区域棋子密度计数器，tuple组成: { 权重， 分数 }。
     static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE>, int> BlockWeights;
 
+public:
     explicit Evaluator(Board* board = nullptr);
 
     auto& board() { return *m_boardMap.m_board; }
+
+    auto& scores(Player player, Player perspect) { return m_scores[Group(player, perspect)]; }
+
+    auto& density(Player player) { return m_density[player == Player::Black]; }
 
     Player applyMove(Position move);
 
     Player revertMove(size_t count = 1);
 
-    // 利用Evaluator，我们可以做到快速检查游戏是否结束。
-    bool checkGameEnd(); 
+    bool checkGameEnd();  // 利用Evaluator，我们可以做到快速检查游戏是否结束。
 
-    // 同步Evaluator至传入的Board状态。
-    void syncWithBoard(const Board& board);
+    void syncWithBoard(const Board& board); // 同步Evaluator至传入的Board状态。
 
     void reset();
 
@@ -162,8 +169,8 @@ public:
     BoardMap m_boardMap; // 内部维护了一个Board, 避免受到外部的干扰
     std::vector<Record> m_patternDist[Pattern::Size - 1]; // 不统计Pattern::Five分布
     std::vector<Record> m_compoundDist[Compound::Size];
-    std::vector<int> m_density[2];
-    std::vector<float> m_scores[2];
+    Eigen::VectorXi m_density[2];
+    Eigen::VectorXi m_scores[4];
 };
 
 }

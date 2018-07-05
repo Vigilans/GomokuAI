@@ -7,9 +7,19 @@
 #include <functional>  // std::function
 #include <Eigen/Dense> // Eigen::VectorXf
 
-#define C_PUCT 5
-
 namespace Gomoku {
+
+using std::chrono::milliseconds;
+using std::chrono_literals::operator""ms;
+
+inline namespace Config {
+// 蒙特卡洛树系相关的默认配置
+inline namespace MCTSConfig {
+    constexpr double C_PUCT = 5.0;
+    constexpr size_t C_ITERATIONS = 10000;
+    constexpr milliseconds C_DURATION = 1000ms;
+}
+}
 
 // 蒙特卡洛树结点。
 // 由于整个树的结点数量十分庞大，因此其内存布局务必谨慎设计。
@@ -123,14 +133,11 @@ public: // 共通属性
     size_t m_initActs = 0; // MCTS的一轮Playout开始时，Board已下的棋子数。
 };
 
-using std::chrono::milliseconds;
-using std::chrono_literals::operator""ms;
-
 class MCTS {
 public:
     // 通过时间控制模拟迭代。为默认构造方法。
     MCTS(
-        milliseconds c_duration  = 1000ms,
+        milliseconds c_duration  = C_DURATION,
         Position     last_move   = -1,
         Player       last_player = Player::White,
         std::shared_ptr<Policy> policy = nullptr

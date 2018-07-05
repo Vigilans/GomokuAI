@@ -1,7 +1,6 @@
 #ifndef GOMOKU_POLICY_POOLRAVE_H_
 #define GOMOKU_POLICY_POOLRAVE_H_
-#include "../MCTS.h"
-#include "../algorithms/RAVE.h"
+#include "../algorithms/MonteCarlo.hpp"
 
 namespace Gomoku::Policies {
 
@@ -9,7 +8,7 @@ class PoolRAVEPolicy : public Policy {
 public:
     using Default = Gomoku::Algorithms::Default; // 引入默认算法
     using RAVE = Gomoku::Algorithms::RAVE; // 引入RAVE算法
-    using AMAFNode = Gomoku::Algorithms::AMAFNode; // 选择AMAFNode作为结点类型
+    using AMAFNode = RAVE::AMAFNode; // 选择AMAFNode作为结点类型
 
     PoolRAVEPolicy(double c_puct = 1e-4, double c_bias = 1e-1) :
         Policy(
@@ -44,7 +43,7 @@ public:
         //final_score /= rollout_count;
         //return { final_score, action_probs };
 
-        auto[winner, _] = Default::RandomRollout(board);
+        auto [winner, _] = Default::RandomRollout(board);
         return { CalcScore(init_player, winner), action_probs };
     }
 

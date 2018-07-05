@@ -366,7 +366,7 @@ void BoardMap::reset() {
 
 template <size_t Length = TARGET_LEN, typename Array_t>
 inline auto& LineView(Array_t& src, Position move, Direction dir) {
-    static vector<Array_t::pointer> view_ptrs(Length);
+    static vector<Array_t::value_type*> view_ptrs(Length);
     auto [dx, dy] = *dir;
     for (int i = 0, j = i - Length / 2; i < Length; ++i, ++j) {
         auto x = move.x() + dx * j, y = move.y() + dy * j;
@@ -413,8 +413,8 @@ void Evaluator::updateLine(string_view target, int delta, Position move, Directi
                         m_patternDist[pattern.type][pose].set(delta, pattern.favour, perspective, dir);
                         m_patternDist[pattern.type].back().field += delta; // 增加总计数
                         switch (int idx = (pattern.favour == Player::Black); piece) { // 利用了switch的穿透特性
-                            case '_': m_scores[idx][move] += 0.6 * delta * multiplier * pattern.score;
-                            case '^': m_scores[1-idx][move] += 0.4 * delta * multiplier * pattern.score;
+                            case '_': scores(pattern.favour, pattern.favour)[move] += delta * multiplier * pattern.score;
+                            case '^': scores(pattern.favour, -pattern.favour)[move] += delta * multiplier * pattern.score;
                         }
                     };
                     auto update_compound = [&]() {
@@ -426,15 +426,10 @@ void Evaluator::updateLine(string_view target, int delta, Position move, Directi
                         }
                         // is-power-of-2算法，判断是否有>=2个bit位为1（>=2两方向有D2或L3）
                         if (l2_n_d3 & (l2_n_d3 - 1)) {
-                            // 找出成功匹配的方向
-                            for (auto dir : Directions) {
-                                if (!(l2_n_d3 & 1)) {
-                                    continue;
-                                }
-                                for (auto type : { Pattern::DeadThree, Pattern::LiveTwo }) { // 以D3为高优先级
-                                    if (m_patternDist[type][move].get(pattern.favour, pattern.favour, dir)) {
-
-                                    }
+                            // 找出匹配成功的方向。l2_n_d3的0位严格与当前dir对应。
+                            for (auto direction : Directions) {
+                                if (l2_n_d3 & 1) { // 为true则成功匹配direction变量
+                                    
                                 }
                                 l2_n_d3 >>= 1;
                             }
@@ -505,12 +500,12 @@ void Evaluator::Record::set(int delta, Player favour, Player perspective, Direct
 }
 
 unsigned Evaluator::Record::get(Player favour, Player perspective) const {
-    unsigned group = (favour == Player::Black) << 1 | (perspective == Player::Black);
+    unsigned group = Group(favour, perspective);
     return (field >> 4*group) & 0b1111;
 }
 
 bool Evaluator::Record::get(Player favour, Player perspective, Direction dir) const {
-    unsigned group = (favour == Player::Black) << 1 | (perspective == Player::Black);
+    unsigned group = Group(favour, perspective);
     unsigned offset = 4 * group + int(dir);
     return (field >> offset) & 1;
 }
@@ -541,8 +536,27 @@ bool Evaluator::checkGameEnd() {
     }
 }
 
+void Evaluator::syncWithBoard(const Board& board) {
+    for (int i = 0; i < board.m_moveRecord.size(); ++i) {
+        if (i < this->board().m_moveRecord.size()) {
+            if (this->board().m_moveRecord[i] == board.m_moveRecord[i]) {
+                continue;
+            } else {
+                revertMove(this->board().m_moveRecord.size() - i); // 回退到首次不同步的状态
+            }
+        }
+        applyMove(board.m_moveRecord[i]);
+    }
+}
+
 void Evaluator::reset() {
     m_boardMap.reset();
+    for (auto& scores : m_scores) {
+        scores.resize(BOARD_SIZE), scores.setZero();
+    }
+    for (auto& density : m_density) {
+        density.resize(BOARD_SIZE), density.setZero();
+    }
     for (auto& distribution : m_patternDist) {
         distribution.resize(BOARD_SIZE + 1, Record{}); // 最后一个元素用于总计数
     }
@@ -578,8 +592,8 @@ PatternSearch Evaluator::Patterns = {
     { "-x^_o__^", Pattern::LiveOne,   140 },
     { "-x^__o_^", Pattern::LiveOne,   150 },
     { "-xo___~",  Pattern::DeadOne,   30 },
-    { "-x_o___x", Pattern::DeadOne,   35 },
-    { "-x__o__x", Pattern::DeadOne,   40 },
+    { "-x_o___x", Pattern::DeadOne,   40 },
+    { "-x__o__x", Pattern::DeadOne,   50 },
 };
 
 array<Evaluator::Compound, Evaluator::Compound::Size> Evaluator::Compounds = {

@@ -1,5 +1,5 @@
-#ifndef GOMOKU_ALGORITHMS_DEFAULT_H_
-#define GOMOKU_ALGORITHMS_DEFAULT_H_
+#ifndef GOMOKU_ALGORITHMS_MONTECARLO_H_
+#define GOMOKU_ALGORITHMS_MONTECARLO_H_
 #pragma warning(disable:4244) // 关闭收缩转换警告
 #pragma warning(disable:4018) // 关闭有/无符号比较警告
 #include "../MCTS.h"
@@ -7,8 +7,6 @@
 #include <algorithm>
 
 // Algorithms名空间是一组静态方法的集合，并不继承Policy。
-// 为了使每个算法函数都能与Policy交互，每个函数均传入Policy指针。
-// C++20的Unified call syntax或许能让这一切更加直观。
 namespace Gomoku::Algorithms {
 
 struct Default {
@@ -76,7 +74,7 @@ struct Default {
     }
 
     // 进行1局随机游戏。
-    static Policy::EvalResult Simulate(Board& board) {
+    static Policy::EvalResult Simulate(Policy* policy, Board& board) {
         auto init_player = board.m_curPlayer;
         auto [winner, total_moves] = RandomRollout(board);
         board.revertMove(total_moves);
@@ -89,15 +87,72 @@ struct Default {
             node->state_value += (value - node->state_value) / node->node_visits;
         }
     }
+};
 
-    static Eigen::VectorXf Softmax(Eigen::Ref<Eigen::VectorXf> logits) {
-        Eigen::VectorXf exp_logits = logits.array().exp();
-        return exp_logits / exp_logits.sum();
+struct RAVE {
+
+    struct AMAFNode : public Node {
+
+        // AMAF算法的相关价值属性。
+        float amaf_value = 0.0;
+        size_t amaf_visits = 0;
+
+        // 目前MSVC(Visual Studio 2017 15.6)仍未支持Extended aggregate initialization，故需手动写一个构造函数
+        AMAFNode(Node* parent = nullptr, Position pose = -1, Player player = Player::None, float Q = .0f, float P = .0f, float amaf_Q = .0f, size_t amaf_N = 0)
+            : Node{ parent, pose, player, Q, P }, amaf_value(amaf_Q), amaf_visits(amaf_N) { }
+    };
+
+    static double HandSelect(const AMAFNode* node, size_t eqv_param = 800) {
+        double n = node->node_visits;
+        double k = eqv_param;
+        return sqrt(k / (3 * n + k));
     }
 
-    static Eigen::VectorXf TempBasedProbs(Eigen::Ref<Eigen::VectorXf> logits, float temperature) {
-        Eigen::VectorXf temp_logits = (logits.array() + 1e-10).log() / temperature;
-        return Softmax(temp_logits);
+    static double MinMSE(const AMAFNode* node, double c_bias) {
+        // Schedule that minimises Mean Squared Error
+        double n = node->node_visits + 1;
+        double n_ = node->amaf_visits;
+        return n_ / (n + n_ + n * n_*c_bias*c_bias); // σ^2 = 1-Q^2
+    }
+
+    static double WeightedValue(const AMAFNode* node, double c_bias) {
+        /*double weight = MinMSE(node, c_bias);*/
+        double weight = HandSelect(node);
+        return (1 - weight) * node->state_value + weight * node->amaf_value;
+    }
+
+    /*
+        RAVE算法并不负责MCTS的Expand与使用Default Policy Simulate的过程，因而不提供相关函数。
+    */
+
+    static Node* Select(Policy* policy, const Node* node) {
+        // 由于BackPropogate阶段已作过调整，只需取第一个值即可。
+        return node->children[0].get();
+    }
+
+    // 反向传播更新结点价值，要求传入的Board处于游戏结束的状态。
+    static void BackPropogate(Policy* policy, Node* node, Board& board, float value, double c_bias, bool useRave = true) {
+        for (; node != nullptr; node = node->parent, value = -value) {
+            size_t max_index = 0;
+            double max_score = -INFINITY;
+            // 更新子结点的RAVE价值，顺便计算最终得分
+            for (int i = 0; i < node->children.size(); ++i) {
+                auto rave_node = static_cast<AMAFNode*>(node->children[i].get());
+                if (useRave && board.moveState(rave_node->player, rave_node->position)) { // 要求是同一玩家下的
+                    rave_node->amaf_visits += 1;
+                    rave_node->amaf_value += (-value - rave_node->amaf_value) / rave_node->amaf_visits;
+                }
+                auto score = useRave ? WeightedValue(rave_node, c_bias) : rave_node->state_value + Default::PUCB(rave_node, policy->c_puct);
+                if (score > max_score) {
+                    max_score = score, max_index = i;
+                }
+            }
+            if (!node->children.empty()) {
+                node->children[0].swap(node->children[max_index]); // 得分最大的子结点提升至容器首位
+            }
+            node->node_visits += 1;
+            node->state_value += (value - node->state_value) / node->node_visits;
+        }
     }
 };
 

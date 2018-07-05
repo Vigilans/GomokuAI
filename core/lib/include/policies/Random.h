@@ -1,7 +1,7 @@
 #ifndef GOMOKU_POLICY_RANDOM_H_
 #define GOMOKU_POLICY_RANDOM_H_
 #include "../MCTS.h"
-#include "../algorithms/Default.h"
+#include "../algorithms/MonteCarlo.hpp"
 
 // 每个Policy都是Algorithms名空间中静态方法的拼装
 namespace Gomoku::Policies {
