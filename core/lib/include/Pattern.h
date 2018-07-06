@@ -61,7 +61,7 @@ public:
     // 利用friend指明类实现里使用了AC自动机。
     friend class AhoCorasickBuilder;
 
-    using Record = std::tuple<const Pattern&, int>;
+    using Entry = std::tuple<const Pattern&, int>;
 
     struct generator {
         std::string_view target = "";
@@ -71,7 +71,7 @@ public:
         const generator& begin() { return state == 0 ? ++(*this) : *this; }
         const generator& end()   { return generator{}; }
 
-        Record operator*() const;
+        Entry operator*() const;
         const generator& operator++();
         bool operator!=(const generator& other) const { return target != other.target; }
     };
@@ -79,7 +79,7 @@ public:
     PatternSearch(std::initializer_list<Pattern> protos);
     
     generator execute(std::string_view target);
-    std::vector<Record> matches(std::string_view target);
+    std::vector<Entry> matches(std::string_view target);
 
 private:
     std::vector<int> m_base;
@@ -91,6 +91,8 @@ private:
 
 class BoardMap {
 public:
+    static std::tuple<int, int> ParseIndex(Position pose, Direction direction);
+
     explicit BoardMap(Board* board = nullptr);
 
     std::string_view lineView(Position pose, Direction direction);
@@ -111,30 +113,29 @@ public:
 class Evaluator {
 public:
     struct Record {
-        unsigned short field; // 4 White/Black组合 * 4 方向位
+        unsigned short field; // 4 White-Black组合 * 4 方向位 || 2 White/Black分割 * 8计数位
+        void set(int delta, Player player); // 按玩家类型设置8位计数位。
         void set(int delta, Player favour, Player perspective, Direction dir);
-        bool get(Player favour, Player perspective, Direction dir) const; // 获取某一组的某一方向位是否设置
-        unsigned get(Player favour, Player perspective) const; // 打包返回一组下的4个方向位
+        bool get(Player favour, Player perspective, Direction dir) const; // 获取某一组的某一方向位是否设置。
+        unsigned get(Player favour, Player perspective) const; // 打包返回一组下的4个方向位。
+        unsigned get(Player player) const; // 按玩家类型返回8位计数位。
     };
 
     struct Compound {
-        //static const Pattern::Type Components[2] = { Pattern::LiveTwo };
-
-        std::function<bool(Evaluator*, Position, Player)> check;
-        enum Type { DoubleThree, FourThree, DoubleFour, Size } type;
-        int score;
+        enum Type { DoubleThree, FourThree, DoubleFour, Size };
+        static bool Test(Evaluator* ev, Position pose, Player player);
+        static void Update(Evaluator* ev, int delta, Position pose, Player player);
+        static const Pattern::Type Components[3]; // 被用于组成复合模式的单模式类型。
+        static const int BaseScore; // 双三/四三/双四共用一个分数。
     };
 
-    // 按 { Player::Black, Player::White } 构成的2*2列联表分组
+    // 按 { Player::Black, Player::White } 构成的2*2列联表分组。
     static constexpr int Group(Player favour, Player perspective) {
         return (favour == Player::Black) << 1 | (perspective == Player::Black);
     }
 
     // 基于AC自动机实现的多模式匹配器。
     static PatternSearch Patterns;
-
-    // 基于lambda实现的复合模式匹配器。
-    static std::array<Compound, Compound::Size> Compounds;
 
     // 基于Eigen向量化操作与Map引用实现的区域棋子密度计数器，tuple组成: { 权重， 分数 }。
     static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE>, int> BlockWeights;
@@ -172,19 +173,6 @@ public:
     Eigen::VectorXi m_density[2];
     Eigen::VectorXi m_scores[4];
 };
-
-}
-
-namespace std {
-
-template<typename Enum = std::enable_if_t<false>>
-constexpr size_t size() { return 0; }  /* will never get here */ 
-
-template<>
-constexpr size_t size<Gomoku::Direction>() { return 4; }
-
-template<>
-constexpr size_t size<Gomoku::Pattern::Type>() { return Gomoku::Pattern::Size; }
 
 }
 
