@@ -14,6 +14,9 @@
     <ClCompile Include="integration\board_integrationtest.cpp">
       <Filter>IntegrationTest</Filter>
     </ClCompile>
+    <ClCompile Include="boardmap_unittest.cpp">
+      <Filter>UnitTest</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />

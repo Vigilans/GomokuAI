@@ -302,14 +302,14 @@ vector<PatternSearch::Entry> PatternSearch::matches(string_view target) {
 tuple<int, int> BoardMap::ParseIndex(Position pose, Direction direction) {
     // 由于前与后MAX_PATTERN_LEN - 1位均为'?'（越界位），故需设初始offset
     switch (int offset = MAX_PATTERN_LEN - 1; direction) {
-        case Direction::Horizontal: // 0 + x∈[0, WIDTH) | y: 0 -> HEIGHT
-            return { pose.x(), offset + pose.y() };
-        case Direction::Vertical:   // WIDTH + y∈[0, HEIGHT) | x: 0 -> WIDTH
-            return { WIDTH + pose.y(), offset + pose.x() };
+        case Direction::Horizontal: // 0 + y∈[0, HEIGHT) | x: 0 -> WIDTH
+            return { pose.y(), offset + pose.x() };
+        case Direction::Vertical:   // HEIGHT + x∈[0, WIDTH) | y: 0 -> HEIGHT
+            return { HEIGHT + pose.x(), offset + pose.y() };
         case Direction::LeftDiag:   // (WIDTH + HEIGHT) + (HEIGHT - 1) + x-y∈[-(HEIGHT - 1), WIDTH) | min(x, y): (x, y) -> (x+1, y+1)
             return { WIDTH + 2 * HEIGHT - 1 + pose.x() - pose.y(), offset + std::min(pose.x(), pose.y()) };
-        case Direction::RightDiag:  // 2*(WIDTH + HEIGHT) - 1 + x+y∈[0, WIDTH + HEIGHT - 1) | min(WIDTH - x, y): (x, y) -> (x-1, y+1)
-            return { 2 * (WIDTH + HEIGHT) - 1 + pose.x() + pose.y(), offset + std::min(WIDTH - pose.x(), pose.y()) };
+        case Direction::RightDiag:  // 2*(WIDTH + HEIGHT) - 1 + x+y∈[0, WIDTH + HEIGHT - 1) | min(WIDTH - 1 - x, y): (x, y) -> (x-1, y+1)
+            return { 2 * (WIDTH + HEIGHT) - 1 + pose.x() + pose.y(), offset + std::min(WIDTH - 1 - pose.x(), pose.y()) };
         default:
             throw direction;
     }
