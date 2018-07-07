@@ -11,18 +11,18 @@ using namespace Gomoku::Policies;
 #define C_ITERATIONS 20000
 #endif
 
-class MCTSTest : public ::testing::Test {
-protected:
-    MCTSTest() : traditional_mcts(C_ITERATIONS, -1, Player::White, std::shared_ptr<Policy>(new TraditionalPolicy)) {}
-
-    Board board;
-    MCTS random_mcts;
-    MCTS traditional_mcts;
-};
-
-TEST_F(MCTSTest, OneEvaluation) {
-    board.applyMove(traditional_mcts.getAction(board));
-}
+//class MCTSTest : public ::testing::Test {
+//protected:
+//    MCTSTest() : traditional_mcts(C_ITERATIONS, -1, Player::White, std::shared_ptr<Policy>(new TraditionalPolicy)) {}
+//
+//    Board board;
+//    MCTS random_mcts;
+//    MCTS traditional_mcts;
+//};
+//
+//TEST_F(MCTSTest, OneEvaluation) {
+//    board.applyMove(traditional_mcts.getAction(board));
+//}
 
 //TEST_F(MCTSTest, EvaluateSymmetry) {
 //    Position positions[] = { { 7, 7 },{ 8, 8 },{ 9, 9 },{ 10, 10 } };

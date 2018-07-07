@@ -15,11 +15,12 @@ enum PatternConfig {
 };
 }
 
+// 棋盘的四个方向的抽象封装
 enum class Direction : char {
     Horizontal, Vertical, LeftDiag, RightDiag
 };
 
-// 将方向枚举解包成具体的(Δx, Δy)值。
+// 将方向枚举解包成具体的(Δx, Δy)值
 constexpr std::pair<int, int> operator*(Direction direction) {
     switch (direction) {
         case Direction::Horizontal: return { 1, 0 };
@@ -30,10 +31,16 @@ constexpr std::pair<int, int> operator*(Direction direction) {
     }
 }
 
+// 将pose按照dir方向移动offset个单位
 constexpr Position Shift(Position pose, int offset, Direction dir) {
     auto [x, y] = pose; auto [dx, dy] = *dir;
     return { x + offset * dx, y + offset * dy };
 }
+
+// 数组下标与Direction枚举值一一对应
+constexpr Direction Directions[] = {
+    Direction::Horizontal, Direction::Vertical, Direction::LeftDiag, Direction::RightDiag
+};
 
 
 struct Pattern {
@@ -68,8 +75,8 @@ public:
         PatternSearch* ref = nullptr;
         size_t offset = 0, state = 0;
 
-        const generator& begin() { return state == 0 ? ++(*this) : *this; }
-        const generator& end()   { return generator{}; }
+        generator begin() { return state == 0 ? ++(*this) : *this; }
+        generator end()   { return generator{}; }
 
         Entry operator*() const;
         const generator& operator++();

@@ -13,12 +13,10 @@ using std::chrono::milliseconds;
 using std::chrono_literals::operator""ms;
 
 inline namespace Config {
-// 蒙特卡洛树系相关的默认配置
-inline namespace MCTSConfig {
+    // 蒙特卡洛树系相关的默认配置
     constexpr double C_PUCT = 5.0;
     constexpr size_t C_ITERATIONS = 10000;
     constexpr milliseconds C_DURATION = 1000ms;
-}
 }
 
 // 蒙特卡洛树结点。

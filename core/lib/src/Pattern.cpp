@@ -8,10 +8,6 @@ using Eigen::Array;
 
 namespace Gomoku {
 
-constexpr Direction Directions[] = {
-    Direction::Horizontal, Direction::Vertical, Direction::LeftDiag, Direction::RightDiag
-};
-
 /* ------------------- Pattern类实现 ------------------- */
 
 constexpr int Codeset[] = { 1, 2, 3, 4 };
@@ -38,7 +34,7 @@ class AhoCorasickBuilder {
 public:
     // 用于构建双数组的临时结点
     struct Node {
-        int code = 0, depth = 0, first = 0; mutable int last = first + 1; // 默认构造时生成根节点
+        int code = 0, depth = 0, first = 0; mutable int last = 1; // 默认构造时生成根节点
         bool operator<(Node other) const { // 采用depth->first字典序比较。last不参与比较，故可声明为mutable。
             return std::tie(depth, first) < std::tie(other.depth, other.first); 
         }
@@ -90,10 +86,10 @@ private:
             if (first != string::npos) { // 最多只有三种情况
                 Pattern bounded(m_patterns[i]);
                 bounded.str[first] = '?';
-                m_patterns.push_back(std::move(bounded));
+                m_patterns.push_back(bounded);
                 if (last != first) {
                     bounded.str[last] = '?';
-                    m_patterns.push_back(std::move(bounded));
+                    m_patterns.push_back(bounded);
                     bounded.str[first] = enemy;
                     m_patterns.push_back(std::move(bounded));
                 }
@@ -180,16 +176,17 @@ private:
                     参考：http://www.aclweb.org/anthology/D13-1023  
                 */
                 for (begin = 0; ; begin = -ps->m_check[begin]) {
-                    // 空间不足时扩充m_base与m_check数组。阈值设为size-1以保证最后一位为空
-                    if (begin + std::size(Codeset) >= ps->m_check.size() - 1) {
+                    // 空间不足时扩充m_base与m_check数组。
+                    // 阈值设为size - 1以保证最后一位为空（为防止溢出1移到了左侧）
+                    while (begin + std::size(Codeset) + 1 >= ps->m_check.size()) {
                         // 扩充空间
                         auto pre_size = ps->m_base.size();
                         ps->m_base.resize(2*pre_size + 1);
                         ps->m_check.resize(2*pre_size + 1);
                         // 填充下标补全双链表
                         for (int i = pre_size; i < ps->m_base.size(); ++i) {
-                            ps->m_base[i] = -(i-1); // 逆向链表
-                            ps->m_check[i] = -(i+1); // 前向链表
+                            ps->m_base[i] = -(i > 0 ? i - 1: 0); // 逆向链表
+                            ps->m_check[i] = -(i + 1); // 前向链表
                         }
                     }
 
@@ -265,8 +262,8 @@ private:
 };
 
 PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
-    AhoCorasickBuilder builder(protos);
-    builder.build(this);
+    //AhoCorasickBuilder builder(protos);
+    //builder.build(this);
 }
 
 // 持续转移，直到匹配下一个成功的模式或查询结束
@@ -302,7 +299,7 @@ vector<PatternSearch::Entry> PatternSearch::matches(string_view target) {
 
 /* ------------------- BoardMap类实现 ------------------- */
 
-constexpr tuple<int, int> BoardMap::ParseIndex(Position pose, Direction direction) {
+tuple<int, int> BoardMap::ParseIndex(Position pose, Direction direction) {
     // 由于前与后MAX_PATTERN_LEN - 1位均为'?'（越界位），故需设初始offset
     switch (int offset = MAX_PATTERN_LEN - 1; direction) {
         case Direction::Horizontal: // 0 + x∈[0, WIDTH) | y: 0 -> HEIGHT
@@ -366,7 +363,7 @@ void BoardMap::reset() {
 
 template <size_t Length = TARGET_LEN, typename Array_t>
 inline auto& LineView(Array_t& src, Position move, Direction dir) {
-    static vector<Array_t::value_type*> view_ptrs(Length);
+    static vector<typename Array_t::value_type*> view_ptrs(Length);
     auto [dx, dy] = *dir;
     for (int i = 0, j = i - Length / 2; i < Length; ++i, ++j) {
         auto x = move.x() + dx * j, y = move.y() + dy * j;
@@ -382,7 +379,7 @@ inline auto& LineView(Array_t& src, Position move, Direction dir) {
 
 template <int Size = BLOCK_SIZE, typename Array_t>
 inline auto BlockView(Array_t& src, Position move) {
-    static Eigen::Map<Array<Array_t::value_type, HEIGHT, WIDTH>> view(nullptr);
+    static Eigen::Map<Array<typename Array_t::value_type, HEIGHT, WIDTH>> view(nullptr);
     new (&view) decltype(view)(src.data()); // placement new
     auto left_bound  = std::max(move.x() - Size / 2, 0);
     auto right_bound = std::min(move.x() + Size / 2, WIDTH - 1);
@@ -439,7 +436,7 @@ void Evaluator::updateBlock(int delta, Position move, Player src_player) {
     auto sgn = [](int x) { return x < 0 ? -1 : 1; }; // 0以上记为正（认为原位置没有棋）
     auto relu = [](int x) { return std::max(x, 0); };
     auto [density_block, lu, rd] = BlockView(m_density[src_player == Player::Black], move);
-    auto [score_block, _, _] = BlockView(m_scores[src_player == Player::Black], move);
+    auto [score_block, _, __] = BlockView(m_scores[src_player == Player::Black], move);
     auto [weight_block, score] = BlockWeights;
     // 正式更新
     weight_block = weight_block.block(lu.x(), lu.y(), rd.x() - lu.x() + 1, rd.y() - lu.y() + 1);   

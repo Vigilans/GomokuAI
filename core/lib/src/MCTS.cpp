@@ -1,5 +1,6 @@
 #include "MCTS.h"
 #include "policies/Random.h"
+#include "algorithms/Statistical.hpp"
 
 using namespace std;
 using namespace std::chrono;
@@ -8,6 +9,7 @@ using Eigen::VectorXf;
 namespace Gomoku {
 
 using Algorithms::Default;
+using Algorithms::Stats;
 using Policies::RandomPolicy;
 
 /* ------------------- Policy类实现 ------------------- */
@@ -104,7 +106,7 @@ Policy::EvalResult MCTS::evalState(Board& board) {
     for (auto&& node : m_root->children) {
         child_visits[node->position] = node->node_visits;
     }
-    auto action_probs = Default::TempBasedProbs(
+    auto action_probs = Stats::TempBasedProbs(
         child_visits, board.m_moveRecord.size() < 15 ? 1 : 1e-4 
     );
     return { m_root->state_value, action_probs };

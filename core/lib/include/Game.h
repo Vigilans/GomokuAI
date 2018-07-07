@@ -162,7 +162,7 @@ struct hash<Gomoku::Position> {
 
 // Custom Structure Binding
 template <std::size_t N>
-int get(const Gomoku::Position& pose) { return N == 0 ? pose.x() : pose.y(); }
+constexpr int get(const Gomoku::Position& pose) { return N == 0 ? pose.x() : pose.y(); }
 
 template <>
 struct tuple_size<Gomoku::Position> : std::integral_constant<std::size_t, 2> {};

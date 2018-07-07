@@ -69,7 +69,7 @@ Position Board::getRandomMove() const {
 }
 
 Position Board::getRandomMove(Eigen::Ref<VectorXf> probs) const {
-    auto distribution = discrete_distribution<Position>(probs.data(), probs.data() + probs.size());
+    auto distribution = discrete_distribution<int>(probs.data(), probs.data() + probs.size());
     return distribution(rnd_eng);
 }
 

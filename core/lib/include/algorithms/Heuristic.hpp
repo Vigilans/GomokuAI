@@ -65,7 +65,7 @@ struct Heuristic {
     // 每一轮根据当前玩家的概率分布随机选点下棋，直到游戏结束。
     static std::tuple<Player, int> RandomEvaluatedRollout(Evaluator& ev, bool revert = false) {
         return EvaluatedRollout(ev, [](const Board& board, Eigen::VectorXf action_probs) {
-            float temperature = 1 - Stats::Sigmoid((board.m_moveRecord.size() - 40) / 20);
+            float temperature = 1 - Stats::Sigmoid((board.m_moveRecord.size() - 40) / 20.0f);
             auto a = Stats::Softmax(action_probs);
             return board.getRandomMove(a);
         }, revert);
@@ -119,9 +119,9 @@ struct Heuristic {
                 candidates.pop_back();
             }
             // 如果仍有候选者，则寻找成功
-            if (!candidates.empty()) {
+            if (int i = 0; !candidates.empty()) {
                 // 将所有非Decisive点概率全部Mask为0
-                probs = probs.unaryExpr([&, i = 0]() { // 这个较别扭的写法是为了vectorize的性能……
+                probs = probs.unaryExpr([&](float prob) { // 这个较别扭的写法是为了vectorize的性能……
                     return std::any_of(candidates.begin(), candidates.end(), [&](auto candidate) {
                         auto [pattern, player] = candidate;
                         if (pattern < Pattern::Size) {
