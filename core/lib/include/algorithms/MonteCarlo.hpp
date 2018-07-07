@@ -38,7 +38,11 @@ struct Default {
         for (auto result = board.m_curPlayer; result != Player::None; ++total_moves) {
             result = board.applyMove(board.getRandomMove());
         }
-        return { board.m_winner, total_moves };
+        auto winner = board.m_winner;
+        if (revert) { 
+            board.revertMove(total_moves); 
+        }
+        return { winner, total_moves };
     }
 
     // 返回均匀概率分布。
@@ -50,7 +54,7 @@ struct Default {
 
     static Node* Select(Policy* policy, const Node* node) {
         size_t max_index = 0;
-        double max_score = -INFINITY;
+        double max_score = -1.0;
         for (int i = 0; i < node->children.size(); ++i) {
             auto child = node->children[i].get();
             auto score = child->state_value + PUCB(child, policy->c_puct);
@@ -67,7 +71,7 @@ struct Default {
         for (int i = 0; i < BOARD_SIZE; ++i) {
             // 后一个条件是额外的检查，防止不允许下的点意外添进树中（概率不为0）。
             if (action_probs[i] != 0.0 && (!extraCheck || board.checkMove(i))) {
-                node->children.emplace_back(policy->createNode(node, Position(i), -node->player, 0.0f, float(action_probs[i])));
+                node->children.emplace_back(policy->createNode(node, i, -node->player, 0.0f, action_probs[i]));
             }
         }
         return node->children.size();
@@ -87,6 +91,7 @@ struct Default {
             node->state_value += (value - node->state_value) / node->node_visits;
         }
     }
+
 };
 
 struct RAVE {
@@ -154,6 +159,7 @@ struct RAVE {
             node->state_value += (value - node->state_value) / node->node_visits;
         }
     }
+
 };
 
 }
