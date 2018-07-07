@@ -411,8 +411,8 @@ void Evaluator::updateLine(string_view target, int delta, Position move, Directi
                     auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1);
                     // 请善用块折叠获得更好阅读效果……
                     auto update_pattern = [&]() { 
-                        m_patternDist[pattern.type][pose].set(delta, pattern.favour, perspective, dir);
-                        m_patternDist[pattern.type].back().set(delta, pattern.favour); // 修改总计数
+                        m_patternDist[pose][pattern.type].set(delta, pattern.favour, perspective, dir);
+                        m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改总计数
                         switch (int idx = (pattern.favour == Player::Black); piece) { // 利用了switch的穿透特性
                             case '_': scores(pattern.favour, pattern.favour)[move] += delta * multiplier * pattern.score;
                             case '^': scores(pattern.favour, -pattern.favour)[move] += delta * multiplier * pattern.score;
@@ -530,7 +530,7 @@ void Evaluator::reset() {
         density.resize(BOARD_SIZE), density.setZero();
     }
     for (auto& distribution : m_patternDist) {
-        distribution.resize(BOARD_SIZE + 1, Record{}); // 最后一个元素用于总计数
+        distribution.fill(Record{}); // 最后一个元素用于总计数
     }
 }
 
@@ -566,7 +566,7 @@ bool Evaluator::Compound::Test(Evaluator * ev, Position pose, Player player) {
     for (auto comp_type : Components) {
         // bit_field汇总了四个方向的L3/D3/L2设置情况。
         // 由于位或的特性，一条线上同时有LiveTwo与DeadThree时，只会计入一次，规避了BUG。
-        bit_field |= ev->m_patternDist[comp_type][pose].get(player, player);
+        bit_field |= ev->m_patternDist[pose][comp_type].get(player, player);
     }
     // is-power-of-2算法，快速判断是否有>=2个bit位为1（>=2两方向有D2或L3）
     return bit_field & (bit_field - 1);
@@ -582,7 +582,7 @@ void Evaluator::Compound::Update(Evaluator* ev, int delta, Position pose, Player
         // 准备转移条件
         int cond = S0;
         for (auto comp_type : Components) {
-            if (ev->m_patternDist[comp_type][pose].get(player, player, dir)) {
+            if (ev->m_patternDist[pose][comp_type].get(player, player, dir)) {
                 switch (comp_type) {
                     case Pattern::LiveThree:
                         restricted = true;
@@ -619,10 +619,13 @@ void Evaluator::Compound::Update(Evaluator* ev, int delta, Position pose, Player
             continue;
         }
         auto dir = Direction(i);
-        ev->m_compoundDist[type][pose].set(delta, player, player, dir);
+        // 更新己方分数与计数
+        ev->m_compoundDist[pose][type].set(delta, player, player, dir);
+        ev->m_compoundDist.back()[type].set(delta, player); // 增加计数
         ev->scores(player, player)[pose] += delta * 4 * Compound::BaseScore; // 4为奖励因子
+        // 更新对方反制分数
         if (restricted) { // 只更新关键点（pose）
-            ev->m_compoundDist[type][pose].set(delta, player, -player, dir);
+            ev->m_compoundDist[pose][type].set(delta, player, -player, dir);
             ev->scores(player, -player)[pose] += delta * 4 * Compound::BaseScore;
         } else { // 更新所有可反制这条线上的棋型的空点。最终关键点分数至少为非关键点的4倍。
             // 为防止溢出，采用试探性自增/减方式更新
@@ -630,8 +633,8 @@ void Evaluator::Compound::Update(Evaluator* ev, int delta, Position pose, Player
                 Position current(pose);
                 for (int offset = 0; offset < TARGET_LEN / 2; ++offset) {
                     // 即使出错了，在MCTS或AlphaBeta协助下也能很快被软剪枝掉
-                    if (ev->m_patternDist[components[i]][current].get(player, -player, dir)) {
-                        ev->m_compoundDist[type][current].set(delta, player, -player, dir);
+                    if (ev->m_patternDist[current][components[i]].get(player, -player, dir)) {
+                        ev->m_compoundDist[current][type].set(delta, player, -player, dir);
                         ev->scores(player, -player)[current] += delta * Compound::BaseScore; // 无奖励因子
                     }
                     auto [x, y] = current; auto [dx, dy] = *dir;

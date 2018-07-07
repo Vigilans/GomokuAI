@@ -140,6 +140,9 @@ public:
     // 基于Eigen向量化操作与Map引用实现的区域棋子密度计数器，tuple组成: { 权重， 分数 }。
     static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE>, int> BlockWeights;
 
+    template<size_t Size>
+    using Distribution = std::array<std::array<Record, Size>, BOARD_SIZE + 1>; // 最后一个元素用于总计数
+
 public:
     explicit Evaluator(Board* board = nullptr);
 
@@ -168,8 +171,8 @@ private:
 
 public:
     BoardMap m_boardMap; // 内部维护了一个Board, 避免受到外部的干扰
-    std::vector<Record> m_patternDist[Pattern::Size - 1]; // 不统计Pattern::Five分布
-    std::vector<Record> m_compoundDist[Compound::Size];
+    Distribution<Pattern::Size - 1> m_patternDist; // 不统计Pattern::Five分布
+    Distribution<Compound::Size> m_compoundDist;
     Eigen::VectorXi m_density[2];
     Eigen::VectorXi m_scores[4];
 };

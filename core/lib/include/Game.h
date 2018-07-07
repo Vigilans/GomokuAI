@@ -31,13 +31,13 @@ constexpr Player operator|(Player lhs, Player rhs) {
 }
 
 // 返回游戏结束后的得分。同号（winner与player相同）为正，异号为负，平局为零。
-constexpr double CalcScore(Player player, Player winner) { 
-    return static_cast<double>(player) * static_cast<double>(winner); 
+constexpr float CalcScore(Player player, Player winner) { 
+    return static_cast<float>(player) * static_cast<float>(winner); 
 }
 
 // 返回当前局面评分相对于参数的player的价值。
-constexpr double CalcScore(Player player, double stateValue) {
-    return static_cast<double>(player) * stateValue;
+constexpr float CalcScore(Player player, double stateValue) {
+    return static_cast<float>(player) * stateValue;
 }
 
 
