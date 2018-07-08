@@ -44,22 +44,32 @@ constexpr Direction Directions[] = {
 
 
 struct Pattern {
-    enum Type {
-        DeadOne, LiveOne, 
-        DeadTwo, LiveTwo, 
-        DeadThree, LiveThree, 
-        DeadFour, LiveFour, 
-        Five, Size
-    };
-
+    /*
+        该棋型的富信息字符串表示，具体为：
+          'x': 黑棋，'o': 白棋
+          '_': 对该棋型所属玩家来说有利的空位
+          '^': 该棋型敌对玩家可用于反击的空位
+          '~': 对双方玩家均无价值，但对该棋型而言必须存在的空位
+    */
     std::string str;
+
+    // 表明该模式对何方有利
     Player favour;
-    Type type;
+    
+    // 表明该模式所属的棋型
+    enum Type {
+        DeadOne, LiveOne,
+        DeadTwo, LiveTwo,
+        DeadThree, LiveThree,
+        DeadFour, LiveFour,
+        Five, Size
+    } type;
+    
+    // 对当前模式的空位的评分
     int score;
 
+    // proto中的第一个字符为'+'或'-'，分别代表对黑棋与白棋有利。
     Pattern(std::string_view proto, Type type, int score);
-    Pattern(const Pattern&) = default;
-    Pattern(Pattern&&) = default;
 };
 
 
@@ -68,24 +78,30 @@ public:
     // 利用friend指明类实现里使用了AC自动机。
     friend class AhoCorasickBuilder;
 
+    // 一条匹配记录包含了{ 匹配到的模式, 相对于起始位置的偏移 }
     using Entry = std::tuple<const Pattern&, int>;
 
+    // 仿照Python生成器模式编写的用于返回匹配结果的工具类。
     struct generator {
         std::string_view target = "";
         PatternSearch* ref = nullptr;
         size_t offset = 0, state = 0;
 
-        generator begin() { return state == 0 ? ++(*this) : *this; }
-        generator end()   { return generator{}; }
+        generator begin() { return state == 0 ? ++(*this) : *this; } // ++是为了保证从begin开始就有匹配结果。
+        generator end()   { return generator{}; } // 利用空生成器的空目标串("")代表匹配结束。
 
-        Entry operator*() const;
-        const generator& operator++();
+        Entry operator*() const; // 返回当前状态对应的记录
+        const generator& operator++(); // 将自动机状态移至下一个有匹配模式的位置
         bool operator!=(const generator& other) const { return target != other.target; }
     };
 
+    // 构造函数中传入的模式原型将经过几层强化，获得完整的模式表
     PatternSearch(std::initializer_list<Pattern> protos);
     
+    // 返回一个生成器，每一次解引用返回当前匹配到的模式，并移动到下一个模式
     generator execute(std::string_view target);
+
+    // 一次性直接返回所有查找到的记录
     std::vector<Entry> matches(std::string_view target);
 
 private:
