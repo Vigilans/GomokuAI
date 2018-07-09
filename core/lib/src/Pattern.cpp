@@ -24,6 +24,10 @@ PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
 // 持续转移，直到匹配下一个成功的模式或查询结束
 const PatternSearch::generator& PatternSearch::generator::operator++() {
     do {
+        if (target.empty()) { // 目标匹配完全结束
+            state = 0; // 将状态重置为初始状态
+            break; // 此次break后，该generator达到了end状态
+        }
         int next = ref->m_base[state] + EncodeCharset(target[0]);
         if (ref->m_check[next] == state) { // 尝试往下匹配target
             state = next; // 匹配成功转移
@@ -35,7 +39,7 @@ const PatternSearch::generator& PatternSearch::generator::operator++() {
             break; // 若在根节点匹配失败，则没有再搜索的意义
         }
         ++offset, target.remove_prefix(1);
-    } while (ref->m_check[ref->m_base[state]] != state && !target.empty());
+    } while (ref->m_check[ref->m_base[state]] != state); // 发现叶子结点时，暂时中断匹配
     return *this;
 }
 
