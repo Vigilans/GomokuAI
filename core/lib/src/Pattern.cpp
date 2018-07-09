@@ -1,7 +1,5 @@
 #include "Pattern.h"
-#include <numeric>
-#include <queue>
-#include <set>
+#include "ACAutomata.h"
 
 using namespace std;
 using Eigen::Array;
@@ -9,18 +7,6 @@ using Eigen::Array;
 namespace Gomoku {
 
 /* ------------------- Pattern类实现 ------------------- */
-
-constexpr int Codeset[] = { 1, 2, 3, 4 };
-
-constexpr int EncodeCharset(char ch) {
-    switch (int code = 0; ch) {
-        case '-': case '_': case '^': case '~': ++code;
-        case '?': ++code;
-        case 'o': ++code;
-        case 'x': ++code;
-        default: return code;
-    }
-}
 
 Pattern::Pattern(std::string_view proto, Type type, int score) 
     : str(proto.begin() + 1, proto.end()), score(score), type(type),
@@ -30,237 +16,6 @@ Pattern::Pattern(std::string_view proto, Type type, int score)
 
 /* ------------------- PatternSearch类实现 ------------------- */
 
-class AhoCorasickBuilder {
-public:
-    // 用于构建双数组的临时结点
-    struct Node {
-        int code = 0, depth = 0, first = 0; mutable int last = 1; // 默认构造时生成根节点
-        bool operator<(Node other) const { // 采用depth->first字典序比较。last不参与比较，故可声明为mutable。
-            return std::tie(depth, first) < std::tie(other.depth, other.first); 
-        }
-    };
-
-    AhoCorasickBuilder(initializer_list<Pattern> protos) 
-        : m_tree{ Node{} }, m_patterns(protos) {
-
-    }
-
-    void build(PatternSearch* searcher) {
-        this->reverseAugment()->flipAugment()->boundaryAugment()->sortPatterns()
-            ->buildNodeBasedTrie()->buildDAT(searcher)->buildACGraph(searcher);
-    }
-
-private:
-    // 不对称的pattern反过来看与原pattern等价
-    AhoCorasickBuilder* reverseAugment() {
-        for (int i = 0, size = m_patterns.size(); i < size; ++i) {
-            Pattern reversed(m_patterns[i]);
-            std::reverse(reversed.str.begin(), reversed.str.end());
-            if (reversed.str != m_patterns[i].str) {
-                m_patterns.push_back(std::move(reversed));
-            }
-        }
-        return this;
-    }
-
-    // pattern的黑白颜色对调后与原pattern等价
-    AhoCorasickBuilder* flipAugment() {
-        for (int i = 0, size = m_patterns.size(); i < size; ++i) {
-            Pattern flipped(m_patterns[i]);
-            flipped.favour = -flipped.favour;
-            for (auto& piece : flipped.str) {
-                if (piece == 'x') piece = 'o';
-                else if (piece == 'o') piece = 'x';
-            }
-            m_patterns.push_back(std::move(flipped));
-        }
-        return this;
-    }
-
-    // 被边界堵住的pattern与被对手堵住一角的pattern等价
-    AhoCorasickBuilder* boundaryAugment() {
-        for (int i = 0, size = m_patterns.size(); i < size; ++i) {
-            char enemy = m_patterns[i].favour == Player::Black ? 'x' : 'o';
-            auto first = m_patterns[i].str.find_first_of(enemy);
-            auto last  = m_patterns[i].str.find_last_of(enemy);
-            if (first != string::npos) { // 最多只有三种情况
-                Pattern bounded(m_patterns[i]);
-                bounded.str[first] = '?';
-                m_patterns.push_back(bounded);
-                if (last != first) {
-                    bounded.str[last] = '?';
-                    m_patterns.push_back(bounded);
-                    bounded.str[first] = enemy;
-                    m_patterns.push_back(std::move(bounded));
-                }
-            }
-        }
-        return this;
-    }
-
-    // 根据编码字典序排序patterns
-    AhoCorasickBuilder* sortPatterns() {
-        // 根据最终的patterns数量预留空间
-        vector<int> codes(m_patterns.size());
-        vector<int> indices(m_patterns.size());
-        
-        // 编码、填充与排序
-        std::transform(m_patterns.begin(), m_patterns.end(), codes.begin(), [](const Pattern& p) {
-            return std::reduce(p.str.begin(), p.str.end(), 0, [](int sum, char ch) { 
-                return sum *= std::size(Codeset), sum += EncodeCharset(ch); 
-            }); // 通过基数排序间接实现对patterns的字典序排序
-        }); 
-        std::iota(indices.begin(), indices.end(), 0);
-        std::sort(indices.begin(), indices.end(), [&codes](int lhs, int rhs) { 
-            return codes[lhs] < codes[rhs]; 
-        });
-
-        // 根据indices重排m_patterns
-        vector<Pattern> medium;
-        medium.reserve(m_patterns.size());
-        for (auto index : indices) {
-            medium.push_back(std::move(m_patterns[index]));
-        }
-        m_patterns.swap(medium);
-        return this;
-    }
-
-    // DFS插入生成基于结点的Trie树
-    AhoCorasickBuilder* buildNodeBasedTrie() {
-        using NodeIter = decltype(m_tree)::iterator;
-        // suffix为以parent的子结点为起点，直至整个pattern结束的后缀
-        function<void(string_view, NodeIter)> insert_pattern = [&](string_view suffix, NodeIter parent) {
-            if (!suffix.empty()) {
-                Node key = { // 准备子结点索引
-                    EncodeCharset(suffix[0]), 
-                    parent->depth + 1, 
-                    parent->first, parent->last 
-                }; 
-                auto child = m_tree.find(key); // 尝试匹配该前缀结点
-                if (child == m_tree.end()) { // 若前缀匹配失败，则新生成一个分支结点
-                    // 由于插入时已按字典序排序，故新区间的first沿上个区间的last继续即可
-                    key.first = parent->last;
-                    key.last = key.first + 1;
-                    child = m_tree.insert(key).first;
-                }
-                insert_pattern(suffix.substr(1), child); // 递归将pattern剩下的部分插入trie树中
-                parent->last = child->last; // 反向传播，更新区间右边界值。由于last不影响Node的排序，故修改是可行的。
-            }
-        };
-        auto root = m_tree.find({});
-        for (auto pattern : m_patterns) {
-            insert_pattern(pattern.str, root); // 按字典序插入pattern
-        }
-        return this;
-    }
-
-    // DFS遍历生成双数组Trie树
-    AhoCorasickBuilder* buildDAT(PatternSearch* ps) {
-        using NodeIter = decltype(m_tree)::iterator;
-        // index为node在双数组中的索引，之前的递归中已确定好
-        function<void(int, NodeIter)> build_recursive = [&](int index, NodeIter node) {
-            if (node->last - node->first <= 1) {
-                // Base case: 已抵达叶结点，设置index的base为(-对应pattern表的下标)
-                ps->m_base[index] = -node->first;
-            } else {
-                // 准备子节点（利用[first, last)迭代器区间框定）与begin变量
-                auto first = m_tree.lower_bound({ 0, node->depth + 1, node->first }); // 子节点下界（no less than）
-                auto last = m_tree.upper_bound({ 0, node->depth + 1, node->last - 1 }); // 子节点上界（greater than）
-                int begin; // 待寻找的当前结点的base值
-
-                /*
-                    初始条件：begin从根节点0开始
-                    退出条件：找到一个可以容纳index结点的所有子结点的begin值
-                    状态转移：沿前向链表找到下一个空位
-                    注意：根节点由于没有父结点，故其无本义check值，该位置用来作为前向链表的起点。
-                    参考：http://www.aclweb.org/anthology/D13-1023  
-                */
-                for (begin = 0; ; begin = -ps->m_check[begin]) {
-                    // 空间不足时扩充m_base与m_check数组。
-                    // 阈值设为size - 1以保证最后一位为空（为防止溢出1移到了左侧）
-                    while (begin + std::size(Codeset) + 1 >= ps->m_check.size()) {
-                        // 扩充空间
-                        auto pre_size = ps->m_base.size();
-                        ps->m_base.resize(2*pre_size + 1);
-                        ps->m_check.resize(2*pre_size + 1);
-                        // 填充下标补全双链表
-                        for (int i = pre_size; i < ps->m_base.size(); ++i) {
-                            ps->m_base[i] = -(i > 0 ? i - 1: 0); // 逆向链表
-                            ps->m_check[i] = -(i + 1); // 前向链表
-                        }
-                    }
-
-                    if (std::all_of(first, last, [&](const Node& node) {
-                        return ps->m_check[begin + node.code] <= 0;
-                    })) break;
-                }
-
-                // 遍历子结点，设置相关状态后对子结点递归构建
-                for (auto cur = first; cur != last; ++cur) {
-                    // 取得当前子节点下标
-                    int c_i = begin + cur->code;
-
-                    // 将当前下标移出空闲节点（利用Dancing Links）
-                    ps->m_check[-ps->m_base[c_i]] = ps->m_check[c_i];
-                    ps->m_base[-ps->m_check[c_i]] = ps->m_base[c_i];
-
-                    // 将子结点check值与父结点绑定，对子节点递归
-                    ps->m_check[c_i] = index;
-                    build_recursive(c_i, cur);
-                }
-                ps->m_base[index] = begin;
-            }
-        };
-        auto root = m_tree.find({});
-        build_recursive(0, root);
-        ps->m_patterns.swap(m_patterns);
-        return this;
-    }
-
-    // BFS遍历，为DAT构建AC自动机的fail指针数组
-    AhoCorasickBuilder* buildACGraph(PatternSearch* ps) {
-        // 初始，所有结点的fail指针都指向根节点
-        ps->m_fail.resize(ps->m_base.size(), 0);
-
-        // 准备好结点队列，置入根节点作为初始值
-        queue<int> node_queue;
-        node_queue.push(0); 
-        while (!node_queue.empty()) {
-            // 取出当前结点 
-            int cur_node = node_queue.front();
-            node_queue.pop();
-
-            // 准备新的结点
-            for (auto code : Codeset) {
-                int child_node = ps->m_base[cur_node] + code;
-                if (ps->m_check[child_node] == cur_node) {
-                    node_queue.push(child_node);
-                }
-            }
-
-            // 为当前结点设置fail指针
-            int code = cur_node - ps->m_base[ps->m_check[cur_node]]; // 取得转换至cur结点的编码
-            int pre_fail_node = ps->m_check[cur_node]; // 初始pre_fail结点设置为cur结点的父结点
-            while (pre_fail_node != 0) { // 按匹配后缀长度从长->短不断跳转fail结点，直到长度为0（抵达根节点）
-                // 每一次fail指针的跳转，最大匹配后缀的长度至少减少了1，因此循环是有限的
-                pre_fail_node = ps->m_fail[pre_fail_node]; 
-                int fail_node = ps->m_base[pre_fail_node] + code;
-                if (ps->m_check[fail_node] == pre_fail_node) { // 如若pre_fail结点能通过code抵达某子结点（即fail_node存在）
-                    ps->m_fail[cur_node] = fail_node; // 则该子结点即为cur结点的fail指针的指向
-                    break;
-                }
-                // 若直到pre_fail结点为0才退出，则当前结点的fail指针指向根节点。
-            }
-            // NOTE: 由于Patterns被设计为一定没有互为前缀码的情况，因此无需对"output表"（即m_patterns）进行扩充。
-        }
-        return this;
-    }
-
-private:
-    set<Node> m_tree; // 利用在插入中保持有序的RB树，作为临时保存Trie树的结构
-    vector<Pattern> m_patterns;
-};
-
 PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
     //AhoCorasickBuilder builder(protos);
     //builder.build(this);
@@ -268,21 +23,26 @@ PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
 
 // 持续转移，直到匹配下一个成功的模式或查询结束
 const PatternSearch::generator& PatternSearch::generator::operator++() {
-    while (ref->m_base[state] >= 0 && !target.empty()) {
+    do {
         int next = ref->m_base[state] + EncodeCharset(target[0]);
         if (ref->m_check[next] == state) { // 尝试往下匹配target
             state = next; // 匹配成功转移
-        } else {
+        } else if (state != 0) {
             state = ref->m_fail[state]; // 匹配失败转移
+            continue; // 失败转移后在下一循环再次尝试匹配
+        } else {
+            target = ""; // 清空目标串，认为匹配已结束
+            break; // 若在根节点匹配失败，则没有再搜索的意义
         }
         ++offset, target.remove_prefix(1);
-    }
+    } while (ref->m_check[ref->m_base[state]] != state && !target.empty());
     return *this;
 }
 
 // 解析当前成功匹配到的模式
 PatternSearch::Entry PatternSearch::generator::operator*() const {
-    return { ref->m_patterns[-ref->m_base[state]], offset };
+    auto leaf = ref->m_base[state];
+    return { ref->m_patterns[-ref->m_base[leaf]], offset };
 }
 
 PatternSearch::generator PatternSearch::execute(string_view target) {
@@ -399,32 +159,32 @@ void Evaluator::updateLine(string_view target, int delta, Position move, Directi
             // 此前board已完成applyMove，故此处设置curPlayer为None不会发生阻塞。
             board().m_curPlayer = Player::None;
             board().m_winner = pattern.favour;
-        } else {
-            for (int i = 0; i < pattern.str.length(); ++i) {
-                auto piece = pattern.str[i];
-                if (piece == '_' || piece == '^') { // '_'代表己方有效空位，'^'代表对方反制空位
-                    auto pose = Shift(move, offset + i - TARGET_LEN / 2, dir);
-                    auto perspective = (piece == '_' ? pattern.favour : -pattern.favour);
-                    auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1);
-                    // 请善用块折叠获得更好阅读效果……
-                    auto update_pattern = [&]() { 
-                        m_patternDist[pose][pattern.type].set(delta, pattern.favour, perspective, dir);
-                        m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改总计数
-                        switch (int idx = (pattern.favour == Player::Black); piece) { // 利用了switch的穿透特性
-                            case '_': scores(pattern.favour, pattern.favour)[move] += delta * multiplier * pattern.score;
-                            case '^': scores(pattern.favour, -pattern.favour)[move] += delta * multiplier * pattern.score;
-                        }
-                    };
-                    auto update_compound = [&]() {
-                        if (Compound::Test(this, move, pattern.favour)) {
-                            Compound::Update(this, delta, move, pattern.favour);
-                        }
-                    };
-                    if (delta == 1) {
-                        update_pattern(), update_compound();
-                    } else {
-                        update_compound(), update_pattern();
+            continue;
+        }
+        for (int i = 0; i < pattern.str.length(); ++i) {
+            auto piece = pattern.str[i];
+            if (piece == '_' || piece == '^') { // '_'代表己方有效空位，'^'代表对方反制空位
+                auto pose = Shift(move, offset - i - TARGET_LEN / 2, dir);
+                auto perspective = (piece == '_' ? pattern.favour : -pattern.favour);
+                auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1);
+                // 请善用块折叠获得更好阅读效果……
+                auto update_pattern = [&]() { 
+                    m_patternDist[pose][pattern.type].set(delta, pattern.favour, perspective, dir);
+                    m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改总计数
+                    switch (int idx = (pattern.favour == Player::Black); piece) { // 利用了switch的穿透特性
+                        case '_': scores(pattern.favour, pattern.favour)[move] += delta * multiplier * pattern.score;
+                        case '^': scores(pattern.favour, -pattern.favour)[move] += delta * multiplier * pattern.score;
                     }
+                };
+                auto update_compound = [&]() {
+                    if (Compound::Test(this, move, pattern.favour)) {
+                        Compound::Update(this, delta, move, pattern.favour);
+                    }
+                };
+                if (delta == 1) {
+                    update_pattern(), update_compound();
+                } else {
+                    update_compound(), update_pattern();
                 }
             }
         }

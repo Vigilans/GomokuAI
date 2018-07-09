@@ -85,7 +85,7 @@ public:
     struct generator {
         std::string_view target = "";
         PatternSearch* ref = nullptr;
-        size_t offset = 0, state = 0;
+        short offset = -1, state = 0;
 
         generator begin() { return state == 0 ? ++(*this) : *this; } // ++是为了保证从begin开始就有匹配结果。
         generator end()   { return generator{}; } // 利用空生成器的空目标串("")代表匹配结束。
@@ -94,6 +94,9 @@ public:
         const generator& operator++(); // 将自动机状态移至下一个有匹配模式的位置
         bool operator!=(const generator& other) const { return target != other.target; }
     };
+
+    // 构造一个未初始化的搜索器。
+    PatternSearch() = default;
 
     // 构造函数中传入的模式原型将经过几层强化，获得完整的模式表
     PatternSearch(std::initializer_list<Pattern> protos);

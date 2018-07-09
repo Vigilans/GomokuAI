@@ -17,6 +17,9 @@
     <ClCompile Include="boardmap_unittest.cpp">
       <Filter>UnitTest</Filter>
     </ClCompile>
+    <ClCompile Include="patternsearch_unittest.cpp">
+      <Filter>UnitTest</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
