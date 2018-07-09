@@ -17,8 +17,8 @@ Pattern::Pattern(std::string_view proto, Type type, int score)
 /* ------------------- PatternSearch类实现 ------------------- */
 
 PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
-    //AhoCorasickBuilder builder(protos);
-    //builder.build(this);
+    AhoCorasickBuilder builder(protos);
+    builder.build(this);
 }
 
 // 持续转移，直到匹配下一个成功的模式或查询结束

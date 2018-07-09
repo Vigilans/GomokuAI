@@ -70,10 +70,11 @@ void AhoCorasickBuilder::sortPatterns() {
 
     // 编码、填充与排序
     std::transform(m_patterns.begin(), m_patterns.end(), codes.begin(), [](const Pattern& p) {
-        return std::reduce(p.str.begin(), p.str.end(), 0, [](int sum, char ch) {
+        auto align_offset = std::pow(std::size(Codeset), MAX_PATTERN_LEN - p.str.size());
+        return std::reduce(p.str.begin(), p.str.end(), 0, [&](int sum, char ch) {
             return sum *= std::size(Codeset), sum += EncodeCharset(ch);
-        }); // 通过基数排序间接实现对patterns的字典序排序
-    });
+        }) * align_offset; // 按size(Codeset)进制记数并对齐
+    }); // 通过对齐的基数排序间接实现字典序排序
     std::iota(indices.begin(), indices.end(), 0);
     std::sort(indices.begin(), indices.end(), [&codes](int lhs, int rhs) {
         return codes[lhs] < codes[rhs];
@@ -163,17 +164,18 @@ void AhoCorasickBuilder::buildDAT(PatternSearch* ps) {
         } else {
             // 准备数据
             auto [first, last] = children(node);
-            int begin; // 待寻找的当前结点的base值
+            int begin = 0, front = 0;
+
             /*
-                初始条件：begin从0开始（此外根节点base值为0）。
+                初始条件：begin从0开始（此外根节点base值为0），front沿0往下寻找空位。
                 退出条件：找到一个可以容纳index结点的所有子结点的begin值
                 状态转移：沿前向链表找到下一个空位，将这个空位视作容纳首个子结点的位置
-                注意：
-                  1. 根节点(0)由于没有父结点，故其无本义check值，该位置用来作为前向链表的起点。
-                  2. 根节点(0)没有前驱结点，故其base位不为逆向链表的标记点，而用作本义base值。
                 参考：http://www.aclweb.org/anthology/D13-1023
             */
-            for (begin = 0; ; begin = -ps->m_check[begin] - first->code) {
+            do {
+                front = -ps->m_check[front]; // 首个子结点的下标
+                begin = front - first->code; // 子结点的偏移基准值
+
                 // 由于负的base值有特殊语义，begin值必须大于0。
                 if (begin < 0) continue;
 
@@ -182,22 +184,22 @@ void AhoCorasickBuilder::buildDAT(PatternSearch* ps) {
                 while (begin + std::size(Codeset) + 1 >= ps->m_check.size()) {
                     // 扩充空间
                     auto pre_size = ps->m_base.size();
-                    ps->m_base.resize(2 * pre_size + 1);
-                    ps->m_check.resize(2 * pre_size + 1);
+                    ps->m_base.resize(2 * pre_size);
+                    ps->m_check.resize(2 * pre_size);
                     // 填充下标补全双链表
                     for (int i = pre_size; i < ps->m_base.size(); ++i) {
-                        ps->m_base[i] = -(i > 0 ? i - 1 : 0); // 逆向链表
+                        ps->m_base[i] = -(i - 1); // 逆向链表
                         ps->m_check[i] = -(i + 1); // 前向链表
                     }
                 }
 
-                // 验证是否所有候选子结点位置均未被占用
-                // 筛选条件：根节点/check值不小于0的结点是被占用的。
-                if (std::all_of(first, last, [&](const Node& node) {
-                    auto c_i = begin + node.code;
-                    return c_i != 0 && ps->m_check[c_i] < 0; 
-                })) break;
-            }
+            // 验证是否所有候选子结点位置均未被占用
+            // 筛选条件：根节点/check值不小于0的结点是被占用的。
+            } while (!std::all_of(first, last, [&](const Node& node) {
+                auto c_i = begin + node.code;
+                return c_i != 0 && ps->m_check[c_i] < 0;
+            }));
+
             // 遍历子结点，设置相关状态后对子结点递归构建
             for (auto cur = first; cur != last; ++cur) {
                 // 取得当前子节点下标（值得注意的是叶结点下标就为begin）
@@ -218,6 +220,8 @@ void AhoCorasickBuilder::buildDAT(PatternSearch* ps) {
             }
         }
     };
+    ps->m_base.resize(1, 0);   // 根节点(0)没有前驱结点，故其base位不为逆向链表的标记点，而用作本义base值。
+    ps->m_check.resize(1, -1); // 根节点(0)由于没有父结点，故其无本义check值，该位置用来作为前向链表的起点。
     auto root = m_tree.find({});
     build_recursive(0, root);
     ps->m_patterns.swap(m_patterns);

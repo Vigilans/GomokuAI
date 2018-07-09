@@ -164,23 +164,22 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="include\algorithms\Handicraft.h" />
-    <ClInclude Include="include\algorithms\RAVE.h" />
+    <ClInclude Include="include\algorithms\Heuristic.hpp" />
+    <ClInclude Include="include\algorithms\Statistical.hpp" />
     <ClInclude Include="include\Game.h" />
-    <ClInclude Include="include\handicrafts\Evaluator.h" />
-    <ClInclude Include="include\handicrafts\Pattern.h" />
-    <ClInclude Include="include\handicrafts\Utilities.h" />
     <ClInclude Include="include\MCTS.h" />
-    <ClInclude Include="include\algorithms\Default.h" />
-    <ClInclude Include="include\handicrafts\MSTree.h" />
+    <ClInclude Include="include\algorithms\MonteCarlo.hpp" />
+    <ClInclude Include="include\Pattern.h" />
     <ClInclude Include="include\policies\PoolRAVE.h" />
     <ClInclude Include="include\policies\Random.h" />
     <ClInclude Include="include\policies\Traditional.h" />
+    <ClInclude Include="src\ACAutomata.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src\Evaluator.cpp" />
+    <ClCompile Include="src\ACAutomata.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\MCTS.cpp" />
+    <ClCompile Include="src\Pattern.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

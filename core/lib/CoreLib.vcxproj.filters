@@ -26,35 +26,29 @@
     <ClInclude Include="include\MCTS.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="include\handicrafts\Evaluator.h">
-      <Filter>Header Files\Pattern Matching</Filter>
-    </ClInclude>
-    <ClInclude Include="include\algorithms\Default.h">
-      <Filter>Header Files\Algorithm</Filter>
-    </ClInclude>
-    <ClInclude Include="include\algorithms\Handicraft.h">
-      <Filter>Header Files\Algorithm</Filter>
-    </ClInclude>
-    <ClInclude Include="include\algorithms\RAVE.h">
-      <Filter>Header Files\Algorithm</Filter>
-    </ClInclude>
-    <ClInclude Include="include\handicrafts\MSTree.h">
-      <Filter>Header Files\Pattern Matching</Filter>
-    </ClInclude>
-    <ClInclude Include="include\handicrafts\Pattern.h">
-      <Filter>Header Files\Pattern Matching</Filter>
-    </ClInclude>
-    <ClInclude Include="include\handicrafts\Utilities.h">
-      <Filter>Header Files\Pattern Matching</Filter>
-    </ClInclude>
     <ClInclude Include="include\policies\PoolRAVE.h">
-      <Filter>Header Files\Policy</Filter>
-    </ClInclude>
-    <ClInclude Include="include\policies\Random.h">
       <Filter>Header Files\Policy</Filter>
     </ClInclude>
     <ClInclude Include="include\policies\Traditional.h">
       <Filter>Header Files\Policy</Filter>
+    </ClInclude>
+    <ClInclude Include="include\Pattern.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\algorithms\Heuristic.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\algorithms\Statistical.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\algorithms\MonteCarlo.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\policies\Random.h">
+      <Filter>Header Files\Policy</Filter>
+    </ClInclude>
+    <ClInclude Include="src\ACAutomata.h">
+      <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -64,7 +58,10 @@
     <ClCompile Include="src\MCTS.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\Evaluator.cpp">
+    <ClCompile Include="src\Pattern.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\ACAutomata.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
