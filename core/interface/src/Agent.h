@@ -5,7 +5,8 @@
 #include <nlohmann/json.hpp>
 #include "Game.h"
 #include "MCTS.h"
-#include "algorithms/Handicraft.h"
+#include "Pattern.h"
+#include "algorithms/Heuristic.hpp"
 
 namespace Gomoku {
 
@@ -95,39 +96,29 @@ protected:
 
 class PatternEvalAgent : public Agent {
 public:
+    using Heuristic = Algorithms::Heuristic;
+
     virtual std::string name() {
         return "PatternEvalAgent";
     }
 
     virtual Position getAction(Board& board) {
-        using Gomoku::Algorithms::Handicraft;
-        auto init_player = board.m_curPlayer;
-        Eigen::VectorXf action_probs;
-
-        // Pre-evaluate the board using handicraft policy
-        auto self_scores = Handicraft::EvalScores(m_evaluator, init_player);
-        auto rival_scores = Handicraft::EvalScores(m_evaluator, -init_player);
-
-        Position next_move;
-
-        auto[decisive_moves, is_antiMove] = Handicraft::CheckDecisive(m_evaluator, board);
-        if (!decisive_moves.empty()) {
-            action_probs = Eigen::VectorXf::Zero(BOARD_SIZE);
-            for (auto move : decisive_moves) {
-                action_probs[move] = 1.0f / decisive_moves.size();
-            }
-            next_move = decisive_moves[rand() % decisive_moves.size()];
+        m_evaluator.syncWithBoard(board);
+        if (board.m_moveRecord.empty()) {
+            m_thisMove = { WIDTH / 2, HEIGHT / 2 };
+        } else {
+            auto action_probs = Heuristic::EvaluationProbs(m_evaluator, m_evaluator.board().m_curPlayer);
+            action_probs.maxCoeff(&m_thisMove.id);
         }
-        else {
-            action_probs = Handicraft::ScoreBasedProbs(m_evaluator, board, self_scores, rival_scores);
-            action_probs.maxCoeff(&next_move.id);
-        }
-
-        return next_move;
+        return m_thisMove;
     }
 
     virtual json debugMessage() {
-        return json();
+        json message;
+        message["before"] = patternMessage();
+        m_evaluator.applyMove(m_thisMove);
+        message["current"] = patternMessage();
+        return message;
     };
 
     virtual void syncWithBoard(Board& board) {
@@ -138,8 +129,18 @@ public:
         m_evaluator.reset();
     }
 
+    json patternMessage() {
+        json message;
+        for (auto player : { Player::Black, Player::White })
+        for (int i = 0; i < Pattern::Size - 1; ++i) {
+            message[std::to_string(player)][i] = m_evaluator.m_patternDist.back()[i].get(player);
+        }
+        return message;
+    }
+
 private:
-    Handicrafts::Evaluator m_evaluator;
+    Evaluator m_evaluator;
+    Position m_thisMove;
 };
 
 }

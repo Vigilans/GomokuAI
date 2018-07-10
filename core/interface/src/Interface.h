@@ -78,15 +78,16 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
 
     cout << std::to_string(Player::Black) << ": " << index[1] << "." << agents[index[1]]->name().data() << endl;
     cout << std::to_string(Player::White) << ": " << index[0] << "." << agents[index[0]]->name().data() << endl;
-    cout << endl << std::to_string(board);
+    cout << endl << std::to_string(board) << "\n-------------------------\n";
     for (auto cur_player = Player::Black; ;) {
         auto[agent, index] = get_agent(cur_player);
         agent.syncWithBoard(board);
         auto move = agent.getAction(board);
-        cout << "\nDebug Messages:" << agent.debugMessage() << "\n-------------------------\n";
         if (auto result = board.applyMove(move); result != cur_player) {
-            printf("\n%d.%s's move: (%x, %x):\n\n", index, agent.name().data(), move.x() + 1, move.y() + 1);
+            printf("\n%d.%s's move: %s:\n\n", index, agent.name().data(), std::to_string(move).c_str());
             cout << std::to_string(board);
+            cout << "\nDebug Messages:" << agent.debugMessage();
+            cout << "\n-------------------------\n";
             if (result == Player::None) {
                 break;
             } else if (result == -cur_player) {
@@ -100,7 +101,21 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
     }
 
     auto [winner, idx] = get_agent(board.m_winner);
-    printf("\nGame end. Winner: %d.%s\n", idx, winner.name().data());
+    printf("\nGame end. Winner: %d.%s\nRecord JSON:\n", idx, winner.name().data());
+
+    // 按赢家的视角输出可被botzone读取的json数据
+    json records;
+    for (int i = 0; i < board.m_moveRecord.size(); ++i) {
+        if (board.m_winner == Player::Black) {
+            records["requests"].push_back(Position{ -1, -1 });
+        }
+        if ((i % 2 == 0) == (board.m_winner == Player::Black)) {
+            records["responses"].push_back(board.m_moveRecord[i]);
+        } else {
+            records["requests"].push_back(board.m_moveRecord[i]);
+        }
+    }
+    cout << records;
 
     return idx;
 }

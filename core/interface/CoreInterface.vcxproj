@@ -178,16 +178,16 @@
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ProjectReference Include="..\lib\CoreLib.vcxproj">
-      <Project>{38c6c51a-ce17-45e7-a9cb-d6cc7180b78c}</Project>
-    </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
     <ClInclude Include="src\Agent.h" />
     <ClInclude Include="src\Interface.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\lib\CoreLib.vcxproj">
+      <Project>{38c6c51a-ce17-45e7-a9cb-d6cc7180b78c}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
