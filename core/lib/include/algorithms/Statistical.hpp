@@ -20,11 +20,9 @@ struct Stats {
         return Softmax(temp_logits).unaryExpr([](float probs) { return probs > Epsilon ? probs : 0; });
     }
 
-    static const float Epsilon;
+    inline static const float Epsilon = Eigen::NumTraits<float>::epsilon();
 
 };
-
-const float Stats::Epsilon = Eigen::NumTraits<float>::epsilon();
 
 }
 

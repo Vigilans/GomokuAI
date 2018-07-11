@@ -134,6 +134,7 @@ void AhoCorasickBuilder::buildNodeBasedTrie() {
 }
 
 /*
+    将set<Node>形式的Trie树压缩至双数组形式。
     构造完毕后，base与check数组各定义为：
     base:
       1. 对于非叶结点，base值为所有子结点的偏移基准值（t = base[s] + c）。

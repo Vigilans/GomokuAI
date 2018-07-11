@@ -33,8 +33,7 @@ constexpr std::pair<int, int> operator*(Direction direction) {
 
 // 将pose按照dir方向移动offset个单位
 constexpr Position Shift(Position pose, int offset, Direction dir) {
-    auto [x, y] = pose; auto [dx, dy] = *dir;
-    return { x + offset * dx, y + offset * dy };
+    return { pose.id + offset * Position(*dir) };
 }
 
 // 数组下标与Direction枚举值一一对应
@@ -157,6 +156,11 @@ public:
         static const int BaseScore; // 双三/四三/双四共用一个分数。
     };
 
+    // 按 Player::Black | Player::White 构成的二元分组。
+    static constexpr int Group(Player player) {
+        return player == Player::Black;
+    }
+
     // 按 { Player::Black, Player::White } 构成的2*2列联表分组。
     static constexpr int Group(Player favour, Player perspective) {
         return (favour == Player::Black) << 1 | (perspective == Player::Black);
@@ -166,7 +170,7 @@ public:
     static PatternSearch Patterns;
 
     // 基于Eigen向量化操作与Map引用实现的区域棋子密度计数器，tuple组成: { 权重， 分数 }。
-    static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE>, int> BlockWeights;
+    static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE, Eigen::RowMajor>, int> BlockWeights;
 
     template<size_t Size>
     using Distribution = std::array<std::array<Record, Size>, BOARD_SIZE + 1>; // 最后一个元素用于总计数
@@ -178,7 +182,9 @@ public:
 
     auto& scores(Player player, Player perspect) { return m_scores[Group(player, perspect)]; }
 
-    auto& density(Player player) { return m_density[player == Player::Black]; }
+    auto& density(Player player) { return m_density[Group(player)]; }
+
+    auto weight(Player player) { return density(player).unaryExpr([](int v) { return std::max(v, 0); }).cast<float>().normalized(); }
 
     Player applyMove(Position move);
 

@@ -2,26 +2,38 @@
 #define GOMOKU_ALGORITHMS_HEURISTIC_H_
 #include "../Pattern.h"
 #include "Statistical.hpp"
+#include "MonteCarlo.hpp"
 #include <deque>
 
 namespace Gomoku::Algorithms {
    
 struct Heuristic {
 
-    // logits = w * self_worthy + (1 - w) * rival_anti
-    // action_probs = normalize(coeff_mul(logits, density_dist))
+    // w_self_worthy = self_worthy * normalize(self_density)
+    // w_rival_anti = rival_anti * normalize(rival_density)
+    // action_probs = normalize(w * w_self_worthy + (1-w) * w_rival_anti)
     static Eigen::VectorXf EvaluationProbs(Evaluator& ev, Player player) {
-        auto logits = (6 * ev.scores(player, player) + 4 * ev.scores(-player, player)).array() / 10;
-        auto weights = ev.density(player).array();
-        return (logits * weights).cast<float>().matrix().normalized();
+        Eigen::VectorXf action_probs;
+        if (!ev.board().m_moveRecord.empty()) {
+            Eigen::VectorXf self_worthy = ev.scores(player, player).cast<float>().cwiseProduct(ev.weight(player));
+            Eigen::VectorXf rival_anti = ev.scores(-player, player).cast<float>().cwiseProduct(ev.weight(-player));
+            action_probs = (0.6 * self_worthy + 0.4 * rival_anti).normalized();
+            int a;
+            action_probs.maxCoeff(&a);
+        } else {
+            action_probs = Eigen::VectorXf::Zero(BOARD_SIZE);
+            action_probs[Position{ WIDTH / 2 , HEIGHT / 2 }] = 1.0f;
+        }
+        return action_probs;
     }
 
-    // logits = (self_worthy - rival_worthy) / scale_factor
-    // state_value = tanh(dot(logits, normalize(density_dist))
+    // ws_self_worthy = dot(self_worthy, normalize(self_density))
+    // ws_rival_worthy = dot(rival_worthy, normalize(rival_density))
+    // state_value = tanh((ws_self_worthy - ws_rival_worthy) / scale_factor)
     static float EvaluationValue(Evaluator& ev, Player player) {
-        auto logits = (ev.scores(player, player) - ev.scores(-player, -player)).cast<float>() / 100;
-        auto weights = ev.density(player).cast<float>().normalized();
-        return std::tanh(logits.dot(weights));
+        auto self_worthy  = ev.scores(player, player).cast<float>().dot(ev.weight(player));
+        auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(ev.weight(-player));
+        return std::tanh((self_worthy - rival_worthy) / 100.0f);
     }
 
     // 进行多轮随机rollout，用各轮结果来不断调整value的值。
@@ -72,7 +84,7 @@ struct Heuristic {
     }
 
     // 优先度：+4 > -4 > +L3 == +To44 > -L3 == -To44 >= +To43 > -To43 > +To22 > -To22
-    static auto DecisiveCheck(Evaluator& ev, Eigen::Ref<Eigen::VectorXf> probs) {
+    static auto DecisiveFilter(Evaluator& ev, Eigen::Ref<Eigen::VectorXf> probs) {
         // 数据准备
         static std::deque<std::tuple<int, Player>> candidates;
         struct { enum { Anti, Favour, None } level = None; } report;
@@ -119,15 +131,15 @@ struct Heuristic {
                 candidates.pop_back();
             }
             // 如果仍有候选者，则寻找成功
-            if (int i = 0; !candidates.empty()) {
+            if (int i = -1; !candidates.empty()) {
                 // 将所有非Decisive点概率全部Mask为0
                 probs = probs.unaryExpr([&](float prob) { // 这个较别扭的写法是为了vectorize的性能……
-                    return std::any_of(candidates.begin(), candidates.end(), [&](auto candidate) {
+                    return ++i, std::any_of(candidates.begin(), candidates.end(), [&](auto candidate) {
                         auto [pattern, player] = candidate;
                         if (pattern < Pattern::Size) {
-                            return ev.m_patternDist[i++][pattern].get(player, cur_player);
+                            return ev.m_patternDist[i][pattern].get(player, cur_player);
                         } else {
-                            return ev.m_compoundDist[i++][pattern % Pattern::Size].get(player, cur_player);
+                            return ev.m_compoundDist[i][pattern % Pattern::Size].get(player, cur_player);
                         }
                     });
                 }).select(probs, Eigen::VectorXf::Zero((int)BOARD_SIZE)); 
