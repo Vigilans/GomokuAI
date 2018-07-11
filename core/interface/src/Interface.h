@@ -83,7 +83,10 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
         auto[agent, index] = get_agent(cur_player);
         agent.syncWithBoard(board);
         auto move = agent.getAction(board);
-        if (auto result = board.applyMove(move); result != cur_player) {
+        if (move == Position{ -1, -1 }) {
+            board.revertMove(2);
+            cout << std::to_string(board);
+        } else if (auto result = board.applyMove(move); result != cur_player) {
             printf("\n%d.%s's move: %s:\n\n", index, agent.name().data(), std::to_string(move).c_str());
             cout << std::to_string(board);
             cout << "\nDebug Messages:" << agent.debugMessage();

@@ -38,7 +38,7 @@ public:
     virtual Position getAction(Board& board) {
         using namespace std;
         int x, y;
-        cout << "\nInput your move: ";
+        cout << "\nInput your move({-1 -1} to revert): ";
         cin >> hex >> x >> y;
         return { x, y };
     }
@@ -103,12 +103,13 @@ public:
     }
 
     virtual Position getAction(Board& board) {
-        m_evaluator.syncWithBoard(board);
         if (board.m_moveRecord.empty()) {
             m_thisMove = { WIDTH / 2, HEIGHT / 2 };
         } else {
             auto action_probs = Heuristic::EvaluationProbs(m_evaluator, m_evaluator.board().m_curPlayer);
-            action_probs.maxCoeff(&m_thisMove.id);
+            Heuristic::DecisiveFilter(m_evaluator, action_probs);
+            //action_probs.maxCoeff(&m_thisMove.id);
+            m_thisMove = board.getRandomMove(action_probs);
         }
         return m_thisMove;
     }
