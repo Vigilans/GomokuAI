@@ -137,6 +137,10 @@ void Board::reset() {
     m_winner = Player::None;
 }
 
+string Board::toString() const {
+    return std::to_string(*this);
+}
+
 }
 
 using namespace Gomoku;

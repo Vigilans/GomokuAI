@@ -29,7 +29,14 @@ const PatternSearch::generator& PatternSearch::generator::operator++() {
             state = 0; // 将状态重置为初始状态
             break; // 此次break后，该generator达到了end状态
         }
-        int next = ref->m_base[state] + EncodeCharset(target[0]);
+        int code = target[0]; // 取出当前要检测的目标位
+        if (code == EncodeCharset('?') && state == code) { // 相当于判断state == base[0] + code('?')
+            while (!target.empty() && target[0] == code) { // 快速跳转冗长的'?'状态
+                ++offset, target.remove_prefix(1); 
+            }
+            continue;
+        }
+        int next = ref->m_base[state] + code;
         if (ref->m_check[next] == state) { // 尝试往下匹配target
             state = next; // 匹配成功转移
         } else if (state != 0) {
@@ -54,8 +61,9 @@ PatternSearch::generator PatternSearch::execute(string_view target) {
     return generator{ target, this };
 }
 
-vector<PatternSearch::Entry> PatternSearch::matches(string_view target) {
-    vector<Entry> entries;
+const vector<PatternSearch::Entry>& PatternSearch::matches(string_view target) {
+    static vector<Entry> entries;
+    entries.clear();
     for (auto record : execute(target)) { 
         entries.push_back(record); 
     }
@@ -92,7 +100,7 @@ string_view BoardMap::lineView(Position pose, Direction direction) {
 Player BoardMap::applyMove(Position move) {
     for (auto direction : Directions) {
         const auto [index, offset] = ParseIndex(move, direction);
-        m_lineMap[index][offset] = m_board->m_curPlayer == Player::Black ? 'x' : 'o';
+        m_lineMap[index][offset] = EncodeCharset(m_board->m_curPlayer == Player::Black ? 'x' : 'o');
     }
     return m_board->applyMove(move, false);
 }
@@ -101,7 +109,7 @@ Player BoardMap::revertMove(size_t count) {
     for (int i = 0; i < count; ++i) {
         for (auto direction : Directions) {
             const auto [index, offset] = ParseIndex(m_board->m_moveRecord.back(), direction);
-            m_lineMap[index][offset] = '-';
+            m_lineMap[index][offset] = EncodeCharset('-');
         }
         m_board->revertMove();
     }
@@ -112,15 +120,15 @@ void BoardMap::reset() {
     m_hash = 0ul;
     m_board->reset();
     for (auto& line : m_lineMap) {
-        line.resize(MAX_PATTERN_LEN - 1, '?'); // 线前填充越界位('?')
+        line.resize(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // 线前填充越界位('?')
     }
     for (auto i = 0; i < BOARD_SIZE; ++i) 
     for (auto direction : Directions) {
         auto [index, _] = ParseIndex(i, direction);
-        m_lineMap[index].push_back('-'); // 按每个位置填充空位('-')
+        m_lineMap[index].push_back(EncodeCharset('-')); // 按每个位置填充空位('-')
     }
     for (auto& line : m_lineMap) {
-        line.append(MAX_PATTERN_LEN - 1, '?'); // 线后填充越界位('?')
+        line.append(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // 线后填充越界位('?')
     }
 }
 
@@ -167,35 +175,41 @@ void Evaluator::updateLine(string_view target, int delta, Position move, Directi
             board().m_winner = pattern.favour;
             continue;
         }
-        m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改总计数
-        for (int i = 0; i < pattern.str.length(); ++i) { // 修改空位数据
-            auto piece = pattern.str.rbegin()[i];
-            if (piece == '_' || piece == '^') { // '_'代表己方有效空位，'^'代表对方反制空位
-                auto pose = Shift(move, offset - i - TARGET_LEN / 2, dir);
-                auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1);
-                auto score = int(delta * multiplier * pattern.score);
-                // 请善用块折叠获得更好阅读效果……
-                auto update_pattern = [&]() { 
+        auto update_pattern = [&]() {
+            m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改总计数
+            for (int i = 0; i < pattern.str.length(); ++i) { // 修改空位数据
+                auto piece = pattern.str.rbegin()[i];
+                if (piece == '_' || piece == '^') { // '_'代表己方有效空位，'^'代表对方反制空位
+                    auto pose = Shift(move, offset - i - TARGET_LEN / 2, dir);
+                    auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1);
+                    auto score = int(delta * multiplier * pattern.score);
                     switch (piece) { // 利用了switch的穿透特性
-                        case '_': 
-                            m_patternDist[pose][pattern.type].set(delta, pattern.favour, pattern.favour, dir);
-                            scores(pattern.favour, pattern.favour)[pose] += score;
-                        case '^': 
-                            m_patternDist[pose][pattern.type].set(delta, pattern.favour, -pattern.favour, dir);
-                            scores(pattern.favour, -pattern.favour)[pose] += score;
+                    case '_':
+                        m_patternDist[pose][pattern.type].set(delta, pattern.favour, pattern.favour, dir);
+                        scores(pattern.favour, pattern.favour)[pose] += score;
+                        assert(scores(pattern.favour, pattern.favour)[pose] >= 0);
+                    case '^':
+                        m_patternDist[pose][pattern.type].set(delta, pattern.favour, -pattern.favour, dir);
+                        scores(pattern.favour, -pattern.favour)[pose] += score;
+                        assert(scores(pattern.favour, -pattern.favour)[pose] >= 0);
                     }
-                };
-                auto update_compound = [&]() {
-                    if (Compound::Test(this, pose, pattern.favour)) {
-                        Compound::Update(this, delta, pose, pattern.favour);
-                    }
-                };
-                if (delta == 1) {
-                    update_pattern(), update_compound();
-                } else {
-                    update_compound(), update_pattern();
                 }
             }
+        };
+        auto update_compound = [&]() {
+            for (int i = 0; i < pattern.str.length(); ++i) {
+                auto piece = pattern.str.rbegin()[i];
+                auto pose = Shift(move, offset - i - TARGET_LEN / 2, dir);
+                if ((piece == '_' || piece == '^') && 
+                    Compound::Test(*this, pose, pattern.favour)) {
+                    Compound::Update(*this, delta, pose, pattern.favour);
+                }
+            }
+        };
+        if (delta == 1) {
+            update_pattern(), update_compound();
+        } else {
+            update_compound(), update_pattern();
         }
     }
 }
@@ -209,7 +223,7 @@ void Evaluator::updateBlock(int delta, Position move, Player src_player) {
     auto score_block   = BlockView(m_scores[Group(src_player)], move);
     auto weight_block  = BlockView(weights, move);
     // 除去旧density分数（初始情况下density_block为0矩阵，减去也没有影响）
-    score_block -= score * density_block.unaryExpr(relu);    
+    //score_block -= score * density_block.unaryExpr(relu);    
     // 更新density（sgn对应原位置是否有棋，delta对应下棋还是悔棋）。
     density_block += density_block.unaryExpr(sgn) * delta * weight_block;
     // 修改中心位置的状态（是否可以用来计分）
@@ -225,7 +239,7 @@ void Evaluator::updateBlock(int delta, Position move, Player src_player) {
     //cout << endl << "White:\n" << Map<Array<int, WIDTH, HEIGHT, RowMajor>>(m_density[0].data()) << endl
     //     << "Black:\n" << Map<Array<int, WIDTH, HEIGHT, RowMajor>>(m_density[1].data()) << endl;
     // 补回新density分数
-    score_block += score * density_block.unaryExpr(relu);
+    //score_block += score * density_block.unaryExpr(relu);
 }
 
 void Evaluator::updateMove(Position move, Player src_player) {
@@ -334,18 +348,18 @@ unsigned Evaluator::Record::get(Player player) const {
     return (field >> offset) & ((1 << 4*sizeof(field)) - 1);
 }
 
-bool Evaluator::Compound::Test(Evaluator * ev, Position pose, Player player) {
+bool Evaluator::Compound::Test(Evaluator& ev, Position pose, Player player) {
     unsigned bit_field = 0; // 下面是个人感觉较妙的算法……
     for (auto comp_type : Components) {
         // bit_field汇总了四个方向的L3/D3/L2设置情况。
         // 由于位或的特性，一条线上同时有LiveTwo与DeadThree时，只会计入一次，规避了BUG。
-        bit_field |= ev->m_patternDist[pose][comp_type].get(player, player);
+        bit_field |= ev.m_patternDist[pose][comp_type].get(player, player);
     }
-    // is-power-of-2算法，快速判断是否有>=2个bit位为1（>=2两方向有D2或L3）
+    // is-power-of-2算法，快速判断是否有>=2个bit位为1（>=2两方向有D2或LD3）
     return bit_field & (bit_field - 1);
 }
 
-void Evaluator::Compound::Update(Evaluator* ev, int delta, Position pose, Player player) {
+void Evaluator::Compound::Update(Evaluator& ev, int delta, Position pose, Player player) {
     // 准备数据
     enum State { S0, L2, LD3, To33, To43, To44 } state = S0; // 自动机的状态定义
     array<Pattern::Type, 4> components; components.fill(Pattern::Type(-1)); // -1代表该方向上没有匹配到有效模式。
@@ -355,7 +369,7 @@ void Evaluator::Compound::Update(Evaluator* ev, int delta, Position pose, Player
         // 准备转移条件
         int cond = S0;
         for (auto comp_type : Components) {
-            if (ev->m_patternDist[pose][comp_type].get(player, player, dir)) {
+            if (ev.m_patternDist[pose][comp_type].get(player, player, dir)) {
                 switch (comp_type) {
                     case Pattern::LiveThree:
                         restricted = true;
@@ -387,32 +401,36 @@ void Evaluator::Compound::Update(Evaluator* ev, int delta, Position pose, Player
     }
     // 正式更新
     auto type = Compound::Type(state - State::To33);
-    for (int i = 0; i < 4; ++i) {
+    //ev.m_compoundDist.back()[type].set(delta, player); // 更新总计数
+    for (int i = 0; i < 4; ++i) { // 按方向搜索更新计数
         if (components[i] == -1) {
             continue;
         }
         auto dir = Direction(i);
         // 更新己方分数与计数
-        ev->m_compoundDist[pose][type].set(delta, player, player, dir);
-        ev->m_compoundDist.back()[type].set(delta, player); // 增加计数
-        ev->scores(player, player)[pose] += delta * 4 * Compound::BaseScore; // 4为奖励因子
+        //ev.m_compoundDist[pose][type].set(delta, player, player, dir);
+        //ev.scores(player, player)[pose] += delta * 4 * Compound::BaseScore; // 4为奖励因子
+        assert(ev.scores(player, player)[pose] >= 0);
         // 更新对方反制分数
         if (restricted) { // 只更新关键点（pose）
-            ev->m_compoundDist[pose][type].set(delta, player, -player, dir);
-            ev->scores(player, -player)[pose] += delta * 4 * Compound::BaseScore;
+            //ev.m_compoundDist[pose][type].set(delta, player, -player, dir);
+            //ev.scores(player, -player)[pose] += delta * 4 * Compound::BaseScore;
+            assert(ev.scores(player, -player)[pose] >= 0);
         } else { // 更新所有可反制这条线上的棋型的空点。最终关键点分数至少为非关键点的4倍。
             // 为防止溢出，采用试探性自增/减方式更新
-            for (int ds : { 1, -1 }) { // ds与dx, dy意思差不多……
+            for (int sgn : { 1, -1 }) { // ds与dx, dy意思差不多……
                 Position current(pose);
                 for (int offset = 0; offset < TARGET_LEN / 2; ++offset) {
                     // 即使出错了，在MCTS或AlphaBeta协助下也能很快被软剪枝掉
-                    if (ev->m_patternDist[current][components[i]].get(player, -player, dir)) {
-                        ev->m_compoundDist[current][type].set(delta, player, -player, dir);
-                        ev->scores(player, -player)[current] += delta * Compound::BaseScore; // 无奖励因子
+                    if (ev.m_patternDist[current][components[i]].get(player, -player, dir)) {
+                        //ev.m_compoundDist[current][type].set(delta, player, -player, dir);
+                        //ev.scores(player, -player)[current] += delta * Compound::BaseScore; // 无奖励因子
+                        assert(ev.scores(player, -player)[current] >= 0);
                     }
                     auto [x, y] = current; auto [dx, dy] = *dir;
-                    if ((x + dx >= 0 && x + dx < WIDTH) && (y + dy >= 0 && y + dy < HEIGHT)) {
-                        current = Shift(current, ds, dir);
+                    if ((x + sgn*dx >= 0 && x + sgn*dx < WIDTH) && 
+                        (y + sgn*dy >= 0 && y + sgn*dy < HEIGHT)) {
+                        current = Shift(current, sgn, dir);
                     } else {
                         break;
                     }
@@ -424,35 +442,43 @@ void Evaluator::Compound::Update(Evaluator* ev, int delta, Position pose, Player
 
 // 以下模式被设计为没有互为前缀码的情况。
 PatternSearch Evaluator::Patterns = {
-    { "+xxxxx",   Pattern::Five,      9999 },
-    { "-_oooo_",  Pattern::LiveFour,  9000 },
-    { "-xoooo_",  Pattern::DeadFour,  2500 },
-    { "-o_ooo",   Pattern::DeadFour,  3000 },
-    { "-oo_oo",   Pattern::DeadFour,  2600 },
-    { "-~ooo_~",  Pattern::LiveThree, 3000 },
-    { "-^o_oo^",  Pattern::LiveThree, 2800 },
-    { "-xooo__",  Pattern::DeadThree, 500 },
-    { "-xoo_o_",  Pattern::DeadThree, 800 },
-    { "-xo_oo_",  Pattern::DeadThree, 960 },
-    { "-oo__o",   Pattern::DeadThree, 600 },
-    { "-o_o_o",   Pattern::DeadThree, 550 },
-    { "-x_ooo_x", Pattern::DeadThree, 400 },
-    { "-~oo__~",  Pattern::LiveTwo,   650 },
-    { "-~_o_o_~", Pattern::LiveTwo,   600 },
-    { "-x^o_o_^", Pattern::LiveTwo,   550 },
-    { "-^o__o^",  Pattern::LiveTwo,   550 },
-    { "-xoo___",  Pattern::DeadTwo,   150 },
-    { "-xo_o__",  Pattern::DeadTwo,   250 },
-    { "-xo__o_",  Pattern::DeadTwo,   200 },
-    { "-o___o",   Pattern::DeadTwo,   180 },
-    { "-x_oo__x", Pattern::DeadTwo,   100 },
-    { "-x_o_o_x", Pattern::DeadTwo,   100 },
-    { "-~o___~",  Pattern::LiveOne,   150 },
-    { "-x~_o__^", Pattern::LiveOne,   140 },
-    { "-x~__o_^", Pattern::LiveOne,   150 },
-    { "-xo___~",  Pattern::DeadOne,   30 },
-    { "-x_o___x", Pattern::DeadOne,   40 },
-    { "-x__o__x", Pattern::DeadOne,   50 },
+    { "+xxxxx",    Pattern::Five,      9999 },
+    { "-_oooo_",   Pattern::LiveFour,  9000 },
+    { "-xoooo_",   Pattern::DeadFour,  2500 },
+    { "-o_ooo",    Pattern::DeadFour,  3000 },
+    { "-oo_oo",    Pattern::DeadFour,  2600 },
+    { "-~_ooo_~",  Pattern::LiveThree, 3000 },
+    { "-x^ooo_~",  Pattern::LiveThree, 2900 },
+    { "-^o_oo^",   Pattern::LiveThree, 2800 },
+    { "-xooo__~",  Pattern::DeadThree, 510 },
+    { "-xoo_o_~",  Pattern::DeadThree, 520 },
+    { "-xoo__o~",  Pattern::DeadThree, 520 },
+    { "-xo_oo_~",  Pattern::DeadThree, 530 },
+    { "-xo__oo",   Pattern::DeadThree, 530 },
+    { "-xooo__x",  Pattern::DeadThree, 500 },
+    { "-xoo_o_x",  Pattern::DeadThree, 500 },
+    { "-xoo__ox",  Pattern::DeadThree, 500 },
+    { "-xo_oo_x",  Pattern::DeadThree, 500 },
+    { "-x_ooo_x",  Pattern::DeadThree, 500 },
+    { "-~oo__o~",  Pattern::DeadThree, 750 },
+    { "-oo__oo",   Pattern::DeadThree, 540 },
+    { "-o_o_o",    Pattern::DeadThree, 550 },
+    { "-~oo__~",   Pattern::LiveTwo,   650 },
+    { "-~_o_o_~",  Pattern::LiveTwo,   600 },
+    { "-x^o_o_^",  Pattern::LiveTwo,   550 },
+    { "-^o__o^",   Pattern::LiveTwo,   550 },
+    { "-xoo___",   Pattern::DeadTwo,   150 },
+    { "-xo_o__",   Pattern::DeadTwo,   250 },
+    { "-xo__o_",   Pattern::DeadTwo,   200 },
+    { "-o___o",    Pattern::DeadTwo,   180 },
+    { "-x_oo__x",  Pattern::DeadTwo,   100 },
+    { "-x_o_o_x",  Pattern::DeadTwo,   100 },
+    { "-~o___~",   Pattern::LiveOne,   150 },
+    { "-x~_o__^",  Pattern::LiveOne,   140 },
+    { "-x~__o_^",  Pattern::LiveOne,   150 },
+    { "-xo___~",   Pattern::DeadOne,   30 },
+    { "-x_o___x",  Pattern::DeadOne,   40 },
+    { "-x__o__x",  Pattern::DeadOne,   50 },
 };
 
 tuple<Array<int, BLOCK_SIZE, BLOCK_SIZE, RowMajor>, int> Evaluator::BlockWeights = []() {

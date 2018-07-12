@@ -36,7 +36,7 @@ constexpr float CalcScore(Player player, Player winner) {
 }
 
 // 返回当前局面评分相对于参数的player的价值。
-constexpr float CalcScore(Player player, double stateValue) {
+constexpr float CalcScore(Player player, float stateValue) {
     return static_cast<float>(player) * stateValue;
 }
 
@@ -111,6 +111,9 @@ public:
     // 通过Player枚举获取已落子/未落子总数
     std::size_t& moveCounts(Player player) { return m_moveCounts[static_cast<int>(player) + 1]; }
     std::size_t  moveCounts(Player player) const { return m_moveCounts[static_cast<int>(player) + 1]; }
+
+    // 输出对阅读友好的字符串
+    std::string toString() const;
 
 // 数据成员部分
 public:

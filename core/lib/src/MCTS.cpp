@@ -159,7 +159,7 @@ size_t MCTS::playout(Board& board) {
     }
     double node_value;
     size_t expand_size;
-    if (!m_policy->checkGameEnd(board)) {  // 检查终结点游戏是否结束  
+    if (!m_policy->checkGameEnd(board)) {  // 检查终结点游戏是否结束
         auto [state_value, action_probs] = m_policy->simulate(board); // 获取当前盘面相对于「当前应下玩家」的价值与概率分布
         expand_size = m_policy->expand(node, board, std::move(action_probs)); // 根据传入的概率向量扩展一层结点
         node_value = -state_value; // 由于node保存的是「下出变成当前局面的一手」的玩家，因此其价值应取相反数

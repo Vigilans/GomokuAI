@@ -84,7 +84,7 @@ public:
     struct generator {
         std::string_view target = "";
         PatternSearch* ref = nullptr;
-        short offset = -1, state = 0;
+        int offset = -1, state = 0;
 
         generator begin() { return state == 0 ? ++(*this) : *this; } // ++是为了保证从begin开始就有匹配结果。
         generator end()   { return generator{}; } // 利用空生成器的空目标串("")代表匹配结束。
@@ -99,14 +99,14 @@ public:
     // 构造一个未初始化的搜索器。
     PatternSearch() = default;
 
-    // 构造函数中传入的模式原型将经过几层强化，获得完整的模式表
+    // 构造函数中传入的模式原型将经过几层强化，获得完整的模式表。
     PatternSearch(std::initializer_list<Pattern> protos);
     
-    // 返回一个生成器，每一次解引用返回当前匹配到的模式，并移动到下一个模式
+    // 返回一个生成器，每一次解引用返回当前匹配到的模式，并移动到下一个模式。
     generator execute(std::string_view target);
 
-    // 一次性直接返回所有查找到的记录
-    std::vector<Entry> matches(std::string_view target);
+    // 一次性直接返回所有查找到的记录。
+    const std::vector<Entry>& matches(std::string_view target);
 
 private:
     std::vector<int> m_base;
@@ -150,8 +150,8 @@ public:
 
     struct Compound {
         enum Type { DoubleThree, FourThree, DoubleFour, Size };
-        static bool Test(Evaluator* ev, Position pose, Player player);
-        static void Update(Evaluator* ev, int delta, Position pose, Player player);
+        static bool Test(Evaluator& ev, Position pose, Player player);
+        static void Update(Evaluator& ev, int delta, Position pose, Player player);
         static const Pattern::Type Components[3]; // 被用于组成复合模式的单模式类型。
         static const int BaseScore; // 双三/四三/双四共用一个分数。
     };
