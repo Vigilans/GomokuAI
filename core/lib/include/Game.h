@@ -85,6 +85,9 @@ public:
     // 越界与无子检查。暂无禁手规则。
     bool checkMove(Position move) const;
 
+    // 安全版本的越界检查。
+    bool checkBoundary(int x, int y) const;
+
     // 从性能角度考虑，只需对最后落子周围进行遍历。
     bool checkGameEnd();
 

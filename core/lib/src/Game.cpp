@@ -77,6 +77,10 @@ bool Board::checkMove(Position move) const {
     return move.id >= 0 && move.id < BOARD_SIZE && moveState(Player::None, move);
 }
 
+bool Board::checkBoundary(int x, int y) const {
+    return (x >= 0 && x < WIDTH) && (y >= 0 && y < HEIGHT);
+}
+
 bool Board::checkGameEnd() {
     // 若已结束则不必再检测
     if (m_curPlayer == Player::None) {
@@ -104,8 +108,8 @@ bool Board::checkGameEnd() {
             for (int i = 1; i <= MAX_RENJU; ++i) {
                 x += sgn * dx, y += sgn * dy;
                 // 判断坐标的格子是否未越界且归属为当前棋子
-                if ((x >= 0 && x < WIDTH) && (y >= 0 && y < HEIGHT)
-                    && moveState(lastPlayer, y*WIDTH + x)) ++renju;
+                if (checkBoundary(x, y) && 
+                    moveState(lastPlayer, {x, y})) ++renju;
                 else break;
             }
         }

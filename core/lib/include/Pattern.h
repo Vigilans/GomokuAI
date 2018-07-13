@@ -140,18 +140,18 @@ public:
 class Evaluator {
 public:
     struct Record {
-        unsigned short field; // 4 White-Black组合 * 4 方向位 || 2 White/Black分割 * 8计数位
+        unsigned field; // 4 White-Black组合 * 4 方向组 * 2标记位 || 2 White/Black分割 * 16计数位
         void set(int delta, Player player); // 按玩家类型设置8位计数位。
         void set(int delta, Player favour, Player perspective, Direction dir);
-        bool get(Player favour, Player perspective, Direction dir) const; // 获取某一组的某一方向位是否设置。
-        unsigned get(Player favour, Player perspective) const; // 打包返回一组下的4个方向位。
-        unsigned get(Player player) const; // 按玩家类型返回8位计数位。
+        unsigned get(Player favour, Player perspective, Direction dir) const; // 获取某一组的某一方向的2标记位。
+        unsigned get(Player favour, Player perspective) const; // 打包返回一组下的4*2个方向位。
+        unsigned get(Player player) const; // 按玩家类型返回16位计数位。
     };
 
     struct Compound {
         enum Type { DoubleThree, FourThree, DoubleFour, Size };
         static bool Test(Evaluator& ev, Position pose, Player player);
-        static void Update(Evaluator& ev, int delta, Position pose, Player player);
+        static void Update(Evaluator& ev, int delta, Position pose, const Pattern& base, Direction base_dir);
         static const Pattern::Type Components[3]; // 被用于组成复合模式的单模式类型。
         static const int BaseScore; // 双三/四三/双四共用一个分数。
     };
