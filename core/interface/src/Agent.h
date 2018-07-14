@@ -11,8 +11,8 @@
 namespace Gomoku {
 
 using json = nlohmann::json;
-void to_json(json& j, const Position& p) { j = { { "x", p.x() },{ "y", p.y() } }; }
-void from_json(const json& j, Position& p) { p = Position{ j["x"], j["y"] }; }
+inline void to_json(json& j, const Position& p) { j = { { "x", p.x() },{ "y", p.y() } }; }
+inline void from_json(const json& j, Position& p) { p = Position{ j["x"], j["y"] }; }
 
 namespace Interface {
 
@@ -40,8 +40,12 @@ public:
         int x, y;
         cout << "\nInput your move({-1 -1} to revert): ";
         cin >> hex >> x >> y;
+        m_evaluator.syncWithBoard(board);
+        m_evaluator.applyMove({ x, y });
         return { x, y };
     }
+
+    Evaluator m_evaluator;
 };
 
 class RandomAgent : public Agent {
@@ -108,8 +112,8 @@ public:
         } else {
             auto action_probs = Heuristic::EvaluationProbs(m_evaluator, m_evaluator.board().m_curPlayer);
             Heuristic::DecisiveFilter(m_evaluator, action_probs);
-            //action_probs.maxCoeff(&m_thisMove.id);
-            m_thisMove = board.getRandomMove(action_probs);
+            action_probs.maxCoeff(&m_thisMove.id);
+            //m_thisMove = board.getRandomMove(action_probs);
         }
         return m_thisMove;
     }
@@ -134,7 +138,11 @@ public:
         json message;
         for (auto player : { Player::Black, Player::White })
         for (int i = 0; i < Pattern::Size - 1; ++i) {
-            message[std::to_string(player)][i] = m_evaluator.m_patternDist.back()[i].get(player);
+            message[std::to_string(player)][0][i] = m_evaluator.m_patternDist.back()[i].get(player);
+        }
+        for (auto player : { Player::Black, Player::White })
+        for (int i = 0; i < Evaluator::Compound::Size; ++i) {
+            message[std::to_string(player)][1][i] = m_evaluator.m_compoundDist.back()[i].get(player);
         }
         return message;
     }

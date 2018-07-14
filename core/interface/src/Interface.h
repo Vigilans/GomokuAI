@@ -98,7 +98,7 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
                 continue;
             }
         } else {
-            cout << "Invalid move." << endl;
+            cout << "Invalid move: " << std::to_string(move) << endl;
             continue;
         }
     }
@@ -109,7 +109,7 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
     // 按赢家的视角输出可被botzone读取的json数据
     json records;
     for (int i = 0; i < board.m_moveRecord.size(); ++i) {
-        if (board.m_winner == Player::Black) {
+        if (i == 0 && board.m_winner == Player::Black) {
             records["requests"].push_back(Position{ -1, -1 });
         }
         if ((i % 2 == 0) == (board.m_winner == Player::Black)) {
