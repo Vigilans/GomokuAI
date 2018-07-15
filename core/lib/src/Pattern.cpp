@@ -18,6 +18,11 @@ Pattern::Pattern(std::string_view proto, Type type, int score)
 
 /* ------------------- PatternSearch类实现 ------------------- */
 
+bool PatternSearch::HasCovered(const Entry& entry, size_t pose) {
+    const auto [pattern, offset] = entry;
+    return 0 <= offset - pose && offset - pose < pattern.str.length();
+}
+
 PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
     AhoCorasickBuilder builder(protos);
     builder.build(this);
@@ -171,6 +176,7 @@ inline auto BlockView(Array_t& src, Position move) {
 void Evaluator::updateLine(string_view target, int delta, Position move, Direction dir) {
     const auto& match_results = Patterns.matches(target);
     const auto update_pattern = [&]() {
+        auto& ev = *this;
         for (const auto [pattern, offset] : match_results) {
             if (pattern.type == Pattern::Five) {
                 // 此前board已完成applyMove，故此处设置curPlayer为None不会发生阻塞。
@@ -189,11 +195,15 @@ void Evaluator::updateLine(string_view target, int delta, Position move, Directi
                     case '_':
                         m_patternDist[pose][pattern.type].set(delta, pattern.favour, pattern.favour, dir);
                         scores(pattern.favour, pattern.favour)[pose] += score;
-                        assert(scores(pattern.favour, pattern.favour)[pose] >= 0);
+                        if (scores(pattern.favour, pattern.favour)[pose] < 0) {
+                            auto str = ev.board().toString();
+                        }
                     case '^':
                         m_patternDist[pose][pattern.type].set(delta, pattern.favour, -pattern.favour, dir);
                         scores(pattern.favour, -pattern.favour)[pose] += score;
-                        assert(scores(pattern.favour, -pattern.favour)[pose] >= 0);
+                        if (scores(pattern.favour, -pattern.favour)[pose] < 0) {
+                            auto str = ev.board().toString();
+                        }
                     }
                 }
             }
@@ -204,7 +214,7 @@ void Evaluator::updateLine(string_view target, int delta, Position move, Directi
             for (int i = 0; i < pattern.str.length(); ++i) {
                 auto piece = pattern.str.rbegin()[i];
                 auto pose = Shift(move, offset - i - TARGET_LEN / 2, dir);
-                if ((piece == '_' || piece == '^') &&
+                if (piece == '_' && // BUG DETECTED: 眠3+跳3会被判定为43
                     pattern.type >= Pattern::LiveTwo && pattern.type < Pattern::DeadFour &&
                     Compound::Test(*this, pose, pattern.favour)) {
                     Compound::Update(*this, delta, pose, pattern, dir);
@@ -272,6 +282,16 @@ Evaluator::Evaluator(Board * board) : m_boardMap(board) {
 Player Evaluator::applyMove(Position move) {
     if (board().m_curPlayer != Player::None && board().checkMove(move)) {
         updateMove(move, board().m_curPlayer);
+    }
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        if (!board().moveState(Player::None, i)) {
+            for (int j = 0; j < 4; ++j) {
+                if (m_scores[j][i] != 0) {
+                    auto b = board().toString();
+                    throw b;
+                }
+            }
+        }
     }
     return board().m_curPlayer;
 }
@@ -367,19 +387,20 @@ bool Evaluator::Compound::Test(Evaluator& ev, Position pose, Player player) {
 
 void Evaluator::Compound::Update(Evaluator& ev, int delta, Position pose, const Pattern& base, Direction base_dir) {
     // 准备状态数据
+    auto str = ev.board().toString();
     enum State { S0, L2, LD3, To33, To43, To44 } state = S0; // 自动机的状态定义
-    static vector<std::tuple<Direction, Pattern::Type>> components;
-    components.clear();
+    static vector<tuple<Direction, Pattern::Type>> components; // 存储构成复合模式的各单个模式，及它们所在方向
+    components.clear(); // 由于退出函数的return位置不固定，故在进入函数时清零
     bool triple_cross = false; // 是否有三个模式汇集在pose位
     int l3_count = 0; // 复合模式中活三的数量
     Player player = base.favour;
+
     // 定位复合模式类型与约束的状态机
     for (auto dir : Directions) {
         // 准备转移条件
         int cond = S0; // 初始转移条件
         int count = 0; // 当前方向上模式计数
         for (auto comp_type : Components) {
-            ev.board().toString();
             switch (ev.m_patternDist[pose][comp_type].get(player, player, dir)) {
                 case 0b00: count = 0; break;
                 case 0b01: count = 1; break;
@@ -394,7 +415,11 @@ void Evaluator::Compound::Update(Evaluator& ev, int delta, Position pose, const 
                     case Pattern::LiveTwo:
                         cond = L2;  break;
                 }
-                components.push_back({ dir, comp_type });
+                components.insert(components.end(), count, { dir, comp_type });
+                if (dir == base_dir && (comp_type > base.type || count == 2)) {
+                    // 若当前方向有更高优先级的模式，或已有2个模式（防止重复计数）
+                    return; // 则下面的更新状态机不转移，这里可以直接退出
+                }
                 break; // 找到第一个符合条件的Pattern就退出。因此Pattern有优先级之分。
             }
         }
@@ -407,9 +432,9 @@ void Evaluator::Compound::Update(Evaluator& ev, int delta, Position pose, const 
             switch (int offset; state) {
                 case S0:                           //                    To44(5)
                     offset = 0; goto Transfer;     //                 ↗   ↑
-                case L2: case LD3:                 //          LD3(2) → To33(4)  状态转移图（有缩减）
+                case L2: case LD3:                 //          LD3(2) → To43(4)  状态转移图（有缩减）
                     offset = 1; goto Transfer;     //        ↗       ↗   ↑
-                case To33: case To43: case To44:    //  S0(0) → L2(1) → To22(3)
+                case To33: case To43: case To44:    //  S0(0) → L2(1) → To33(3)
                     triple_cross = true;
                     offset = (state == To44 ? -cond : -1); // To44为最终状态，只进不出
                 Transfer:
@@ -431,43 +456,64 @@ void Evaluator::Compound::Update(Evaluator& ev, int delta, Position pose, const 
         assert(ev.scores(player, player)[pose] >= 0);
         assert(ev.scores(player, -player)[pose] >= 0);
     };
-    const auto update_antis = [&](int delta, Direction dir, Pattern::Type comp_type) { // 更新所有可反制这条线上的棋型的空点。
-        for (int sgn : { 1, -1 }) { // 为防止溢出，采用试探性自增/减方式更新
-            Position current = Shift(pose, sgn, dir);
-            for (int offset = 1; offset < TARGET_LEN / 2; ++offset) {
-                // 即使出错了，在MCTS或AlphaBeta协助下也能很快被软剪枝掉
-                if (ev.m_patternDist[current][comp_type].get(player, -player, dir)) {
-                    ev.m_compoundDist[current][type].set(delta, player, -player, dir);
-                    ev.scores(player, -player)[current] += delta * Compound::BaseScore; // 更新额外的rival_anti分数
-                    assert(ev.scores(player, -player)[current] >= 0);
+    const auto update_antis = [&](PatternSearch::generator& generator, int delta, Direction dir, Pattern::Type comp_type) { // 更新所有可反制该方向上的模式的空点。
+        for (auto [pattern, offset] : generator) {
+            if (pattern.type == comp_type && PatternSearch::HasCovered({ pattern, offset }) // 必须是：①.模式类型为comp_type
+                && pattern.str.rbegin()[offset - TARGET_LEN / 2] == '_') { // ②.pose是关键点'_'的模式才算数
+                auto current = Shift(pose, offset - TARGET_LEN / 2, dir);
+                for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, dir)) {
+                    auto piece = pattern.str.rbegin()[i];
+                    if ((piece == '_' || piece == '^') && current != pose) { // 不更新关键点
+                        // 即使棋型评估出错了，在MCTS或AlphaBeta协助下也能很快被软剪枝掉
+                        ev.m_compoundDist[current][type].set(delta, player, -player, dir);
+                        ev.scores(player, -player)[current] += delta * Compound::BaseScore; // 更新额外的rival_anti分数
+                        assert(ev.scores(player, -player)[current] >= 0);
+                    }
                 }
-                const auto [x, y] = current; const auto [dx, dy] = *dir;
-                if (ev.board().checkBoundary(x + sgn * dx, y + sgn * dy)) {
-                    current = Shift(current, sgn, dir);
-                } else {
-                    break;
-                }
+                break; // 一次只更新一个Pattern
             }
         }
     };
+
     // 由count作为状态，delta与restricted作为条件的更新状态机
-    if (count == 0 && delta == -1) { // 0状态在delta == -1时转移至自身
-        return; 
+    if ((count == 0 && delta == -1)) { // 0状态在delta == -1时
+        return; // 状态不转移，或说是转移至自身（上面定位状态机里的return行使了同样的功能）
     } else if (count + delta == 1) { // { 0, 1 } 或 { 2, -1 }，该转移关系到复合模式的存在性
         ev.m_compoundDist.back()[type].set(delta, player); // 更新复合模式总计数
-        for (auto[dir, comp_type] : components) { // 更新所有方向
+        auto generator = PatternSearch::generator{};
+        auto pre_dir = Direction(-1);
+        for (auto [dir, comp_type] : components) { // 更新所有方向
             update_pose(dir, comp_type);
+            if (pre_dir != dir) {
+                generator = ev.Patterns.execute(ev.m_boardMap.lineView(pose, dir));
+                pre_dir = dir;
+            }
             if (!triple_cross && l3_count == 0) {
-                update_antis(delta, dir, comp_type);
+                update_antis(generator, delta, dir, comp_type);
             }
         }
-    } else if ((count == 2 && delta == 1) || (count == 3 && delta == -1)) { // 关于是否更新antis的转移
+    } else if ((count == 2 && delta == 1) || (count == 3 && delta == -1)) { // 此转移影响到是否更新额外antis分数
         update_pose(base_dir, base.type);
-        if ((l3_count - base.type == Pattern::LiveThree) == 0) { // 表明除了传入的活三，复合模式里没有其他的活三
-            update_antis(-delta, base_dir, base.type);
+        if (l3_count == (base.type == Pattern::LiveThree)) { // 表明除了传入的活三，复合模式里没有其他的活三
+            auto generator = PatternSearch::generator{};
+            auto pre_dir = Direction(-1);
+            for (auto [dir, comp_type] : components) { // 更新所有方向
+                if (comp_type == base.type && dir == base_dir) {
+                    continue;
+                }
+                if (pre_dir != dir) {
+                    generator = ev.Patterns.execute(ev.m_boardMap.lineView(pose, dir));
+                    pre_dir = dir;
+                }
+                update_antis(generator, -delta, dir, comp_type);
+            }
         }
-    } else { // 仅更新一个方向
+    } else { // count > 3时落入，仅更新一个方向
+        assert(count != 1);
         update_pose(base_dir, base.type);
+    }
+    if (bitset<8>(ev.m_compoundDist[pose][type].get(player, player)).count() == 4) {
+        ev.board().toString();
     }
 }
 

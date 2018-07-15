@@ -128,7 +128,7 @@ struct Heuristic {
                     }
                     break; // 直接跳出，保留后面的候选者
                 }
-                candidates.pop_back();
+                candidates.pop_front();
             }
             // 如果仍有候选者，则寻找成功
             if (int i = -1; !candidates.empty()) {
@@ -144,6 +144,7 @@ struct Heuristic {
                     });
                 }).select(probs, Eigen::VectorXf::Zero((int)BOARD_SIZE)); 
                 probs.normalize(); // 重新标准化概率
+                candidates.clear(); // 清空候选队列
                 state = State::End; // 状态直接跳转到结束
             } else { // 否则，状态沿正常路线转移
                 std::tie(state, is_antiMove) = AutomataTable[is_antiMove][state]; // 解构赋值
@@ -176,7 +177,8 @@ struct Heuristic {
             // 为外部棋盘同步虚状态后，返回结果
             return base.m_curPlayer = ref.m_curPlayer, base.m_winner = ref.m_winner, result;
         }
-        // 由于policy的applyMove不检查胜利，因此缓存成功时，返回值必为两者之一  
+        // 由于policy的applyMove不检查胜利，因此缓存成功时，返回值必为两者之一 
+        assert(cached_acts < ref.m_moveRecord.size());
         return ++cached_acts, base.m_curPlayer = -base.m_curPlayer;
     }
 

@@ -141,9 +141,11 @@ void Board::reset() {
     m_winner = Player::None;
 }
 
+#pragma optimize("", off)
 string Board::toString() const {
     return std::to_string(*this);
 }
+#pragma optimize("", on)
 
 }
 

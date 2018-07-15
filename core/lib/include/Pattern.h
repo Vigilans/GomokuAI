@@ -36,6 +36,10 @@ constexpr Position Shift(Position pose, int offset, Direction dir) {
     return { pose.id + offset * Position(*dir) };
 }
 
+constexpr Position& SelfShift(Position& pose, int offset, Direction dir) {
+    return pose.id += offset * Position(*dir), pose;
+}
+
 // 数组下标与Direction枚举值一一对应
 constexpr Direction Directions[] = {
     Direction::Horizontal, Direction::Vertical, Direction::LeftDiag, Direction::RightDiag
@@ -79,6 +83,9 @@ public:
 
     // 一条匹配记录包含了{ 匹配到的模式, 相对于起始位置的偏移 }
     using Entry = std::tuple<const Pattern&, int>;
+
+    // 验证entry是否覆盖了某个点位（以相对原点的偏移表示）。默认为TARGET_LEN/2，即中心点。
+    static bool HasCovered(const Entry& entry, size_t pose = TARGET_LEN / 2);
 
     // 仿照Python生成器模式编写的用于返回匹配结果的工具类。
     struct generator {
