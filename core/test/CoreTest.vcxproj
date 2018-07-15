@@ -53,6 +53,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="boardmap_unittest.cpp" />
+    <ClCompile Include="evaluator_integrationtest.cpp" />
     <ClCompile Include="integration\board_integrationtest.cpp" />
     <ClCompile Include="patternsearch_unittest.cpp" />
     <ClCompile Include="pch.cpp">

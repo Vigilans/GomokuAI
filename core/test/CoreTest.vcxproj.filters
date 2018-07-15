@@ -20,6 +20,9 @@
     <ClCompile Include="patternsearch_unittest.cpp">
       <Filter>UnitTest</Filter>
     </ClCompile>
+    <ClCompile Include="evaluator_integrationtest.cpp">
+      <Filter>IntegrationTest</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="pch.h" />
