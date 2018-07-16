@@ -116,10 +116,11 @@ public:
     const std::vector<Entry>& matches(std::string_view target);
 
 private:
-    std::vector<int> m_base;
-    std::vector<int> m_check;
-    std::vector<int> m_fail;
-    std::vector<Pattern> m_patterns;
+    std::vector<int> m_base;  // DAT子结点基准数组
+    std::vector<int> m_check; // DAT父结点检索数组
+    std::vector<int> m_fail;  // AC自动机fail指针数组
+    std::vector<int> m_invariants;   // AC自动机「不动点」状态数组
+    std::vector<Pattern> m_patterns; // 可检索模式集合
 };
 
 

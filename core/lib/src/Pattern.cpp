@@ -36,21 +36,18 @@ const PatternSearch::generator& PatternSearch::generator::operator++() {
             break; // 此次break后，该generator达到了end状态
         }
         int code = target[0]; // 取出当前要检测的目标位
-        if (code == EncodeCharset('?') && state == code) { // 相当于判断state == base[0] + code('?')
-            while (!target.empty() && target[0] == code) { // 快速跳转冗长的'?'状态
+        if (state == ref->m_invariants[code]) { // 判断当前状态在接受code后是否不发生转移（即「不动点」状态）
+            while (!target.empty() && target[0] == code) { // 快速跳转冗长的无转移状态
                 ++offset, target.remove_prefix(1); 
             }
             continue;
         }
-        int next = ref->m_base[state] + code;
+        int next = ref->m_base[state] + code; // 获取下一状态的索引
         if (ref->m_check[next] == state) { // 尝试往下匹配target
             state = next; // 匹配成功转移
-        } else if (state != 0) {
+        } else if (state != 0) { // 匹配失败时的判断。若最终在根节点匹配失败，则跳过该字符继续搜索
             state = ref->m_fail[state]; // 匹配失败转移
             continue; // 失败转移后在下一循环再次尝试匹配
-        } else {
-            target = ""; // 清空目标串，认为匹配已结束
-            break; // 若在根节点匹配失败，则没有再搜索的意义
         }
         ++offset, target.remove_prefix(1);
     } while (ref->m_check[ref->m_base[state]] != state); // 发现叶子结点时，暂时中断匹配
@@ -517,7 +514,6 @@ void Evaluator::Compound::Update(Evaluator& ev, int delta, Position pose, const 
     }
 }
 
-// 以下模式被设计为没有互为前缀码的情况。
 PatternSearch Evaluator::Patterns = {
     { "+xxxxx",    Pattern::Five,      9999 },
     { "-_oooo_",   Pattern::LiveFour,  9000 },
@@ -526,7 +522,11 @@ PatternSearch Evaluator::Patterns = {
     { "-oo_oo",    Pattern::DeadFour,  2600 },
     { "-~_ooo_~",  Pattern::LiveThree, 3000 },
     { "-x^ooo_~",  Pattern::LiveThree, 2900 },
-    { "-^o_oo^",   Pattern::LiveThree, 2800 },
+    { "-~o_oo~",   Pattern::LiveThree, 2800 },
+    { "-~o~oo_~",  Pattern::DeadThree, 1400 },
+    { "-~oo~o_~",  Pattern::DeadThree, 1200 },
+    { "-x_o~oo~",  Pattern::DeadThree, 1300 },
+    { "-x_oo~o~",  Pattern::DeadThree, 1100 },
     { "-xooo__~",  Pattern::DeadThree, 510 },
     { "-xoo_o_~",  Pattern::DeadThree, 520 },
     { "-xoo__o~",  Pattern::DeadThree, 520 },

@@ -20,7 +20,7 @@ protected:
 // 利用边界检测初始条件的LineView是否正确
 TEST_F(BoardMapTest, InitialLineView) {
     for (auto direction : Directions) {
-        EXPECT_EQ(boardMap.lineView({ 7,7 }, direction), string(TARGET_LEN, '-'));
+        EXPECT_EQ(boardMap.lineView({ 7,7 }, direction), string(TARGET_LEN, EncodeCharset('-')));
     }
     EXPECT_EQ(boardMap.lineView({ 0,0 }, Direction::Horizontal), "??????-------"_v);
     EXPECT_EQ(boardMap.lineView({ 0,0 }, Direction::Vertical),   "??????-------"_v);

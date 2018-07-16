@@ -231,6 +231,7 @@ void AhoCorasickBuilder::buildDAT(PatternSearch* ps) {
 void AhoCorasickBuilder::buildACGraph(PatternSearch* ps) {
     // 初始，所有结点的fail指针都指向根节点
     ps->m_fail.resize(ps->m_base.size(), 0);
+    ps->m_invariants.resize(std::size(Codeset) + 1, 0);
 
     // 准备好结点队列，置入根节点作为初始值
     queue<int> node_queue;
@@ -264,7 +265,11 @@ void AhoCorasickBuilder::buildACGraph(PatternSearch* ps) {
             }
             // 若直到pre_fail结点为0才退出，则当前结点的fail指针指向根节点。
         }
-        // NOTE: 由于Patterns被设计为一定没有互为前缀码的情况，因此无需对"output表"（即m_patterns）进行扩充。
+        // 若某结点接受code后转移至自己，则该节点为「不动点状态」
+        if (ps->m_check[ps->m_base[cur_node] + code] != cur_node &&
+            ps->m_base[ps->m_fail[cur_node]] + code == cur_node) { 
+            ps->m_invariants[code] = cur_node;
+        }
     }
 }
 

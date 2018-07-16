@@ -14,6 +14,12 @@ inline bool operator==(const Pattern& lhs, const Pattern& rhs) {
 using namespace Gomoku;
 using namespace std;
 
+inline string operator""_v(const char* str, size_t size) {
+    string code(size, 0);
+    std::transform(str, str + size, code.begin(), EncodeCharset);
+    return code;
+}
+
 class PatternSearchTest : public ::testing::Test {
 protected:
     AhoCorasickBuilder builder = {
@@ -194,11 +200,13 @@ TEST_F(PatternSearchTest, ACFailPointers) {
     EXPECT_EQ(travel("x-o"), ps.m_fail[travel("o_xxx_o")]);
 }
 
+
 TEST_F(PatternSearchTest, PatternMatch) {
     builder.build(&ps);
-    auto generator = ps.execute("??-xxx-ooo-xxx-o-xxx--xxx-?");
+    auto target = "??-xxx-ooo-xxx-o-xxx--xxx-?"_v;
+    auto generator = ps.execute(target);
     auto current = generator.begin();
-    auto test = [&](string_view expect_str, int expect_offset) {
+    auto test = [&](string expect_str, int expect_offset) {
         auto [pattern, offset] = *current; ++current;
         if (Encode(pattern.str) == Encode(expect_str) && offset == expect_offset) {
             return ::testing::AssertionSuccess();
@@ -212,4 +220,33 @@ TEST_F(PatternSearchTest, PatternMatch) {
     EXPECT_TRUE(test("o-xxx--", 21));
     EXPECT_TRUE(test("--xxx-?", 26));
     EXPECT_FALSE(current != generator.end());
+}
+
+TEST_F(PatternSearchTest, InvariantState) {
+    auto& ps = Evaluator::Patterns;
+    int state, code;
+    // 'x'的不动点状态为"xxxxx"
+    state = 0, code = EncodeCharset('x');
+    for (int i = 0; i < 5; ++i) {
+        state = ps.m_base[state] + code;
+    }
+    EXPECT_TRUE(state == ps.m_invariants[code]);
+    // 'o'的不动点状态为"ooooo"
+    state = 0, code = EncodeCharset('o');
+    for (int i = 0; i < 5; ++i) {
+        state = ps.m_base[state] + code;
+    }
+    EXPECT_TRUE(state == ps.m_invariants[code]);
+    // '?'的不动点状态为"?"
+    state = 0, code = EncodeCharset('?');
+    for (int i = 0; i < 1; ++i) {
+        state = ps.m_base[state] + code;
+    }
+    EXPECT_TRUE(state == ps.m_invariants[code]);
+    // '-'的不动点状态为"----"
+    state = 0, code = EncodeCharset('-');
+    for (int i = 0; i < 4; ++i) {
+        state = ps.m_base[state] + code;
+    }
+    EXPECT_TRUE(state == ps.m_invariants[code]);
 }
