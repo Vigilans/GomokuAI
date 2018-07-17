@@ -313,8 +313,8 @@ bool Evaluator::checkGameEnd() {
 }
 
 void Evaluator::syncWithBoard(const Board& board) {
-    int i;
-    for (i = 0; i < board.m_moveRecord.size(); ++i) {
+    int i = 0;
+    for (; i < board.m_moveRecord.size(); ++i) {
         if (i < this->board().m_moveRecord.size()) {
             if (this->board().m_moveRecord[i] == board.m_moveRecord[i]) {
                 continue;
@@ -508,9 +508,6 @@ void Evaluator::Compound::Update(Evaluator& ev, int delta, Position pose, const 
     } else { // count > 3时落入，仅更新一个方向
         assert(count != 1);
         update_pose(base_dir, base.type);
-    }
-    if (bitset<8>(ev.m_compoundDist[pose][type].get(player, player)).count() == 4) {
-        ev.board().toString();
     }
 }
 
