@@ -145,6 +145,43 @@ public:
 };
 
 
+class Evaluator; // 评估器前置声明
+
+struct Compound {
+    struct Component { Direction dir; Pattern::Type type; };
+    static bool Test(Evaluator& ev, Position pose, Player player);
+    static const int BaseScore; // 双三/四三/双四共用一个分数。
+
+    // 表明该复合模式汇集的位置
+    Position position;
+    
+    // 表明该复合模式对何方有利
+    Player favour;
+
+    // 记录构成复合模式的各单个模式，及它们所在方向
+    std::vector<Component> components;
+
+    // 记录该复合模式的类型
+    enum Type { DoubleThree, FourThree, DoubleFour, Size } type;
+
+    // 原局面的引用
+    Evaluator& ev;
+
+    std::string boardStr;
+
+    struct {
+        Component base; // 更新时的基准组成部分
+        int comp_count = 0; // 
+        int l3_count = 0; // 复合模式中活三的数量
+        bool triple_cross = false; // 是否有三个模式汇集于一点
+    } updater;
+
+    //Compound(Evaluator& ev, Position pose, Player favour);
+    void locate(); // 定位复合模式类型与约束的状态机
+    void update(int delta); // 更新状态机
+};
+
+
 class Evaluator {
 public:
     struct Record {
@@ -154,14 +191,6 @@ public:
         unsigned get(Player favour, Player perspective, Direction dir) const; // 获取某一组的某一方向的2标记位。
         unsigned get(Player favour, Player perspective) const; // 打包返回一组下的4*2个方向位。
         unsigned get(Player player) const; // 按玩家类型返回16位计数位。
-    };
-
-    struct Compound {
-        enum Type { DoubleThree, FourThree, DoubleFour, Size };
-        static bool Test(Evaluator& ev, Position pose, Player player);
-        static void Update(Evaluator& ev, int delta, Position pose, const Pattern& base, Direction base_dir);
-        static const Pattern::Type Components[3]; // 被用于组成复合模式的单模式类型。
-        static const int BaseScore; // 双三/四三/双四共用一个分数。
     };
 
     // 按 Player::Black | Player::White 构成的二元分组。
@@ -205,11 +234,22 @@ public:
     void reset();
 
 private:
-    void updateMove(Position move, Player src_player);
-
-    void updateLine(std::string_view target, int delta, Position move, Direction dir);
-
-    void updateBlock(int delta, Position move, Player src_player);
+    class Updater {
+    public:
+        explicit Updater(Evaluator& ev) : ev(ev) { }
+        void updateMove(Position move, Player src_player);
+    private:
+        void matchPatterns(Direction dir);
+        void updatePatterns(int delta, Direction dir);
+        void updateCompound(int delta, Direction dir);
+        void updateBlock(int delta, Player src_player); 
+        void reset(Position move);
+    private:
+        std::vector<PatternSearch::Entry> match_results;
+        std::unique_ptr<Compound> compound;
+        Position move;
+        Evaluator& ev;
+    } m_updater;
 
 public:
     BoardMap m_boardMap; // 内部维护了一个Board, 避免受到外部的干扰

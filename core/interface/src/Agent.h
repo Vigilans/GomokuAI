@@ -141,7 +141,7 @@ public:
             message[std::to_string(player)][0][i] = m_evaluator.m_patternDist.back()[i].get(player);
         }
         for (auto player : { Player::Black, Player::White })
-        for (int i = 0; i < Evaluator::Compound::Size; ++i) {
+        for (int i = 0; i < Compound::Size; ++i) {
             message[std::to_string(player)][1][i] = m_evaluator.m_compoundDist.back()[i].get(player);
         }
         return message;

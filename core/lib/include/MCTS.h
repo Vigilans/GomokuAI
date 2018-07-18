@@ -131,6 +131,7 @@ public: // 共通属性
     size_t m_initActs = 0; // MCTS的一轮Playout开始时，Board已下的棋子数。
 };
 
+
 class MCTS {
 public:
     // 通过时间控制模拟迭代。为默认构造方法。
