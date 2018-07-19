@@ -221,8 +221,6 @@ public:
 
     auto& density(Player player) { return m_density[Group(player)]; }
 
-    auto weight(Player player) { return density(player).unaryExpr([](int v) { return std::max(v, 0); }).cast<float>().normalized(); }
-
     Player applyMove(Position move);
 
     Player revertMove(size_t count = 1);
@@ -255,8 +253,8 @@ public:
     BoardMap m_boardMap; // 内部维护了一个Board, 避免受到外部的干扰
     Distribution<Pattern::Size - 1> m_patternDist; // 不统计Pattern::Five分布
     Distribution<Compound::Size> m_compoundDist;
-    Eigen::VectorXi m_density[2];
-    Eigen::VectorXi m_scores[4];
+    Eigen::ArrayXi m_density[2][2]; // 第一维: { White, Black }, 第二维: { Σ1, Σweight }
+    Eigen::VectorXi m_scores[4]; // 按照Group函数分组
 };
 
 }

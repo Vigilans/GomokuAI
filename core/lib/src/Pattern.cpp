@@ -193,11 +193,11 @@ void Evaluator::Updater::updatePatterns(int delta, Direction dir) {
             ev.board().m_winner = pattern.favour;
             continue;
         }
+        auto current = Shift(move, offset - TARGET_LEN / 2, dir);
         ev.m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改总计数
-        for (int i = 0; i < pattern.str.length(); ++i) { // 修改空位数据
+        for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, dir)) { // 修改空位数据
             const auto piece = pattern.str.rbegin()[i];
-            if (piece == '_' || piece == '^') { // '_'代表己方有效空位，'^'代表对方反制空位
-                const auto current = Shift(move, offset - i - TARGET_LEN / 2, dir);
+            if (piece == '_' || piece == '^') { // '_'代表己方有效空位，'^'代表对方反制空位 
                 const auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1);
                 const auto score = int(delta * multiplier * pattern.score);
                 const auto update_pose = [&](Player perspective) {
@@ -216,9 +216,9 @@ void Evaluator::Updater::updatePatterns(int delta, Direction dir) {
 
 void Evaluator::Updater::updateCompound(int delta, Direction dir) {
     //for (auto [pattern, offset] : match_results) {
-    //    for (int i = 0; i < pattern.str.length(); ++i) {
+    //    auto current = Shift(move, offset - TARGET_LEN / 2, dir);
+    //    for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, dir)) {
     //        auto piece = pattern.str.rbegin()[i];
-    //        auto pose = Shift(move, offset - i - TARGET_LEN / 2, dir);
     //        if (piece == '_' && pattern.type >= Pattern::LiveTwo && pattern.type < Pattern::DeadFour
     //            && Compound::Test(ev, pose, pattern.favour)) {
     //            if (compound == nullptr) { // Lazy load
@@ -232,30 +232,40 @@ void Evaluator::Updater::updateCompound(int delta, Direction dir) {
 
 void Evaluator::Updater::updateBlock(int delta, Player src_player) {
     // 数据准备
-    auto sgn = [](int x) { return x < 0 ? -1 : 1; }; // 0以上记为正（认为原位置没有棋）
-    auto relu = [](int x) { return std::max(x, 0); };
+    const auto sign = [](int x) { return x < 0 ? -1 : 1; };
+    const auto mask = [](int x) { return x > 0 ? 1 : 0; };
     auto [weights, score] = BlockWeights;
-    auto density_block = BlockView(ev.m_density[Group(src_player)], move);
-    auto score_block   = BlockView(ev.m_scores[Group(src_player)], move);
-    auto weight_block  = BlockView(weights, move);
-    // 除去旧density分数（初始情况下density_block为0矩阵，减去也没有影响）
-    //score_block -= score * density_block.unaryExpr(relu);    
-    // 更新density（sgn对应原位置是否有棋，delta对应下棋还是悔棋）。
-    density_block += density_block.unaryExpr(sgn) * delta * weight_block;
+    auto base_weights  = BlockView(weights, move);
+    auto count_block   = BlockView(ev.density(src_player)[0], move);
+    auto weight_block  = BlockView(ev.density(src_player)[1], move);
+    auto score_block   = BlockView(ev.scores(src_player, src_player), move); // 只为关键矩阵更新分数
+    auto sign_block    = weight_block.unaryExpr(sign); // 表征某位置是否有棋的{-1, 1}二值矩阵（0以上认为没有棋）
+    auto mask_block    = weight_block.unaryExpr(mask).eval(); // 表征某位置是否有有效计数的{0, 1}二值矩阵（0与负数认为是无效计数）
+
+    // 更新density（sign对应原位置是否有棋，delta对应下棋还是悔棋）。
+    weight_block += sign_block * delta * base_weights;
+    count_block  += sign_block * delta * base_weights.unaryExpr(mask);
+    
     // 修改中心位置的状态（是否可以用来计分）
-    for (auto perspective : { Player::Black, Player::White }) {
-        switch (auto& count = ev.m_density[Group(perspective)][move]; delta) {
-        case 1: // 代表这里下了一子
-            count *= -1, count -= 1; break; // 反转计数，表明这个位置已有棋子占用，并减去一辅助数，保证count一定是负数
-        case -1: // 代表悔了这一子
-            count += 1, count *= -1; break; // 除去之前减掉的辅助数后，反转计数，表明这里可以用来计分了
+    for (auto perspective : { Player::Black, Player::White }) 
+    for (auto& count_or_weight : ev.density(perspective)) {
+        switch (auto& value = count_or_weight[move]; delta) {
+            case 1: // 代表这里下了一子
+                value *= -1; // 反转计数，表明这个位置已有棋子占用
+                value -= 1;  // 减去一辅助数，保证value一定是负数
+                break;
+            case -1: // 代表悔了这一子
+                value += 1;  // 除去之前减掉的辅助数
+                value *= -1; // 反转计数，表明这里可以用来计分了
+                break; 
         }
     }
-    //cout << "Current: " << to_string(src_player) << endl;
-    //cout << endl << "White:\n" << Map<Array<int, WIDTH, HEIGHT, RowMajor>>(m_density[0].data()) << endl
-    //     << "Black:\n" << Map<Array<int, WIDTH, HEIGHT, RowMajor>>(m_density[1].data()) << endl;
-    // 补回新density分数
-    //score_block += score * density_block.unaryExpr(relu);
+
+    // 将mask_block更新成"delta_block"，表征有效计数的变化，并以此修改score_block
+    score_block += score * (weight_block.unaryExpr(mask) - mask_block); // score_block在有有效计数的位置上增加一个固定的分数
+    if (auto count = ev.density(-src_player)[0][move]; (count != 0 && count != -1)) { // count为0或-1代表原位置最初没有计分，故不修改分数
+        ev.scores(-src_player, -src_player)[move] -= delta * score; // 对方的分数在move处变化
+    }
 }
 
 void Evaluator::Updater::updateMove(Position move, Player src_player) {
@@ -294,6 +304,13 @@ Player Evaluator::applyMove(Position move) {
         if (!board().moveState(Player::None, i)) {
             for (int j = 0; j < 4; ++j) {
                 if (m_scores[j][i] != 0) {
+                    auto b = board().toString();
+                    throw b;
+                }
+            }
+        } else {
+            for (int j = 0; j < 4; ++j) {
+                if (m_scores[j][i] < 0) {
                     auto b = board().toString();
                     throw b;
                 }
@@ -342,8 +359,9 @@ void Evaluator::reset() {
     for (auto& scores : m_scores) {
         scores.resize(BOARD_SIZE), scores.setZero();
     }
-    for (auto& density : m_density) {
-        density.resize(BOARD_SIZE), density.setZero();
+    for (auto& density : m_density) 
+    for (auto& cnt_n_wt : density) { // count & weight
+        cnt_n_wt.resize(BOARD_SIZE), cnt_n_wt.setZero();
     }
     for (auto& distribution : m_patternDist) {
         distribution.fill(Record{}); // 最后一个元素用于总计数
@@ -569,7 +587,7 @@ PatternSearch Evaluator::Patterns = {
 
 tuple<Array<int, BLOCK_SIZE, BLOCK_SIZE, RowMajor>, int> Evaluator::BlockWeights = []() {
     tuple_element_t<0, decltype(BlockWeights)> weight;
-    tuple_element_t<1, decltype(BlockWeights)> score = 10;
+    tuple_element_t<1, decltype(BlockWeights)> score = 160;
     weight << 2, 0, 0, 1, 0, 0, 2,
               0, 4, 3, 3, 3, 4, 0,
               0, 3, 5, 4, 5, 3, 0,

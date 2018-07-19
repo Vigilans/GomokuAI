@@ -49,6 +49,7 @@ struct Default {
     static Eigen::VectorXf UniformProbs(Board& board) {
         Eigen::VectorXf action_probs = BoardMask(board).cast<float>();
         action_probs /= board.moveCounts(Player::None);
+        
         return action_probs;
     }
 
@@ -128,6 +129,7 @@ struct RAVE {
 
     /*
         RAVE算法并不负责MCTS的Expand与使用Default Policy Simulate的过程，因而不提供相关函数。
+        Select与BackPropogate过程需要配套使用，并且并不一定需要AMAF结点，利用其不回退的机制也是很好的。
     */
 
     static Node* Select(Policy* policy, const Node* node) {
@@ -136,18 +138,25 @@ struct RAVE {
     }
 
     // 反向传播更新结点价值，要求传入的Board处于游戏结束的状态。
-    static void BackPropogate(Policy* policy, Node* node, Board& board, float value, double c_bias, bool useRave = true) {
+    template <bool UseRave = true>
+    static void BackPropogate(Policy* policy, Node* node, Board& board, float value, double c_bias = 0.0) {
         for (; node != nullptr; node = node->parent, value = -value) {
             size_t max_index = 0;
             double max_score = -INFINITY;
-            // 更新子结点的RAVE价值，顺便计算最终得分
+            // 计算最终得分，当UseRave为真时，更新并使用子结点的RAVE价值
             for (int i = 0; i < node->children.size(); ++i) {
-                auto rave_node = static_cast<AMAFNode*>(node->children[i].get());
-                if (useRave && board.moveState(rave_node->player, rave_node->position)) { // 要求是同一玩家下的
-                    rave_node->amaf_visits += 1;
-                    rave_node->amaf_value += (-value - rave_node->amaf_value) / rave_node->amaf_visits;
+                auto child_node = node->children[i].get();
+                auto score = Default::PUCB(child_node, policy->c_puct);
+                if constexpr (UseRave) {
+                    auto rave_node = static_cast<AMAFNode*>(child_node);
+                    if (board.moveState(rave_node->player, rave_node->position)) { // 要求是同一玩家下的
+                        rave_node->amaf_visits += 1;
+                        rave_node->amaf_value += (-value - rave_node->amaf_value) / rave_node->amaf_visits;
+                    }
+                    score += WeightedValue(rave_node, c_bias);
+                } else {
+                    score += child_node->state_value;
                 }
-                auto score = useRave ? WeightedValue(rave_node, c_bias) : rave_node->state_value + Default::PUCB(rave_node, policy->c_puct);
                 if (score > max_score) {
                     max_score = score, max_index = i;
                 }

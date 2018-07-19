@@ -15,11 +15,9 @@ struct Heuristic {
     static Eigen::VectorXf EvaluationProbs(Evaluator& ev, Player player) {
         Eigen::VectorXf action_probs;
         if (!ev.board().m_moveRecord.empty()) {
-            Eigen::VectorXf self_worthy = ev.scores(player, player).cast<float>().cwiseProduct(ev.weight(player));
-            Eigen::VectorXf rival_anti = ev.scores(-player, player).cast<float>().cwiseProduct(ev.weight(-player));
+            Eigen::VectorXf self_worthy = ev.scores(player, player).cast<float>().cwiseProduct(DensityWeight(ev, player));
+            Eigen::VectorXf rival_anti = ev.scores(-player, player).cast<float>().cwiseProduct(DensityWeight(ev, -player));
             action_probs = (0.6 * self_worthy + 0.4 * rival_anti).normalized();
-            int a;
-            action_probs.maxCoeff(&a);
         } else {
             action_probs = Eigen::VectorXf::Zero(BOARD_SIZE);
             action_probs[Position{ WIDTH / 2 , HEIGHT / 2 }] = 1.0f;
@@ -31,9 +29,18 @@ struct Heuristic {
     // ws_rival_worthy = dot(rival_worthy, normalize(rival_density))
     // state_value = tanh((ws_self_worthy - ws_rival_worthy) / scale_factor)
     static float EvaluationValue(Evaluator& ev, Player player) {
-        auto self_worthy  = ev.scores(player, player).cast<float>().dot(ev.weight(player));
-        auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(ev.weight(-player));
-        return std::tanh((self_worthy - rival_worthy) / 100.0f);
+        auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
+        auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
+        return std::tanh((self_worthy - rival_worthy) / 3000.0f);
+    }
+
+    // weight = normalize(w/n * 1.5n/(0.5+n)) = normalize(3w/(1+2n))
+    static Eigen::VectorXf DensityWeight(Evaluator& ev, Player player) {
+        const auto filter = [](int x) { return std::max(x, 0); };
+        const auto [counts, weights] = ev.density(player);
+        auto N = counts.unaryExpr(filter).cast<float>();
+        auto W = weights.unaryExpr(filter).cast<float>();
+        return ((3 * W) / (1 + 2 * N)).matrix().normalized();
     }
 
     // 进行多轮随机rollout，用各轮结果来不断调整value的值。
@@ -54,9 +61,9 @@ struct Heuristic {
     static std::tuple<Player, int> EvaluatedRollout(Evaluator& ev, Func probs_to_move, bool revert = false) {
         auto total_moves = 0;
         auto& board = ev.board();  
-        for (auto result = board.m_curPlayer; result != Player::None; ++total_moves) {
+        for (; !ev.checkGameEnd(); ++total_moves) {
             auto action_probs = EvaluationProbs(ev, board.m_curPlayer);
-            result = ev.applyMove(probs_to_move(board, std::move(action_probs)));
+            ev.applyMove(probs_to_move(board, action_probs));
         }
         auto winner = board.m_winner;
         if (revert) {
@@ -67,7 +74,7 @@ struct Heuristic {
 
     // 每一轮选取对当前玩家概率最大的点下棋，直到游戏结束。
     static std::tuple<Player, int> MaxEvaluatedRollout(Evaluator& ev, bool revert = false) {
-        return EvaluatedRollout(ev, [](const Board& board, Eigen::VectorXf action_probs) {
+        return EvaluatedRollout(ev, [](const Board& board, Eigen::Ref<Eigen::VectorXf> action_probs) {
             Position next_move;
             action_probs.maxCoeff(&next_move.id);
             return next_move;
@@ -76,7 +83,7 @@ struct Heuristic {
 
     // 每一轮根据当前玩家的概率分布随机选点下棋，直到游戏结束。
     static std::tuple<Player, int> RandomEvaluatedRollout(Evaluator& ev, bool revert = false) {
-        return EvaluatedRollout(ev, [](const Board& board, Eigen::VectorXf action_probs) {
+        return EvaluatedRollout(ev, [](const Board& board, Eigen::Ref<Eigen::VectorXf> action_probs) {
             float temperature = 1 - Stats::Sigmoid((board.m_moveRecord.size() - 40) / 20.0f);
             auto a = Stats::Softmax(action_probs);
             return board.getRandomMove(a);

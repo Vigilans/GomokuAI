@@ -9,6 +9,9 @@ struct Stats {
     template <typename Numeric>
     static Numeric Sigmoid(Numeric x) { return 1 / (1 + std::exp(-x)); };
 
+    template <typename Numeric>
+    static Numeric ReLU(Numeric x) { return std::max(x, 0); };
+
     static Eigen::VectorXf Softmax(Eigen::Ref<Eigen::VectorXf> logits) {
         Eigen::VectorXf exp_logits = logits.array().exp();
         return exp_logits / exp_logits.sum();
