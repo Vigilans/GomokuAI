@@ -103,10 +103,15 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
         }
     }
 
-    auto [winner, idx] = get_agent(board.m_winner);
-    printf("\nGame end. Winner: %d.%s\nRecord JSON:\n", idx, winner.name().data());
+    if (board.m_winner != Player::None) {
+        auto [winner, idx] = get_agent(board.m_winner);
+        printf("\nGame end. Winner: %d.%s\nRecord JSON:\n", idx, winner.name().data());
+    } else {
+        printf("\nTie.\n");
+    }
 
-    // 按赢家的视角输出可被botzone读取的json数据
+
+    // 鎸夎耽瀹剁殑瑙嗚杈撳嚭鍙botzone璇诲彇鐨刯son鏁版嵁
     json records;
     for (int i = 0; i < board.m_moveRecord.size(); ++i) {
         if (i == 0 && board.m_winner == Player::Black) {
@@ -120,7 +125,7 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
     }
     cout << records;
 
-    return idx;
+    return board.m_winner == Player::None;
 }
 
 }

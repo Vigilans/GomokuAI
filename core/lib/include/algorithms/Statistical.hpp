@@ -17,7 +17,7 @@ struct Stats {
         return exp_logits / exp_logits.sum();
     }
     
-    // ¦Ð = norm(¦Ð^(1/¦Ó)) = softmax(log(¦Ð)/¦Ó), 0 < ¦Ó <= 1
+    // Ï€ = norm(Ï€^(1/Ï„)) = softmax(log(Ï€)/Ï„), 0 < Ï„ <= 1
     static Eigen::VectorXf TempBasedProbs(Eigen::Ref<Eigen::VectorXf> logits, float temperature) {
         Eigen::VectorXf temp_logits = (logits.array() + Epsilon).log() / temperature;
         return Softmax(temp_logits).unaryExpr([](float probs) { return probs > Epsilon ? probs : 0; });

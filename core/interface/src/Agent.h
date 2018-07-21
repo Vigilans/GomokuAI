@@ -69,7 +69,12 @@ public:
     }
 
     virtual Position getAction(Board& board) {
-        return m_mcts->getAction(board);
+        auto [state_value, action_probs] = m_mcts->evalState(board);
+        //std::cout << state_value << std::endl;
+        //std::cout << action_probs << std::endl;
+        Position next_move;
+        action_probs.maxCoeff(&next_move.id);
+        return next_move;
     }
 
     virtual json debugMessage() {
@@ -112,6 +117,7 @@ public:
         } else {
             auto action_probs = Heuristic::EvaluationProbs(m_evaluator, m_evaluator.board().m_curPlayer);
             Heuristic::DecisiveFilter(m_evaluator, action_probs);
+            Heuristic::EvaluationValue(m_evaluator, m_evaluator.board().m_curPlayer);
             action_probs.maxCoeff(&m_thisMove.id);
             //m_thisMove = board.getRandomMove(action_probs);
         }

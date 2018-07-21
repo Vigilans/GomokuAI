@@ -49,7 +49,7 @@ void AhoCorasickBuilder::boundaryAugment() {
         char enemy = m_patterns[i].favour == Player::Black ? 'o' : 'x';
         auto first = m_patterns[i].str.find_first_of(enemy);
         auto last = m_patterns[i].str.find_last_of(enemy);
-        if (first != string::npos) { // ×î¶àÖ»ÓĞÈıÖÖÇé¿ö
+        if (first != string::npos) { // æœ€å¤šåªæœ‰ä¸‰ç§æƒ…å†µ
             Pattern bounded(m_patterns[i]);
             bounded.str[first] = '?';
             m_patterns.push_back(bounded);
@@ -64,23 +64,23 @@ void AhoCorasickBuilder::boundaryAugment() {
 }
 
 void AhoCorasickBuilder::sortPatterns() {
-    // ¸ù¾İ×îÖÕµÄpatternsÊıÁ¿Ô¤Áô¿Õ¼ä
+    // æ ¹æ®æœ€ç»ˆçš„patternsæ•°é‡é¢„ç•™ç©ºé—´
     vector<int> codes(m_patterns.size());
     vector<int> indices(m_patterns.size());
 
-    // ±àÂë¡¢Ìî³äÓëÅÅĞò
+    // ç¼–ç ã€å¡«å……ä¸æ’åº
     std::transform(m_patterns.begin(), m_patterns.end(), codes.begin(), [](const Pattern& p) {
         auto align_offset = std::pow(std::size(Codeset), MAX_PATTERN_LEN - p.str.size());
-        return std::reduce(p.str.begin(), p.str.end(), 0, [&](int sum, char ch) {
+        return std::accumulate(p.str.begin(), p.str.end(), 0, [&](int sum, char ch) {
             return sum *= std::size(Codeset), sum += EncodeCharset(ch);
-        }) * align_offset; // °´size(Codeset)½øÖÆ¼ÇÊı²¢¶ÔÆë
-    }); // Í¨¹ı¶ÔÆëµÄ»ùÊıÅÅĞò¼ä½ÓÊµÏÖ×ÖµäĞòÅÅĞò
+        }) * align_offset; // æŒ‰size(Codeset)è¿›åˆ¶è®°æ•°å¹¶å¯¹é½
+    }); // é€šè¿‡å¯¹é½çš„åŸºæ•°æ’åºé—´æ¥å®ç°å­—å…¸åºæ’åº
     std::iota(indices.begin(), indices.end(), 0);
     std::sort(indices.begin(), indices.end(), [&codes](int lhs, int rhs) {
         return codes[lhs] < codes[rhs];
     });
 
-    // ¸ù¾İindicesÖØÅÅm_patterns
+    // æ ¹æ®indicesé‡æ’m_patterns
     vector<Pattern> medium;
     medium.reserve(m_patterns.size());
     for (auto index : indices) {
@@ -90,158 +90,158 @@ void AhoCorasickBuilder::sortPatterns() {
 }
 
 /*
-    ÀûÓÃset£¨ºìºÚÊ÷£©À´×öTrieÊ÷µÄ»ù´¡´æ´¢£¬ÆäÄÚ²¿½áµãµÄÅÅĞòÎª£º
-    µÚÒ»ÓÅÏÈ¼¶£ºdepthÎ¬¶È
-      ËùÓĞ½áµãÍ¨¹ı²ã´ÎÍê³ÉµÚÒ»ÂÖÅÅĞò¡£
-    µÚ¶şÓÅÏÈ¼¶£ºsiblingsÎ¬¶È
-      Í¬Ò»²ãËùÓĞ½áµãµÄ[first, last)Çø¼ä¹¹³ÉÁË¸ù½ÚµãµÄ[0, size)Çø¼äµÄÒ»¸ö»®·Ö¡£
-      Òò´Ë£¬Í¬Ò»²ãµÄ½áµã¿É°´ÕÕfirstÅÅĞò½øĞĞË÷Òı¡£
-    ÓÉ´Ë¿É¼û£¬¶ÔÓÚNodeÀ´Ëµ£¬ÆäÔÚsetµÄÎ»ÖÃ¿ÉÍ¨¹ı{ depth, first }Î¨Ò»È·¶¨£¬lastÊÇ¿É±äµÄ¡£
+    åˆ©ç”¨setï¼ˆçº¢é»‘æ ‘ï¼‰æ¥åšTrieæ ‘çš„åŸºç¡€å­˜å‚¨ï¼Œå…¶å†…éƒ¨ç»“ç‚¹çš„æ’åºä¸ºï¼š
+    ç¬¬ä¸€ä¼˜å…ˆçº§ï¼šdepthç»´åº¦
+      æ‰€æœ‰ç»“ç‚¹é€šè¿‡å±‚æ¬¡å®Œæˆç¬¬ä¸€è½®æ’åºã€‚
+    ç¬¬äºŒä¼˜å…ˆçº§ï¼šsiblingsç»´åº¦
+      åŒä¸€å±‚æ‰€æœ‰ç»“ç‚¹çš„[first, last)åŒºé—´æ„æˆäº†æ ¹èŠ‚ç‚¹çš„[0, size)åŒºé—´çš„ä¸€ä¸ªåˆ’åˆ†ã€‚
+      å› æ­¤ï¼ŒåŒä¸€å±‚çš„ç»“ç‚¹å¯æŒ‰ç…§firstæ’åºè¿›è¡Œç´¢å¼•ã€‚
+    ç”±æ­¤å¯è§ï¼Œå¯¹äºNodeæ¥è¯´ï¼Œå…¶åœ¨setçš„ä½ç½®å¯é€šè¿‡{ depth, first }å”¯ä¸€ç¡®å®šï¼Œlastæ˜¯å¯å˜çš„ã€‚
 
-    ÓÉÒÔÉÏ¶¨Òå¿ÉÖª£º
-      1. Ä³½áµã{ depth, first, last }µÄ×Ó½áµã¼¯ºÏÎªdepth + 1²ãµÄ[first, last)Çø¼ä¡£
-      2. ¶ÔËùÓĞÒ¶½áµãÓĞlast - first == 1¡£¾¡¹Üdepth²»Í¬£¬µ«½áµãÏà»¥Á¬½Óºó£¬±ãĞÎ³ÉÁËÍêÕûµÄPatternsÊı×é¡£
+    ç”±ä»¥ä¸Šå®šä¹‰å¯çŸ¥ï¼š
+      1. æŸç»“ç‚¹{ depth, first, last }çš„å­ç»“ç‚¹é›†åˆä¸ºdepth + 1å±‚çš„[first, last)åŒºé—´ã€‚
+      2. å¯¹æ‰€æœ‰å¶ç»“ç‚¹æœ‰last - first == 1ã€‚å°½ç®¡depthä¸åŒï¼Œä½†ç»“ç‚¹ç›¸äº’è¿æ¥åï¼Œä¾¿å½¢æˆäº†å®Œæ•´çš„Patternsæ•°ç»„ã€‚
 */
 void AhoCorasickBuilder::buildNodeBasedTrie() {
-    // suffixÎªÒÔparentµÄ×Ó½áµãÎªÆğµã£¬Ö±ÖÁÕû¸öpattern½áÊøµÄºó×º
+    // suffixä¸ºä»¥parentçš„å­ç»“ç‚¹ä¸ºèµ·ç‚¹ï¼Œç›´è‡³æ•´ä¸ªpatternç»“æŸçš„åç¼€
     function<void(string_view, NodeIter)> insert_pattern = [&](string_view suffix, NodeIter parent) {
         if (suffix.empty()) {
-            // Base case: ÒÑµÖ´ïÒ¶½áµã£¬´ú±í¼ÇÂ¼µ½Ò»¸öÆ¥ÅäÄ£Ê½¡£
-            // È·¶¨ÕÒµ½Ò»¸öÄ£Ê½ºó£¬²åÈëÉÚ±øÒ¶½áµã£¬²¢Ê¹Çø¼äÓÒ¶ËµãÓÒÒÆÒ»Î»¡£
+            // Base case: å·²æŠµè¾¾å¶ç»“ç‚¹ï¼Œä»£è¡¨è®°å½•åˆ°ä¸€ä¸ªåŒ¹é…æ¨¡å¼ã€‚
+            // ç¡®å®šæ‰¾åˆ°ä¸€ä¸ªæ¨¡å¼åï¼Œæ’å…¥å“¨å…µå¶ç»“ç‚¹ï¼Œå¹¶ä½¿åŒºé—´å³ç«¯ç‚¹å³ç§»ä¸€ä½ã€‚
             m_tree.emplace(0, parent->depth + 1, parent->first, ++parent->last);
         } else {
-            Node key = { // ×¼±¸×Ó½áµãË÷Òı
+            Node key = { // å‡†å¤‡å­ç»“ç‚¹ç´¢å¼•
                 EncodeCharset(suffix[0]),
                 parent->depth + 1
             };
             auto [first, last] = children(parent);
             auto child = std::find_if(first, last, [&key](const Node& node) { 
-                return node.code == key.code; // ½ö°´Ç°×º×Ö·ûÆ¥Åä¸Ã½áµã
+                return node.code == key.code; // ä»…æŒ‰å‰ç¼€å­—ç¬¦åŒ¹é…è¯¥ç»“ç‚¹
             }); 
-            if (child == last) { // Ç°×ºÆ¥ÅäÊ§°Ü£¬ĞÂÉú³ÉÒ»¸ö·ÖÖ§½áµã
+            if (child == last) { // å‰ç¼€åŒ¹é…å¤±è´¥ï¼Œæ–°ç”Ÿæˆä¸€ä¸ªåˆ†æ”¯ç»“ç‚¹
                 key.first = parent->last;
                 key.last = key.first;
                 child = m_tree.insert(key).first;
             }
-            insert_pattern(suffix.substr(1), child); // µİ¹é½«patternÊ£ÏÂµÄ²¿·Ö²åÈëtrieÊ÷ÖĞ
-            parent->last = child->last; // ·´Ïò´«²¥£¬¸üĞÂÇø¼äÓÒ±ß½çÖµ¡£
+            insert_pattern(suffix.substr(1), child); // é€’å½’å°†patternå‰©ä¸‹çš„éƒ¨åˆ†æ’å…¥trieæ ‘ä¸­
+            parent->last = child->last; // åå‘ä¼ æ’­ï¼Œæ›´æ–°åŒºé—´å³è¾¹ç•Œå€¼ã€‚
         }
     };
     auto root = m_tree.find({});
     for (auto pattern : m_patterns) {
-        insert_pattern(pattern.str, root); // °´×ÖµäĞò²åÈëpattern
+        insert_pattern(pattern.str, root); // æŒ‰å­—å…¸åºæ’å…¥pattern
     }
 }
 
 /*
-    ½«set<Node>ĞÎÊ½µÄTrieÊ÷Ñ¹ËõÖÁË«Êı×éĞÎÊ½¡£
-    ¹¹ÔìÍê±Ïºó£¬baseÓëcheckÊı×é¸÷¶¨ÒåÎª£º
+    å°†set<Node>å½¢å¼çš„Trieæ ‘å‹ç¼©è‡³åŒæ•°ç»„å½¢å¼ã€‚
+    æ„é€ å®Œæ¯•åï¼Œbaseä¸checkæ•°ç»„å„å®šä¹‰ä¸ºï¼š
     base:
-      1. ¶ÔÓÚ·ÇÒ¶½áµã£¬baseÖµÎªËùÓĞ×Ó½áµãµÄÆ«ÒÆ»ù×¼Öµ£¨t = base[s] + c£©¡£
-      2. ¶ÔÓÚÒ¶½áµã£¬baseÖµÎª½áµãËù¶ÔÓ¦Ä£Ê½µÄÏÂ±êµÄ¸ºÊı£¨patterns[-base[l]]£©¡£
-      3. ¶ÔÓÚ¿ÕÏĞÎ»ÖÃ£¬baseÖµÎª¿ÕÏĞÁ´±íµÄÇ°Çı½áµãµÄÏÂ±êµÄ¸ºÊı£¨v_{i-1} = -base[v_i])¡£
+      1. å¯¹äºéå¶ç»“ç‚¹ï¼Œbaseå€¼ä¸ºæ‰€æœ‰å­ç»“ç‚¹çš„åç§»åŸºå‡†å€¼ï¼ˆt = base[s] + cï¼‰ã€‚
+      2. å¯¹äºå¶ç»“ç‚¹ï¼Œbaseå€¼ä¸ºç»“ç‚¹æ‰€å¯¹åº”æ¨¡å¼çš„ä¸‹æ ‡çš„è´Ÿæ•°ï¼ˆpatterns[-base[l]]ï¼‰ã€‚
+      3. å¯¹äºç©ºé—²ä½ç½®ï¼Œbaseå€¼ä¸ºç©ºé—²é“¾è¡¨çš„å‰é©±ç»“ç‚¹çš„ä¸‹æ ‡çš„è´Ÿæ•°ï¼ˆv_{i-1} = -base[v_i])ã€‚
     check:
-      1. ¶ÔÓÚÒ»°ã½áµã£¬checkÖµÎªÆä¸¸½áµãËùÔÚÎ»ÖÃ£¨s = check[t <- base[s] + c]£©¡£
-      2. ¶ÔÓÚ¿ÕÏĞÎ»ÖÃ£¬checkÖµÎª¿ÕÏĞÁ´±íµÄºó¼Ì½áµãµÄÏÂ±êµÄ¸ºÊı£¨v_{i+1} = -check[v_i])¡£
-      3. ¶ÔÓÚ¸ù½Úµã£¬ÓÉÓÚÆäÎŞ¸¸½áµã£¬¹ÊÃ»ÓĞÒ»°ãcheckÖµ£¬¸ÃÎ»ÖÃÓÃ×÷¿ÕÏĞÁ´±íË÷ÒıµÄÆğµã¡£
+      1. å¯¹äºä¸€èˆ¬ç»“ç‚¹ï¼Œcheckå€¼ä¸ºå…¶çˆ¶ç»“ç‚¹æ‰€åœ¨ä½ç½®ï¼ˆs = check[t <- base[s] + c]ï¼‰ã€‚
+      2. å¯¹äºç©ºé—²ä½ç½®ï¼Œcheckå€¼ä¸ºç©ºé—²é“¾è¡¨çš„åç»§ç»“ç‚¹çš„ä¸‹æ ‡çš„è´Ÿæ•°ï¼ˆv_{i+1} = -check[v_i])ã€‚
+      3. å¯¹äºæ ¹èŠ‚ç‚¹ï¼Œç”±äºå…¶æ— çˆ¶ç»“ç‚¹ï¼Œæ•…æ²¡æœ‰ä¸€èˆ¬checkå€¼ï¼Œè¯¥ä½ç½®ç”¨ä½œç©ºé—²é“¾è¡¨ç´¢å¼•çš„èµ·ç‚¹ã€‚
 
-    ¶ÔÓÚÒÔÉÏ¶¨Òå£¬baseÖµ¿ÉÄÜÓĞÈıÖÖÇé¿öÎª0:
-      1. Æ«ÒÆÖµÎª0£¨Èç¸ù½Úµã£©
-      2. ¶ÔÓ¦Ä£Ê½µÄÏÂ±êÎª0£¨µÚÒ»¸öÒ¶½áµã£©
-      3. Ç°Çı½áµãµÄÏÂ±êÎª0£¨Ê×¸ö¿ÕÏĞÎ»ÖÃ£©
-    3Óë1,2µÄ¹¤×÷¹ı³ÌÃ»ÓĞ½»¼¯£¨¹¹½¨ºÃµÄ×Ô¶¯»úÔÚÆ¥Åä¹ı³ÌÖĞ²»»áÂäÈë¿ÕÏĞÎ»ÖÃ£©
-    ¶ÔÓÚ1,2£¬Ò¶½áµãµÄÅĞ¶¨Ìõ¼şÎª£ºcheck[base[s]] == s
-      * ¸ù½ÚµãµÄbase[0] == 0£¬¶ø¸ù¾İÒÔÉÏ¶¨Òåcheck[0] < 0£¬Òò´Ë²»»áÎóÅĞ¸ù½ÚµãÓĞÒ¶½áµã¡£
-      * ¶ÔÓ¦Ä£Ê½µÄÏÂ±êÎª0£¬Ôòcheck[0] < 0£¬Ò²²»»áÅĞ¶ÏÒ¶½áµã»¹ÓĞÒ¶½áµã¡£
-    Òò´ËÒ²²»»á²úÉú³åÍ»¡£
+    å¯¹äºä»¥ä¸Šå®šä¹‰ï¼Œbaseå€¼å¯èƒ½æœ‰ä¸‰ç§æƒ…å†µä¸º0:
+      1. åç§»å€¼ä¸º0ï¼ˆå¦‚æ ¹èŠ‚ç‚¹ï¼‰
+      2. å¯¹åº”æ¨¡å¼çš„ä¸‹æ ‡ä¸º0ï¼ˆç¬¬ä¸€ä¸ªå¶ç»“ç‚¹ï¼‰
+      3. å‰é©±ç»“ç‚¹çš„ä¸‹æ ‡ä¸º0ï¼ˆé¦–ä¸ªç©ºé—²ä½ç½®ï¼‰
+    3ä¸1,2çš„å·¥ä½œè¿‡ç¨‹æ²¡æœ‰äº¤é›†ï¼ˆæ„å»ºå¥½çš„è‡ªåŠ¨æœºåœ¨åŒ¹é…è¿‡ç¨‹ä¸­ä¸ä¼šè½å…¥ç©ºé—²ä½ç½®ï¼‰
+    å¯¹äº1,2ï¼Œå¶ç»“ç‚¹çš„åˆ¤å®šæ¡ä»¶ä¸ºï¼šcheck[base[s]] == s
+      * æ ¹èŠ‚ç‚¹çš„base[0] == 0ï¼Œè€Œæ ¹æ®ä»¥ä¸Šå®šä¹‰check[0] < 0ï¼Œå› æ­¤ä¸ä¼šè¯¯åˆ¤æ ¹èŠ‚ç‚¹æœ‰å¶ç»“ç‚¹ã€‚
+      * å¯¹åº”æ¨¡å¼çš„ä¸‹æ ‡ä¸º0ï¼Œåˆ™check[0] < 0ï¼Œä¹Ÿä¸ä¼šåˆ¤æ–­å¶ç»“ç‚¹è¿˜æœ‰å¶ç»“ç‚¹ã€‚
+    å› æ­¤ä¹Ÿä¸ä¼šäº§ç”Ÿå†²çªã€‚
 */
 void AhoCorasickBuilder::buildDAT(PatternSearch* ps) {
-    // indexÎªnodeÔÚË«Êı×éÖĞµÄË÷Òı£¬Ö®Ç°µÄµİ¹éÖĞÒÑÈ·¶¨ºÃ
+    // indexä¸ºnodeåœ¨åŒæ•°ç»„ä¸­çš„ç´¢å¼•ï¼Œä¹‹å‰çš„é€’å½’ä¸­å·²ç¡®å®šå¥½
     function<void(int, NodeIter)> build_recursive = [&](int index, NodeIter node) {
         if (node->depth > 0 && node->code == 0) {
-            // Base case: ÒÑµÖ´ïÒ¶½áµã£¬ÉèÖÃindexµÄbaseÎª(-¶ÔÓ¦pattern±íµÄÏÂ±ê)
-            // ´ËÊ±nodeµÄlast - first == 1, [first, last)Î¨Ò»È·¶¨ÁËÒ»¸ö½áµã
+            // Base case: å·²æŠµè¾¾å¶ç»“ç‚¹ï¼Œè®¾ç½®indexçš„baseä¸º(-å¯¹åº”patternè¡¨çš„ä¸‹æ ‡)
+            // æ­¤æ—¶nodeçš„last - first == 1, [first, last)å”¯ä¸€ç¡®å®šäº†ä¸€ä¸ªç»“ç‚¹
             ps->m_base[index] = -node->first; 
         } else {
-            // ×¼±¸Êı¾İ
+            // å‡†å¤‡æ•°æ®
             auto [first, last] = children(node);
             int begin = 0, front = 0;
 
             /*
-                ³õÊ¼Ìõ¼ş£ºbegin´Ó0¿ªÊ¼£¨´ËÍâ¸ù½ÚµãbaseÖµÎª0£©£¬frontÑØ0ÍùÏÂÑ°ÕÒ¿ÕÎ»¡£
-                ÍË³öÌõ¼ş£ºÕÒµ½Ò»¸ö¿ÉÒÔÈİÄÉindex½áµãµÄËùÓĞ×Ó½áµãµÄbeginÖµ
-                ×´Ì¬×ªÒÆ£ºÑØÇ°ÏòÁ´±íÕÒµ½ÏÂÒ»¸ö¿ÕÎ»£¬½«Õâ¸ö¿ÕÎ»ÊÓ×÷ÈİÄÉÊ×¸ö×Ó½áµãµÄÎ»ÖÃ
-                ²Î¿¼£ºhttp://www.aclweb.org/anthology/D13-1023
+                åˆå§‹æ¡ä»¶ï¼šbeginä»0å¼€å§‹ï¼ˆæ­¤å¤–æ ¹èŠ‚ç‚¹baseå€¼ä¸º0ï¼‰ï¼Œfrontæ²¿0å¾€ä¸‹å¯»æ‰¾ç©ºä½ã€‚
+                é€€å‡ºæ¡ä»¶ï¼šæ‰¾åˆ°ä¸€ä¸ªå¯ä»¥å®¹çº³indexç»“ç‚¹çš„æ‰€æœ‰å­ç»“ç‚¹çš„beginå€¼
+                çŠ¶æ€è½¬ç§»ï¼šæ²¿å‰å‘é“¾è¡¨æ‰¾åˆ°ä¸‹ä¸€ä¸ªç©ºä½ï¼Œå°†è¿™ä¸ªç©ºä½è§†ä½œå®¹çº³é¦–ä¸ªå­ç»“ç‚¹çš„ä½ç½®
+                å‚è€ƒï¼šhttp://www.aclweb.org/anthology/D13-1023
             */
             do {
-                front = -ps->m_check[front]; // Ê×¸ö×Ó½áµãµÄÏÂ±ê
-                begin = front - first->code; // ×Ó½áµãµÄÆ«ÒÆ»ù×¼Öµ
+                front = -ps->m_check[front]; // é¦–ä¸ªå­ç»“ç‚¹çš„ä¸‹æ ‡
+                begin = front - first->code; // å­ç»“ç‚¹çš„åç§»åŸºå‡†å€¼
 
-                // ÓÉÓÚ¸ºµÄbaseÖµÓĞÌØÊâÓïÒå£¬beginÖµ±ØĞë´óÓÚ0¡£
+                // ç”±äºè´Ÿçš„baseå€¼æœ‰ç‰¹æ®Šè¯­ä¹‰ï¼Œbeginå€¼å¿…é¡»å¤§äº0ã€‚
                 if (begin < 0) continue;
 
-                // ¿Õ¼ä²»×ãÊ±À©³äm_baseÓëm_checkÊı×é¡£
-                // ãĞÖµÉèÎªsize - 1ÒÔ±£Ö¤×îºóÒ»Î»Îª¿Õ£¨ÏÂÊ½1ÒÆµ½ÁË×ó²àÒÔ·ÀÖ¹Òç³ö£©
+                // ç©ºé—´ä¸è¶³æ—¶æ‰©å……m_baseä¸m_checkæ•°ç»„ã€‚
+                // é˜ˆå€¼è®¾ä¸ºsize - 1ä»¥ä¿è¯æœ€åä¸€ä½ä¸ºç©ºï¼ˆä¸‹å¼1ç§»åˆ°äº†å·¦ä¾§ä»¥é˜²æ­¢æº¢å‡ºï¼‰
                 while (begin + std::size(Codeset) + 1 >= ps->m_check.size()) {
-                    // À©³ä¿Õ¼ä
+                    // æ‰©å……ç©ºé—´
                     auto pre_size = ps->m_base.size();
                     ps->m_base.resize(2 * pre_size);
                     ps->m_check.resize(2 * pre_size);
-                    // Ìî³äÏÂ±ê²¹È«Ë«Á´±í
+                    // å¡«å……ä¸‹æ ‡è¡¥å…¨åŒé“¾è¡¨
                     for (int i = pre_size; i < ps->m_base.size(); ++i) {
-                        ps->m_base[i] = -(i - 1); // ÄæÏòÁ´±í
-                        ps->m_check[i] = -(i + 1); // Ç°ÏòÁ´±í
+                        ps->m_base[i] = -(i - 1); // é€†å‘é“¾è¡¨
+                        ps->m_check[i] = -(i + 1); // å‰å‘é“¾è¡¨
                     }
                 }
 
-            // ÑéÖ¤ÊÇ·ñËùÓĞºòÑ¡×Ó½áµãÎ»ÖÃ¾ùÎ´±»Õ¼ÓÃ
-            // É¸Ñ¡Ìõ¼ş£º¸ù½Úµã/checkÖµ²»Ğ¡ÓÚ0µÄ½áµãÊÇ±»Õ¼ÓÃµÄ¡£
+            // éªŒè¯æ˜¯å¦æ‰€æœ‰å€™é€‰å­ç»“ç‚¹ä½ç½®å‡æœªè¢«å ç”¨
+            // ç­›é€‰æ¡ä»¶ï¼šæ ¹èŠ‚ç‚¹/checkå€¼ä¸å°äº0çš„ç»“ç‚¹æ˜¯è¢«å ç”¨çš„ã€‚
             } while (!std::all_of(first, last, [&](const Node& node) {
                 auto c_i = begin + node.code;
                 return c_i != 0 && ps->m_check[c_i] < 0;
             }));
 
-            // ±éÀú×Ó½áµã£¬ÉèÖÃÏà¹Ø×´Ì¬ºó¶Ô×Ó½áµãµİ¹é¹¹½¨
+            // éå†å­ç»“ç‚¹ï¼Œè®¾ç½®ç›¸å…³çŠ¶æ€åå¯¹å­ç»“ç‚¹é€’å½’æ„å»º
             for (auto cur = first; cur != last; ++cur) {
-                // È¡µÃµ±Ç°×Ó½ÚµãÏÂ±ê£¨ÖµµÃ×¢ÒâµÄÊÇÒ¶½áµãÏÂ±ê¾ÍÎªbegin£©
+                // å–å¾—å½“å‰å­èŠ‚ç‚¹ä¸‹æ ‡ï¼ˆå€¼å¾—æ³¨æ„çš„æ˜¯å¶ç»“ç‚¹ä¸‹æ ‡å°±ä¸ºbeginï¼‰
                 int c_i = begin + cur->code;
 
-                // ½«µ±Ç°ÏÂ±êÒÆ³ö¿ÕÏĞ½ÚµãÁ´±í£¨ÀûÓÃDancing Links£©
+                // å°†å½“å‰ä¸‹æ ‡ç§»å‡ºç©ºé—²èŠ‚ç‚¹é“¾è¡¨ï¼ˆåˆ©ç”¨Dancing Linksï¼‰
                 ps->m_check[-ps->m_base[c_i]] = ps->m_check[c_i];
                 ps->m_base[-ps->m_check[c_i]] = ps->m_base[c_i];
 
-                // ½«×Ó½áµãcheckÖµÓë¸¸½áµã°ó¶¨
+                // å°†å­ç»“ç‚¹checkå€¼ä¸çˆ¶ç»“ç‚¹ç»‘å®š
                 ps->m_check[c_i] = index;
             }
-            // ¸¸½áµãµÄbaseÉèÖÃÎªÕÒºÃµÄbeginÖµ
+            // çˆ¶ç»“ç‚¹çš„baseè®¾ç½®ä¸ºæ‰¾å¥½çš„beginå€¼
             ps->m_base[index] = begin; 
-            // Recursive Step: ¶ÔÃ¿¸ö×Ó½áµãµİ¹é¹¹Ôì
+            // Recursive Step: å¯¹æ¯ä¸ªå­ç»“ç‚¹é€’å½’æ„é€ 
             for (auto cur = first; cur != last; ++cur) {
                 build_recursive(begin + cur->code, cur);
             }
         }
     };
-    ps->m_base.resize(1, 0);   // ¸ù½Úµã(0)Ã»ÓĞÇ°Çı½áµã£¬¹ÊÆäbaseÎ»²»ÎªÄæÏòÁ´±íµÄ±ê¼Çµã£¬¶øÓÃ×÷±¾ÒåbaseÖµ¡£
-    ps->m_check.resize(1, -1); // ¸ù½Úµã(0)ÓÉÓÚÃ»ÓĞ¸¸½áµã£¬¹ÊÆäÎŞ±¾ÒåcheckÖµ£¬¸ÃÎ»ÖÃÓÃÀ´×÷ÎªÇ°ÏòÁ´±íµÄÆğµã¡£
+    ps->m_base.resize(1, 0);   // æ ¹èŠ‚ç‚¹(0)æ²¡æœ‰å‰é©±ç»“ç‚¹ï¼Œæ•…å…¶baseä½ä¸ä¸ºé€†å‘é“¾è¡¨çš„æ ‡è®°ç‚¹ï¼Œè€Œç”¨ä½œæœ¬ä¹‰baseå€¼ã€‚
+    ps->m_check.resize(1, -1); // æ ¹èŠ‚ç‚¹(0)ç”±äºæ²¡æœ‰çˆ¶ç»“ç‚¹ï¼Œæ•…å…¶æ— æœ¬ä¹‰checkå€¼ï¼Œè¯¥ä½ç½®ç”¨æ¥ä½œä¸ºå‰å‘é“¾è¡¨çš„èµ·ç‚¹ã€‚
     auto root = m_tree.find({});
     build_recursive(0, root);
     ps->m_patterns.swap(m_patterns);
 }
 
 void AhoCorasickBuilder::buildACGraph(PatternSearch* ps) {
-    // ³õÊ¼£¬ËùÓĞ½áµãµÄfailÖ¸Õë¶¼Ö¸Ïò¸ù½Úµã
+    // åˆå§‹ï¼Œæ‰€æœ‰ç»“ç‚¹çš„failæŒ‡é’ˆéƒ½æŒ‡å‘æ ¹èŠ‚ç‚¹
     ps->m_fail.resize(ps->m_base.size(), 0);
     ps->m_invariants.resize(std::size(Codeset) + 1, 0);
 
-    // ×¼±¸ºÃ½áµã¶ÓÁĞ£¬ÖÃÈë¸ù½Úµã×÷Îª³õÊ¼Öµ
+    // å‡†å¤‡å¥½ç»“ç‚¹é˜Ÿåˆ—ï¼Œç½®å…¥æ ¹èŠ‚ç‚¹ä½œä¸ºåˆå§‹å€¼
     queue<int> node_queue;
     node_queue.push(0);
     while (!node_queue.empty()) {
-        // È¡³öµ±Ç°½áµã 
+        // å–å‡ºå½“å‰ç»“ç‚¹ 
         int cur_node = node_queue.front();
         node_queue.pop();
 
-        // ×¼±¸ĞÂµÄ½áµã
+        // å‡†å¤‡æ–°çš„ç»“ç‚¹
         for (auto code : Codeset) {
             int child_node = ps->m_base[cur_node] + code;
             if (ps->m_check[child_node] == cur_node) {
@@ -249,23 +249,23 @@ void AhoCorasickBuilder::buildACGraph(PatternSearch* ps) {
             }
         }
 
-        // ¸ù½ÚµãfailÖ¸ÕëÖ¸Ïò×Ô¼º£¬²»ÓÃÉèÖÃ
+        // æ ¹èŠ‚ç‚¹failæŒ‡é’ˆæŒ‡å‘è‡ªå·±ï¼Œä¸ç”¨è®¾ç½®
         if (cur_node == 0) continue;
 
-        // Îªµ±Ç°½áµãÉèÖÃfailÖ¸Õë
-        int code = cur_node - ps->m_base[ps->m_check[cur_node]]; // È¡µÃ×ª»»ÖÁcur½áµãµÄ±àÂë
-        int pre_fail_node = ps->m_check[cur_node]; // ³õÊ¼pre_fail½áµãÉèÖÃÎªcur½áµãµÄ¸¸½áµã
-        while (pre_fail_node != 0) { // °´Æ¥Åäºó×º³¤¶È´Ó³¤->¶Ì²»¶ÏÌø×ªfail½áµã£¬Ö±µ½³¤¶ÈÎª0£¨µÖ´ï¸ù½Úµã£©
-            // Ã¿Ò»´ÎfailÖ¸ÕëµÄÌø×ª£¬×î´óÆ¥Åäºó×ºµÄ³¤¶ÈÖÁÉÙ¼õÉÙÁË1£¬Òò´ËÑ­»·ÊÇÓĞÏŞµÄ
+        // ä¸ºå½“å‰ç»“ç‚¹è®¾ç½®failæŒ‡é’ˆ
+        int code = cur_node - ps->m_base[ps->m_check[cur_node]]; // å–å¾—è½¬æ¢è‡³curç»“ç‚¹çš„ç¼–ç 
+        int pre_fail_node = ps->m_check[cur_node]; // åˆå§‹pre_failç»“ç‚¹è®¾ç½®ä¸ºcurç»“ç‚¹çš„çˆ¶ç»“ç‚¹
+        while (pre_fail_node != 0) { // æŒ‰åŒ¹é…åç¼€é•¿åº¦ä»é•¿->çŸ­ä¸æ–­è·³è½¬failç»“ç‚¹ï¼Œç›´åˆ°é•¿åº¦ä¸º0ï¼ˆæŠµè¾¾æ ¹èŠ‚ç‚¹ï¼‰
+            // æ¯ä¸€æ¬¡failæŒ‡é’ˆçš„è·³è½¬ï¼Œæœ€å¤§åŒ¹é…åç¼€çš„é•¿åº¦è‡³å°‘å‡å°‘äº†1ï¼Œå› æ­¤å¾ªç¯æ˜¯æœ‰é™çš„
             pre_fail_node = ps->m_fail[pre_fail_node];
             int fail_node = ps->m_base[pre_fail_node] + code;
-            if (ps->m_check[fail_node] == pre_fail_node) { // ÈçÈôpre_fail½áµãÄÜÍ¨¹ıcodeµÖ´ïÄ³×Ó½áµã£¨¼´fail_node´æÔÚ£©
-                ps->m_fail[cur_node] = fail_node; // Ôò¸Ã×Ó½áµã¼´Îªcur½áµãµÄfailÖ¸ÕëµÄÖ¸Ïò
+            if (ps->m_check[fail_node] == pre_fail_node) { // å¦‚è‹¥pre_failç»“ç‚¹èƒ½é€šè¿‡codeæŠµè¾¾æŸå­ç»“ç‚¹ï¼ˆå³fail_nodeå­˜åœ¨ï¼‰
+                ps->m_fail[cur_node] = fail_node; // åˆ™è¯¥å­ç»“ç‚¹å³ä¸ºcurç»“ç‚¹çš„failæŒ‡é’ˆçš„æŒ‡å‘
                 break;
             }
-            // ÈôÖ±µ½pre_fail½áµãÎª0²ÅÍË³ö£¬Ôòµ±Ç°½áµãµÄfailÖ¸ÕëÖ¸Ïò¸ù½Úµã¡£
+            // è‹¥ç›´åˆ°pre_failç»“ç‚¹ä¸º0æ‰é€€å‡ºï¼Œåˆ™å½“å‰ç»“ç‚¹çš„failæŒ‡é’ˆæŒ‡å‘æ ¹èŠ‚ç‚¹ã€‚
         }
-        // ÈôÄ³½áµã½ÓÊÜcodeºó×ªÒÆÖÁ×Ô¼º£¬Ôò¸Ã½ÚµãÎª¡¸²»¶¯µã×´Ì¬¡¹
+        // è‹¥æŸç»“ç‚¹æ¥å—codeåè½¬ç§»è‡³è‡ªå·±ï¼Œåˆ™è¯¥èŠ‚ç‚¹ä¸ºã€Œä¸åŠ¨ç‚¹çŠ¶æ€ã€
         if (ps->m_check[ps->m_base[cur_node] + code] != cur_node &&
             ps->m_base[ps->m_fail[cur_node]] + code == cur_node) { 
             ps->m_invariants[code] = cur_node;

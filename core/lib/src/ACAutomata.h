@@ -19,19 +19,19 @@ constexpr int EncodeCharset(char ch) {
 
 class AhoCorasickBuilder {
 public:
-    // ÓÃÓÚ¹¹½¨Ë«Êı×éµÄÁÙÊ±½áµã
+    // ç”¨äºæ„å»ºåŒæ•°ç»„çš„ä¸´æ—¶ç»“ç‚¹
     struct Node {
-        int code, depth, first; mutable int last; // last²»²ÎÓë±È½Ï£¬¹Ê¿ÉÉùÃ÷Îªmutable¡£
+        int code, depth, first; mutable int last; // lastä¸å‚ä¸æ¯”è¾ƒï¼Œæ•…å¯å£°æ˜ä¸ºmutableã€‚
         
-        // Ä¬ÈÏ¹¹ÔìÊ±Éú³É¸ù½áµã(0, 0, 0, 0)
+        // é»˜è®¤æ„é€ æ—¶ç”Ÿæˆæ ¹ç»“ç‚¹(0, 0, 0, 0)
         Node(int code = 0, int depth = 0, int first = 0, int last = -1)
             : code(code), depth(depth), first(first), last(last == -1 ? first: last) { }
 
-        // ¸ù¾İÎ»±àÂë×Ö·û´´½¨½áµã
+        // æ ¹æ®ä½ç¼–ç å­—ç¬¦åˆ›å»ºç»“ç‚¹
         Node(char ch, int depth = 0, int first = 0, int last = -1)
             : code(EncodeCharset(ch)), depth(depth), first(first), last(last == -1 ? first: last) { }
         
-        bool operator<(const Node& other) const { // ²ÉÓÃdepth->first×ÖµäĞò±È½Ï¡£
+        bool operator<(const Node& other) const { // é‡‡ç”¨depth->firstå­—å…¸åºæ¯”è¾ƒã€‚
             return std::tie(depth, first) < std::tie(other.depth, other.first);
         }
 
@@ -48,36 +48,36 @@ public:
     void build(PatternSearch* searcher);
 
 public:
-    // ²»¶Ô³ÆµÄpattern·´¹ıÀ´¿´ÓëÔ­patternµÈ¼Û
+    // ä¸å¯¹ç§°çš„patternåè¿‡æ¥çœ‹ä¸åŸpatternç­‰ä»·
     void reverseAugment();
 
-    // patternµÄºÚ°×ÑÕÉ«¶Ôµ÷ºóÓëÔ­patternµÈ¼Û
+    // patternçš„é»‘ç™½é¢œè‰²å¯¹è°ƒåä¸åŸpatternç­‰ä»·
     void flipAugment();
 
-    // ±»±ß½ç¶Â×¡µÄpatternÓë±»¶ÔÊÖ¶Â×¡Ò»½ÇµÄpatternµÈ¼Û
+    // è¢«è¾¹ç•Œå µä½çš„patternä¸è¢«å¯¹æ‰‹å µä½ä¸€è§’çš„patternç­‰ä»·
     void boundaryAugment();
 
-    // ¸ù¾İ±àÂë×ÖµäĞòÅÅĞòpatterns
+    // æ ¹æ®ç¼–ç å­—å…¸åºæ’åºpatterns
     void sortPatterns();
 
-    // DFS²åÈëÉú³É»ùÓÚ½áµãµÄTrieÊ÷
+    // DFSæ’å…¥ç”ŸæˆåŸºäºç»“ç‚¹çš„Trieæ ‘
     void buildNodeBasedTrie();
 
-    // DFS±éÀúÉú³ÉË«Êı×éTrieÊ÷
+    // DFSéå†ç”ŸæˆåŒæ•°ç»„Trieæ ‘
     void buildDAT(PatternSearch* ps);
 
-    // BFS±éÀú£¬ÎªDAT¹¹½¨AC×Ô¶¯»úµÄfailÖ¸ÕëÊı×é
+    // BFSéå†ï¼Œä¸ºDATæ„å»ºACè‡ªåŠ¨æœºçš„failæŒ‡é’ˆæ•°ç»„
     void buildACGraph(PatternSearch* ps);
 
 private:
     std::pair<NodeIter, NodeIter> children(NodeIter node) {
-        auto first = m_tree.lower_bound({ 0, node->depth + 1, node->first }); // ×Ó½ÚµãÏÂ½ç£¨no less than£©
-        auto last = m_tree.upper_bound({ 0, node->depth + 1, node->last - 1 }); // ×Ó½ÚµãÉÏ½ç£¨greater than£©
+        auto first = m_tree.lower_bound({ 0, node->depth + 1, node->first }); // å­èŠ‚ç‚¹ä¸‹ç•Œï¼ˆno less thanï¼‰
+        auto last = m_tree.upper_bound({ 0, node->depth + 1, node->last - 1 }); // å­èŠ‚ç‚¹ä¸Šç•Œï¼ˆgreater thanï¼‰
         return { first, last };
     }
 
 private:
-    std::set<Node> m_tree; // ÀûÓÃÔÚ²åÈëÖĞ±£³ÖÓĞĞòµÄRBÊ÷£¬×÷ÎªÁÙÊ±±£´æTrieÊ÷µÄ½á¹¹
+    std::set<Node> m_tree; // åˆ©ç”¨åœ¨æ’å…¥ä¸­ä¿æŒæœ‰åºçš„RBæ ‘ï¼Œä½œä¸ºä¸´æ—¶ä¿å­˜Trieæ ‘çš„ç»“æ„
     std::vector<Pattern> m_patterns;
 };
 

@@ -114,7 +114,7 @@
       <Profile>true</Profile>
     </Link>
     <PreBuildEvent>
-      <Command>start $(ProjectDir)botzone\Amalgamate.exe -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
+      <Command>start $(ProjectDir)botzone\Amalgamate.exe -w "*.cpp;*.h;*.hpp" -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
@@ -135,7 +135,7 @@
       <SubSystem>Console</SubSystem>
     </Link>
     <PreBuildEvent>
-      <Command>start $(ProjectDir)botzone\Amalgamate.exe -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
+      <Command>start $(ProjectDir)botzone\Amalgamate.exe -w "*.cpp;*.h;*.hpp" -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -156,7 +156,7 @@
       <SubSystem>Console</SubSystem>
     </Link>
     <PreBuildEvent>
-      <Command>start $(ProjectDir)botzone\Amalgamate.exe -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
+      <Command>start $(ProjectDir)botzone\Amalgamate.exe -w "*.cpp;*.h;*.hpp" -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -182,7 +182,7 @@
       <Profile>true</Profile>
     </Link>
     <PreBuildEvent>
-      <Command>start $(ProjectDir)botzone\Amalgamate.exe -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
+      <Command>start $(ProjectDir)botzone\Amalgamate.exe -w "*.cpp;*.h;*.hpp" -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
     </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>

@@ -7,7 +7,7 @@
 namespace Gomoku {
 
 inline namespace Config {
-// Ä£Ê½Æ¥ÅäÄ£¿éµÄÏà¹ØÅäÖÃ
+// æ¨¡å¼åŒ¹é…æ¨¡å—çš„ç›¸å…³é…ç½®
 enum PatternConfig {
     MAX_PATTERN_LEN = 7,
     BLOCK_SIZE = 2*3 + 1,
@@ -15,12 +15,12 @@ enum PatternConfig {
 };
 }
 
-// ÆåÅÌµÄËÄ¸ö·½ÏòµÄ³éÏó·â×°
+// æ£‹ç›˜çš„å››ä¸ªæ–¹å‘çš„æŠ½è±¡å°è£…
 enum class Direction : char {
     Horizontal, Vertical, LeftDiag, RightDiag
 };
 
-// ½«·½ÏòÃ¶¾Ù½â°ü³É¾ßÌåµÄ(¦¤x, ¦¤y)Öµ
+// å°†æ–¹å‘æšä¸¾è§£åŒ…æˆå…·ä½“çš„(Î”x, Î”y)å€¼
 constexpr std::pair<int, int> operator*(Direction direction) {
     switch (direction) {
         case Direction::Horizontal: return { 1, 0 };
@@ -31,7 +31,7 @@ constexpr std::pair<int, int> operator*(Direction direction) {
     }
 }
 
-// ½«pose°´ÕÕdir·½ÏòÒÆ¶¯offset¸öµ¥Î»
+// å°†poseæŒ‰ç…§diræ–¹å‘ç§»åŠ¨offsetä¸ªå•ä½
 constexpr Position Shift(Position pose, int offset, Direction dir) {
     return { pose.id + offset * Position(*dir) };
 }
@@ -40,7 +40,7 @@ constexpr Position& SelfShift(Position& pose, int offset, Direction dir) {
     return pose.id += offset * Position(*dir), pose;
 }
 
-// Êı×éÏÂ±êÓëDirectionÃ¶¾ÙÖµÒ»Ò»¶ÔÓ¦
+// æ•°ç»„ä¸‹æ ‡ä¸Directionæšä¸¾å€¼ä¸€ä¸€å¯¹åº”
 constexpr Direction Directions[] = {
     Direction::Horizontal, Direction::Vertical, Direction::LeftDiag, Direction::RightDiag
 };
@@ -48,18 +48,18 @@ constexpr Direction Directions[] = {
 
 struct Pattern {
     /*
-        ¸ÃÆåĞÍµÄ¸»ĞÅÏ¢×Ö·û´®±íÊ¾£¬¾ßÌåÎª£º
-          'x': ºÚÆå£¬'o': °×Æå
-          '_': ¶Ô¸ÃÆåĞÍËùÊôÍæ¼ÒÀ´ËµÓĞÀûµÄ¿ÕÎ»
-          '^': ¸ÃÆåĞÍµĞ¶ÔÍæ¼Ò¿ÉÓÃÓÚ·´»÷µÄ¿ÕÎ»
-          '~': ¶ÔË«·½Íæ¼Ò¾ùÎŞ¼ÛÖµ£¬µ«¶Ô¸ÃÆåĞÍ¶øÑÔ±ØĞë´æÔÚµÄ¿ÕÎ»
+        è¯¥æ£‹å‹çš„å¯Œä¿¡æ¯å­—ç¬¦ä¸²è¡¨ç¤ºï¼Œå…·ä½“ä¸ºï¼š
+          'x': é»‘æ£‹ï¼Œ'o': ç™½æ£‹
+          '_': å¯¹è¯¥æ£‹å‹æ‰€å±ç©å®¶æ¥è¯´æœ‰åˆ©çš„ç©ºä½
+          '^': è¯¥æ£‹å‹æ•Œå¯¹ç©å®¶å¯ç”¨äºåå‡»çš„ç©ºä½
+          '~': å¯¹åŒæ–¹ç©å®¶å‡æ— ä»·å€¼ï¼Œä½†å¯¹è¯¥æ£‹å‹è€Œè¨€å¿…é¡»å­˜åœ¨çš„ç©ºä½
     */
     std::string str;
 
-    // ±íÃ÷¸ÃÄ£Ê½¶ÔºÎ·½ÓĞÀû
+    // è¡¨æ˜è¯¥æ¨¡å¼å¯¹ä½•æ–¹æœ‰åˆ©
     Player favour;
     
-    // ±íÃ÷¸ÃÄ£Ê½ËùÊôµÄÆåĞÍ
+    // è¡¨æ˜è¯¥æ¨¡å¼æ‰€å±çš„æ£‹å‹
     enum Type {
         DeadOne, LiveOne,
         DeadTwo, LiveTwo,
@@ -68,59 +68,59 @@ struct Pattern {
         Five, Size
     } type;
     
-    // ¶Ôµ±Ç°Ä£Ê½µÄ¿ÕÎ»µÄÆÀ·Ö
+    // å¯¹å½“å‰æ¨¡å¼çš„ç©ºä½çš„è¯„åˆ†
     int score;
 
-    // protoÖĞµÄµÚÒ»¸ö×Ö·ûÎª'+'»ò'-'£¬·Ö±ğ´ú±í¶ÔºÚÆåÓë°×ÆåÓĞÀû¡£
+    // protoä¸­çš„ç¬¬ä¸€ä¸ªå­—ç¬¦ä¸º'+'æˆ–'-'ï¼Œåˆ†åˆ«ä»£è¡¨å¯¹é»‘æ£‹ä¸ç™½æ£‹æœ‰åˆ©ã€‚
     Pattern(std::string_view proto, Type type, int score);
 };
 
 
 class PatternSearch {
 public:
-    // ÀûÓÃfriendÖ¸Ã÷ÀàÊµÏÖÀïÊ¹ÓÃÁËAC×Ô¶¯»ú¡£
+    // åˆ©ç”¨friendæŒ‡æ˜ç±»å®ç°é‡Œä½¿ç”¨äº†ACè‡ªåŠ¨æœºã€‚
     friend class AhoCorasickBuilder;
 
-    // Ò»ÌõÆ¥Åä¼ÇÂ¼°üº¬ÁË{ Æ¥Åäµ½µÄÄ£Ê½, Ïà¶ÔÓÚÆğÊ¼Î»ÖÃµÄÆ«ÒÆ }
+    // ä¸€æ¡åŒ¹é…è®°å½•åŒ…å«äº†{ åŒ¹é…åˆ°çš„æ¨¡å¼, ç›¸å¯¹äºèµ·å§‹ä½ç½®çš„åç§» }
     using Entry = std::tuple<const Pattern&, int>;
 
-    // ÑéÖ¤entryÊÇ·ñ¸²¸ÇÁËÄ³¸öµãÎ»£¨ÒÔÏà¶ÔÔ­µãµÄÆ«ÒÆ±íÊ¾£©¡£Ä¬ÈÏÎªTARGET_LEN/2£¬¼´ÖĞĞÄµã¡£
+    // éªŒè¯entryæ˜¯å¦è¦†ç›–äº†æŸä¸ªç‚¹ä½ï¼ˆä»¥ç›¸å¯¹åŸç‚¹çš„åç§»è¡¨ç¤ºï¼‰ã€‚é»˜è®¤ä¸ºTARGET_LEN/2ï¼Œå³ä¸­å¿ƒç‚¹ã€‚
     static bool HasCovered(const Entry& entry, size_t pose = TARGET_LEN / 2);
 
-    // ·ÂÕÕPythonÉú³ÉÆ÷Ä£Ê½±àĞ´µÄÓÃÓÚ·µ»ØÆ¥Åä½á¹ûµÄ¹¤¾ßÀà¡£
+    // ä»¿ç…§Pythonç”Ÿæˆå™¨æ¨¡å¼ç¼–å†™çš„ç”¨äºè¿”å›åŒ¹é…ç»“æœçš„å·¥å…·ç±»ã€‚
     struct generator {
         std::string_view target = "";
         PatternSearch* ref = nullptr;
         int offset = -1, state = 0;
 
-        generator begin() { return state == 0 ? ++(*this) : *this; } // ++ÊÇÎªÁË±£Ö¤´Óbegin¿ªÊ¼¾ÍÓĞÆ¥Åä½á¹û¡£
-        generator end()   { return generator{}; } // ÀûÓÃ¿ÕÉú³ÉÆ÷µÄ¿ÕÄ¿±ê´®("")´ú±íÆ¥Åä½áÊø¡£
+        generator begin() { return state == 0 ? ++(*this) : *this; } // ++æ˜¯ä¸ºäº†ä¿è¯ä»beginå¼€å§‹å°±æœ‰åŒ¹é…ç»“æœã€‚
+        generator end()   { return generator{}; } // åˆ©ç”¨ç©ºç”Ÿæˆå™¨çš„ç©ºç›®æ ‡ä¸²("")ä»£è¡¨åŒ¹é…ç»“æŸã€‚
 
-        Entry operator*() const; // ·µ»Øµ±Ç°×´Ì¬¶ÔÓ¦µÄ¼ÇÂ¼¡£
-        const generator& operator++(); // ½«×Ô¶¯»ú×´Ì¬ÒÆÖÁÏÂÒ»¸öÓĞÆ¥ÅäÄ£Ê½µÄÎ»ÖÃ¡£
-        bool operator!=(const generator& other) const { // targetÓëstateÍêÕû±ê¼ÇÁËÆ¥Åä×´Ì¬¡£
+        Entry operator*() const; // è¿”å›å½“å‰çŠ¶æ€å¯¹åº”çš„è®°å½•ã€‚
+        const generator& operator++(); // å°†è‡ªåŠ¨æœºçŠ¶æ€ç§»è‡³ä¸‹ä¸€ä¸ªæœ‰åŒ¹é…æ¨¡å¼çš„ä½ç½®ã€‚
+        bool operator!=(const generator& other) const { // targetä¸stateå®Œæ•´æ ‡è®°äº†åŒ¹é…çŠ¶æ€ã€‚
             return std::tie(target, state) != std::tie(other.target, other.state);
         }
     };
 
-    // ¹¹ÔìÒ»¸öÎ´³õÊ¼»¯µÄËÑË÷Æ÷¡£
+    // æ„é€ ä¸€ä¸ªæœªåˆå§‹åŒ–çš„æœç´¢å™¨ã€‚
     PatternSearch() = default;
 
-    // ¹¹Ôìº¯ÊıÖĞ´«ÈëµÄÄ£Ê½Ô­ĞÍ½«¾­¹ı¼¸²ãÇ¿»¯£¬»ñµÃÍêÕûµÄÄ£Ê½±í¡£
+    // æ„é€ å‡½æ•°ä¸­ä¼ å…¥çš„æ¨¡å¼åŸå‹å°†ç»è¿‡å‡ å±‚å¼ºåŒ–ï¼Œè·å¾—å®Œæ•´çš„æ¨¡å¼è¡¨ã€‚
     PatternSearch(std::initializer_list<Pattern> protos);
     
-    // ·µ»ØÒ»¸öÉú³ÉÆ÷£¬Ã¿Ò»´Î½âÒıÓÃ·µ»Øµ±Ç°Æ¥Åäµ½µÄÄ£Ê½£¬²¢ÒÆ¶¯µ½ÏÂÒ»¸öÄ£Ê½¡£
+    // è¿”å›ä¸€ä¸ªç”Ÿæˆå™¨ï¼Œæ¯ä¸€æ¬¡è§£å¼•ç”¨è¿”å›å½“å‰åŒ¹é…åˆ°çš„æ¨¡å¼ï¼Œå¹¶ç§»åŠ¨åˆ°ä¸‹ä¸€ä¸ªæ¨¡å¼ã€‚
     generator execute(std::string_view target);
 
-    // Ò»´ÎĞÔÖ±½Ó·µ»ØËùÓĞ²éÕÒµ½µÄ¼ÇÂ¼¡£
+    // ä¸€æ¬¡æ€§ç›´æ¥è¿”å›æ‰€æœ‰æŸ¥æ‰¾åˆ°çš„è®°å½•ã€‚
     const std::vector<Entry>& matches(std::string_view target);
 
 private:
-    std::vector<int> m_base;  // DAT×Ó½áµã»ù×¼Êı×é
-    std::vector<int> m_check; // DAT¸¸½áµã¼ìË÷Êı×é
-    std::vector<int> m_fail;  // AC×Ô¶¯»úfailÖ¸ÕëÊı×é
-    std::vector<int> m_invariants;   // AC×Ô¶¯»ú¡¸²»¶¯µã¡¹×´Ì¬Êı×é
-    std::vector<Pattern> m_patterns; // ¿É¼ìË÷Ä£Ê½¼¯ºÏ
+    std::vector<int> m_base;  // DATå­ç»“ç‚¹åŸºå‡†æ•°ç»„
+    std::vector<int> m_check; // DATçˆ¶ç»“ç‚¹æ£€ç´¢æ•°ç»„
+    std::vector<int> m_fail;  // ACè‡ªåŠ¨æœºfailæŒ‡é’ˆæ•°ç»„
+    std::vector<int> m_invariants;   // ACè‡ªåŠ¨æœºã€Œä¸åŠ¨ç‚¹ã€çŠ¶æ€æ•°ç»„
+    std::vector<Pattern> m_patterns; // å¯æ£€ç´¢æ¨¡å¼é›†åˆ
 };
 
 
@@ -145,72 +145,72 @@ public:
 };
 
 
-class Evaluator; // ÆÀ¹ÀÆ÷Ç°ÖÃÉùÃ÷
+class Evaluator; // è¯„ä¼°å™¨å‰ç½®å£°æ˜
 
 struct Compound {
     struct Component { Direction dir; Pattern::Type type; };
     static bool Test(Evaluator& ev, Position pose, Player player);
-    static const int BaseScore; // Ë«Èı/ËÄÈı/Ë«ËÄ¹²ÓÃÒ»¸ö·ÖÊı¡£
+    static const int BaseScore; // åŒä¸‰/å››ä¸‰/åŒå››å…±ç”¨ä¸€ä¸ªåˆ†æ•°ã€‚
 
-    // ±íÃ÷¸Ã¸´ºÏÄ£Ê½»ã¼¯µÄÎ»ÖÃ
+    // è¡¨æ˜è¯¥å¤åˆæ¨¡å¼æ±‡é›†çš„ä½ç½®
     Position position;
     
-    // ±íÃ÷¸Ã¸´ºÏÄ£Ê½¶ÔºÎ·½ÓĞÀû
+    // è¡¨æ˜è¯¥å¤åˆæ¨¡å¼å¯¹ä½•æ–¹æœ‰åˆ©
     Player favour;
 
-    // ¼ÇÂ¼¹¹³É¸´ºÏÄ£Ê½µÄ¸÷µ¥¸öÄ£Ê½£¬¼°ËüÃÇËùÔÚ·½Ïò
+    // è®°å½•æ„æˆå¤åˆæ¨¡å¼çš„å„å•ä¸ªæ¨¡å¼ï¼ŒåŠå®ƒä»¬æ‰€åœ¨æ–¹å‘
     std::vector<Component> components;
 
-    // ¼ÇÂ¼¸Ã¸´ºÏÄ£Ê½µÄÀàĞÍ
+    // è®°å½•è¯¥å¤åˆæ¨¡å¼çš„ç±»å‹
     enum Type { DoubleThree, FourThree, DoubleFour, Size } type;
 
-    // Ô­¾ÖÃæµÄÒıÓÃ
+    // åŸå±€é¢çš„å¼•ç”¨
     Evaluator& ev;
 
     std::string boardStr;
 
     struct {
-        Component base; // ¸üĞÂÊ±µÄ»ù×¼×é³É²¿·Ö
+        Component base; // æ›´æ–°æ—¶çš„åŸºå‡†ç»„æˆéƒ¨åˆ†
         int comp_count = 0; // 
-        int l3_count = 0; // ¸´ºÏÄ£Ê½ÖĞ»îÈıµÄÊıÁ¿
-        bool triple_cross = false; // ÊÇ·ñÓĞÈı¸öÄ£Ê½»ã¼¯ÓÚÒ»µã
+        int l3_count = 0; // å¤åˆæ¨¡å¼ä¸­æ´»ä¸‰çš„æ•°é‡
+        bool triple_cross = false; // æ˜¯å¦æœ‰ä¸‰ä¸ªæ¨¡å¼æ±‡é›†äºä¸€ç‚¹
     } updater;
 
     //Compound(Evaluator& ev, Position pose, Player favour);
-    void locate(); // ¶¨Î»¸´ºÏÄ£Ê½ÀàĞÍÓëÔ¼ÊøµÄ×´Ì¬»ú
-    void update(int delta); // ¸üĞÂ×´Ì¬»ú
+    void locate(); // å®šä½å¤åˆæ¨¡å¼ç±»å‹ä¸çº¦æŸçš„çŠ¶æ€æœº
+    void update(int delta); // æ›´æ–°çŠ¶æ€æœº
 };
 
 
 class Evaluator {
 public:
     struct Record {
-        unsigned field; // 4 White-Black×éºÏ * 4 ·½Ïò×é * 2±ê¼ÇÎ» || 2 White/Black·Ö¸î * 16¼ÆÊıÎ»
-        void set(int delta, Player player); // °´Íæ¼ÒÀàĞÍÉèÖÃ8Î»¼ÆÊıÎ»¡£
+        unsigned field; // 4 White-Blackç»„åˆ * 4 æ–¹å‘ç»„ * 2æ ‡è®°ä½ || 2 White/Blackåˆ†å‰² * 16è®¡æ•°ä½
+        void set(int delta, Player player); // æŒ‰ç©å®¶ç±»å‹è®¾ç½®8ä½è®¡æ•°ä½ã€‚
         void set(int delta, Player favour, Player perspective, Direction dir);
-        unsigned get(Player favour, Player perspective, Direction dir) const; // »ñÈ¡Ä³Ò»×éµÄÄ³Ò»·½ÏòµÄ2±ê¼ÇÎ»¡£
-        unsigned get(Player favour, Player perspective) const; // ´ò°ü·µ»ØÒ»×éÏÂµÄ4*2¸ö·½ÏòÎ»¡£
-        unsigned get(Player player) const; // °´Íæ¼ÒÀàĞÍ·µ»Ø16Î»¼ÆÊıÎ»¡£
+        unsigned get(Player favour, Player perspective, Direction dir) const; // è·å–æŸä¸€ç»„çš„æŸä¸€æ–¹å‘çš„2æ ‡è®°ä½ã€‚
+        unsigned get(Player favour, Player perspective) const; // æ‰“åŒ…è¿”å›ä¸€ç»„ä¸‹çš„4*2ä¸ªæ–¹å‘ä½ã€‚
+        unsigned get(Player player) const; // æŒ‰ç©å®¶ç±»å‹è¿”å›16ä½è®¡æ•°ä½ã€‚
     };
 
-    // °´ Player::Black | Player::White ¹¹³ÉµÄ¶şÔª·Ö×é¡£
+    // æŒ‰ Player::Black | Player::White æ„æˆçš„äºŒå…ƒåˆ†ç»„ã€‚
     static constexpr int Group(Player player) {
         return player == Player::Black;
     }
 
-    // °´ { Player::Black, Player::White } ¹¹³ÉµÄ2*2ÁĞÁª±í·Ö×é¡£
+    // æŒ‰ { Player::Black, Player::White } æ„æˆçš„2*2åˆ—è”è¡¨åˆ†ç»„ã€‚
     static constexpr int Group(Player favour, Player perspective) {
         return (favour == Player::Black) << 1 | (perspective == Player::Black);
     }
 
-    // »ùÓÚAC×Ô¶¯»úÊµÏÖµÄ¶àÄ£Ê½Æ¥ÅäÆ÷¡£
+    // åŸºäºACè‡ªåŠ¨æœºå®ç°çš„å¤šæ¨¡å¼åŒ¹é…å™¨ã€‚
     static PatternSearch Patterns;
 
-    // »ùÓÚEigenÏòÁ¿»¯²Ù×÷ÓëMapÒıÓÃÊµÏÖµÄÇøÓòÆå×ÓÃÜ¶È¼ÆÊıÆ÷£¬tuple×é³É: { È¨ÖØ£¬ ·ÖÊı }¡£
+    // åŸºäºEigenå‘é‡åŒ–æ“ä½œä¸Mapå¼•ç”¨å®ç°çš„åŒºåŸŸæ£‹å­å¯†åº¦è®¡æ•°å™¨ï¼Œtupleç»„æˆ: { æƒé‡ï¼Œ åˆ†æ•° }ã€‚
     static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE, Eigen::RowMajor>, int> BlockWeights;
 
     template<size_t Size>
-    using Distribution = std::array<std::array<Record, Size>, BOARD_SIZE + 1>; // ×îºóÒ»¸öÔªËØÓÃÓÚ×Ü¼ÆÊı
+    using Distribution = std::array<std::array<Record, Size>, BOARD_SIZE + 1>; // æœ€åä¸€ä¸ªå…ƒç´ ç”¨äºæ€»è®¡æ•°
 
 public:
     explicit Evaluator(Board* board = nullptr);
@@ -225,9 +225,9 @@ public:
 
     Player revertMove(size_t count = 1);
 
-    bool checkGameEnd();  // ÀûÓÃEvaluator£¬ÎÒÃÇ¿ÉÒÔ×öµ½¿ìËÙ¼ì²éÓÎÏ·ÊÇ·ñ½áÊø¡£
+    bool checkGameEnd();  // åˆ©ç”¨Evaluatorï¼Œæˆ‘ä»¬å¯ä»¥åšåˆ°å¿«é€Ÿæ£€æŸ¥æ¸¸æˆæ˜¯å¦ç»“æŸã€‚
 
-    void syncWithBoard(const Board& board); // Í¬²½EvaluatorÖÁ´«ÈëµÄBoard×´Ì¬¡£
+    void syncWithBoard(const Board& board); // åŒæ­¥Evaluatorè‡³ä¼ å…¥çš„BoardçŠ¶æ€ã€‚
 
     void reset();
 
@@ -250,11 +250,11 @@ private:
     } m_updater;
 
 public:
-    BoardMap m_boardMap; // ÄÚ²¿Î¬»¤ÁËÒ»¸öBoard, ±ÜÃâÊÜµ½Íâ²¿µÄ¸ÉÈÅ
-    Distribution<Pattern::Size - 1> m_patternDist; // ²»Í³¼ÆPattern::Five·Ö²¼
+    BoardMap m_boardMap; // å†…éƒ¨ç»´æŠ¤äº†ä¸€ä¸ªBoard, é¿å…å—åˆ°å¤–éƒ¨çš„å¹²æ‰°
+    Distribution<Pattern::Size - 1> m_patternDist; // ä¸ç»Ÿè®¡Pattern::Fiveåˆ†å¸ƒ
     Distribution<Compound::Size> m_compoundDist;
-    Eigen::ArrayXi m_density[2][2]; // µÚÒ»Î¬: { White, Black }, µÚ¶şÎ¬: { ¦²1, ¦²weight }
-    Eigen::VectorXi m_scores[4]; // °´ÕÕGroupº¯Êı·Ö×é
+    Eigen::ArrayXi m_density[2][2]; // ç¬¬ä¸€ç»´: { White, Black }, ç¬¬äºŒç»´: { Î£1, Î£weight }
+    Eigen::VectorXi m_scores[4]; // æŒ‰ç…§Groupå‡½æ•°åˆ†ç»„
 };
 
 }

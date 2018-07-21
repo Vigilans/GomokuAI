@@ -8,7 +8,7 @@ using namespace Eigen;
 
 namespace Gomoku {
 
-/* ------------------- PatternÀàÊµÏÖ ------------------- */
+/* ------------------- Patternç±»å®ç° ------------------- */
 
 Pattern::Pattern(std::string_view proto, Type type, int score) 
     : str(proto.begin() + 1, proto.end()), score(score), type(type),
@@ -16,7 +16,7 @@ Pattern::Pattern(std::string_view proto, Type type, int score)
 
 }
 
-/* ------------------- PatternSearchÀàÊµÏÖ ------------------- */
+/* ------------------- PatternSearchç±»å®ç° ------------------- */
 
 bool PatternSearch::HasCovered(const Entry& entry, size_t pose) {
     const auto [pattern, offset] = entry;
@@ -28,33 +28,33 @@ PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
     builder.build(this);
 }
 
-// ³ÖĞø×ªÒÆ£¬Ö±µ½Æ¥ÅäÏÂÒ»¸ö³É¹¦µÄÄ£Ê½»ò²éÑ¯½áÊø
+// æŒç»­è½¬ç§»ï¼Œç›´åˆ°åŒ¹é…ä¸‹ä¸€ä¸ªæˆåŠŸçš„æ¨¡å¼æˆ–æŸ¥è¯¢ç»“æŸ
 const PatternSearch::generator& PatternSearch::generator::operator++() {
     do {
-        if (target.empty()) { // Ä¿±êÆ¥ÅäÍêÈ«½áÊø
-            state = 0; // ½«×´Ì¬ÖØÖÃÎª³õÊ¼×´Ì¬
-            break; // ´Ë´Îbreakºó£¬¸Ãgenerator´ïµ½ÁËend×´Ì¬
+        if (target.empty()) { // ç›®æ ‡åŒ¹é…å®Œå…¨ç»“æŸ
+            state = 0; // å°†çŠ¶æ€é‡ç½®ä¸ºåˆå§‹çŠ¶æ€
+            break; // æ­¤æ¬¡breakåï¼Œè¯¥generatorè¾¾åˆ°äº†endçŠ¶æ€
         }
-        int code = target[0]; // È¡³öµ±Ç°Òª¼ì²âµÄÄ¿±êÎ»
-        if (state == ref->m_invariants[code]) { // ÅĞ¶Ïµ±Ç°×´Ì¬ÔÚ½ÓÊÜcodeºóÊÇ·ñ²»·¢Éú×ªÒÆ£¨¼´¡¸²»¶¯µã¡¹×´Ì¬£©
-            while (!target.empty() && target[0] == code) { // ¿ìËÙÌø×ªÈß³¤µÄÎŞ×ªÒÆ×´Ì¬
+        int code = target[0]; // å–å‡ºå½“å‰è¦æ£€æµ‹çš„ç›®æ ‡ä½
+        if (state == ref->m_invariants[code]) { // åˆ¤æ–­å½“å‰çŠ¶æ€åœ¨æ¥å—codeåæ˜¯å¦ä¸å‘ç”Ÿè½¬ç§»ï¼ˆå³ã€Œä¸åŠ¨ç‚¹ã€çŠ¶æ€ï¼‰
+            while (!target.empty() && target[0] == code) { // å¿«é€Ÿè·³è½¬å†—é•¿çš„æ— è½¬ç§»çŠ¶æ€
                 ++offset, target.remove_prefix(1); 
             }
             continue;
         }
-        int next = ref->m_base[state] + code; // »ñÈ¡ÏÂÒ»×´Ì¬µÄË÷Òı
-        if (ref->m_check[next] == state) { // ³¢ÊÔÍùÏÂÆ¥Åätarget
-            state = next; // Æ¥Åä³É¹¦×ªÒÆ
-        } else if (state != 0) { // Æ¥ÅäÊ§°ÜÊ±µÄÅĞ¶Ï¡£Èô×îÖÕÔÚ¸ù½ÚµãÆ¥ÅäÊ§°Ü£¬ÔòÌø¹ı¸Ã×Ö·û¼ÌĞøËÑË÷
-            state = ref->m_fail[state]; // Æ¥ÅäÊ§°Ü×ªÒÆ
-            continue; // Ê§°Ü×ªÒÆºóÔÚÏÂÒ»Ñ­»·ÔÙ´Î³¢ÊÔÆ¥Åä
+        int next = ref->m_base[state] + code; // è·å–ä¸‹ä¸€çŠ¶æ€çš„ç´¢å¼•
+        if (ref->m_check[next] == state) { // å°è¯•å¾€ä¸‹åŒ¹é…target
+            state = next; // åŒ¹é…æˆåŠŸè½¬ç§»
+        } else if (state != 0) { // åŒ¹é…å¤±è´¥æ—¶çš„åˆ¤æ–­ã€‚è‹¥æœ€ç»ˆåœ¨æ ¹èŠ‚ç‚¹åŒ¹é…å¤±è´¥ï¼Œåˆ™è·³è¿‡è¯¥å­—ç¬¦ç»§ç»­æœç´¢
+            state = ref->m_fail[state]; // åŒ¹é…å¤±è´¥è½¬ç§»
+            continue; // å¤±è´¥è½¬ç§»ååœ¨ä¸‹ä¸€å¾ªç¯å†æ¬¡å°è¯•åŒ¹é…
         }
         ++offset, target.remove_prefix(1);
-    } while (ref->m_check[ref->m_base[state]] != state); // ·¢ÏÖÒ¶×Ó½áµãÊ±£¬ÔİÊ±ÖĞ¶ÏÆ¥Åä
+    } while (ref->m_check[ref->m_base[state]] != state); // å‘ç°å¶å­ç»“ç‚¹æ—¶ï¼Œæš‚æ—¶ä¸­æ–­åŒ¹é…
     return *this;
 }
 
-// ½âÎöµ±Ç°³É¹¦Æ¥Åäµ½µÄÄ£Ê½
+// è§£æå½“å‰æˆåŠŸåŒ¹é…åˆ°çš„æ¨¡å¼
 PatternSearch::Entry PatternSearch::generator::operator*() const {
     const auto leaf = ref->m_base[state];
     return { ref->m_patterns[-ref->m_base[leaf]], offset };
@@ -73,18 +73,18 @@ const vector<PatternSearch::Entry>& PatternSearch::matches(string_view target) {
     return entries;
 }
 
-/* ------------------- BoardMapÀàÊµÏÖ ------------------- */
+/* ------------------- BoardMapç±»å®ç° ------------------- */
 
 tuple<int, int> BoardMap::ParseIndex(Position pose, Direction direction) {
-    // ÓÉÓÚÇ°ÓëºóMAX_PATTERN_LEN - 1Î»¾ùÎª'?'£¨Ô½½çÎ»£©£¬¹ÊĞèÉè³õÊ¼offset
+    // ç”±äºå‰ä¸åMAX_PATTERN_LEN - 1ä½å‡ä¸º'?'ï¼ˆè¶Šç•Œä½ï¼‰ï¼Œæ•…éœ€è®¾åˆå§‹offset
     switch (int offset = MAX_PATTERN_LEN - 1; direction) {
-        case Direction::Horizontal: // 0 + y¡Ê[0, HEIGHT) | x: 0 -> WIDTH
+        case Direction::Horizontal: // 0 + yâˆˆ[0, HEIGHT) | x: 0 -> WIDTH
             return { pose.y(), offset + pose.x() };
-        case Direction::Vertical:   // HEIGHT + x¡Ê[0, WIDTH) | y: 0 -> HEIGHT
+        case Direction::Vertical:   // HEIGHT + xâˆˆ[0, WIDTH) | y: 0 -> HEIGHT
             return { HEIGHT + pose.x(), offset + pose.y() };
-        case Direction::LeftDiag:   // (WIDTH + HEIGHT) + (HEIGHT - 1) + x-y¡Ê[-(HEIGHT - 1), WIDTH) | min(x, y): (x, y) -> (x+1, y+1)
+        case Direction::LeftDiag:   // (WIDTH + HEIGHT) + (HEIGHT - 1) + x-yâˆˆ[-(HEIGHT - 1), WIDTH) | min(x, y): (x, y) -> (x+1, y+1)
             return { WIDTH + 2 * HEIGHT - 1 + pose.x() - pose.y(), offset + std::min(pose.x(), pose.y()) };
-        case Direction::RightDiag:  // 2*(WIDTH + HEIGHT) - 1 + x+y¡Ê[0, WIDTH + HEIGHT - 1) | min(WIDTH - 1 - x, y): (x, y) -> (x-1, y+1)
+        case Direction::RightDiag:  // 2*(WIDTH + HEIGHT) - 1 + x+yâˆˆ[0, WIDTH + HEIGHT - 1) | min(WIDTH - 1 - x, y): (x, y) -> (x-1, y+1)
             return { 2 * (WIDTH + HEIGHT) - 1 + pose.x() + pose.y(), offset + std::min(WIDTH - 1 - pose.x(), pose.y()) };
         default:
             throw direction;
@@ -123,19 +123,19 @@ void BoardMap::reset() {
     m_hash = 0ul;
     m_board->reset();
     for (auto& line : m_lineMap) {
-        line.resize(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // ÏßÇ°Ìî³äÔ½½çÎ»('?')
+        line.resize(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // çº¿å‰å¡«å……è¶Šç•Œä½('?')
     }
     for (auto i = 0; i < BOARD_SIZE; ++i) 
     for (auto direction : Directions) {
         auto [index, _] = ParseIndex(i, direction);
-        m_lineMap[index].push_back(EncodeCharset('-')); // °´Ã¿¸öÎ»ÖÃÌî³ä¿ÕÎ»('-')
+        m_lineMap[index].push_back(EncodeCharset('-')); // æŒ‰æ¯ä¸ªä½ç½®å¡«å……ç©ºä½('-')
     }
     for (auto& line : m_lineMap) {
-        line.append(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // ÏßºóÌî³äÔ½½çÎ»('?')
+        line.append(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // çº¿åå¡«å……è¶Šç•Œä½('?')
     }
 }
 
-/* ------------------- Evaluator::UpdaterÀàÊµÏÖ ------------------- */
+/* ------------------- Evaluator::Updaterç±»å®ç° ------------------- */
 
 template <size_t Length = TARGET_LEN, typename Array_t>
 inline auto& LineView(Array_t& src, Position move, Direction dir) {
@@ -153,18 +153,18 @@ inline auto& LineView(Array_t& src, Position move, Direction dir) {
     return view_ptrs;
 }
 
-template <int Size = BLOCK_SIZE, typename Array_t, typename value_t = Array_t::value_type>
+template <int Size = BLOCK_SIZE, typename Array_t, typename value_t = typename Array_t::value_type>
 inline auto BlockView(Array_t& src, Position move) {
     auto left_bound  = std::max(move.x() - Size / 2, 0);
     auto right_bound = std::min(move.x() + Size / 2, WIDTH - 1);
     auto up_bound    = std::max(move.y() - Size / 2, 0);
     auto down_bound  = std::min(move.y() + Size / 2, HEIGHT - 1);
     Position lu{ left_bound, up_bound }, rd{ right_bound, down_bound };
-    if constexpr (std::is_same_v<Array_t, Array<value_t, Size, Size, RowMajor>>) { // È¨ÖØ¾ØÕóÂäÔÚÕâÀï
+    if constexpr (std::is_same_v<Array_t, Array<value_t, Size, Size, RowMajor>>) { // æƒé‡çŸ©é˜µè½åœ¨è¿™é‡Œ
         Position coord_transform = move - Position{ Size / 2, Size / 2 };
         lu = lu - coord_transform, rd = rd - coord_transform;
         return src.block(lu.y(), lu.x(), rd.y() - lu.y() + 1, rd.x() - lu.x() + 1);
-    } else { // Ò»°ãboard-likeĞĞÓÅÏÈÁ¬ĞøÊı×éÂäÔÚÕâÀï
+    } else { // ä¸€èˆ¬board-likeè¡Œä¼˜å…ˆè¿ç»­æ•°ç»„è½åœ¨è¿™é‡Œ
         Eigen::Map<Array<value_t, HEIGHT, WIDTH, RowMajor>> view(src.data());
         return view.block(lu.y(), lu.x(), rd.y() - lu.y() + 1, rd.x() - lu.x() + 1);
     }
@@ -188,16 +188,16 @@ void Evaluator::Updater::matchPatterns(Direction dir) {
 void Evaluator::Updater::updatePatterns(int delta, Direction dir) {
     for (const auto [pattern, offset] : match_results) {
         if (pattern.type == Pattern::Five) {
-            // ´ËÇ°boardÒÑÍê³ÉapplyMove£¬¹Ê´Ë´¦ÉèÖÃcurPlayerÎªNone²»»á·¢Éú×èÈû¡£
+            // æ­¤å‰boardå·²å®ŒæˆapplyMoveï¼Œæ•…æ­¤å¤„è®¾ç½®curPlayerä¸ºNoneä¸ä¼šå‘ç”Ÿé˜»å¡ã€‚
             ev.board().m_curPlayer = Player::None;
             ev.board().m_winner = pattern.favour;
             continue;
         }
         auto current = Shift(move, offset - TARGET_LEN / 2, dir);
-        ev.m_patternDist.back()[pattern.type].set(delta, pattern.favour); // ĞŞ¸Ä×Ü¼ÆÊı
-        for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, dir)) { // ĞŞ¸Ä¿ÕÎ»Êı¾İ
+        ev.m_patternDist.back()[pattern.type].set(delta, pattern.favour); // ä¿®æ”¹æ€»è®¡æ•°
+        for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, dir)) { // ä¿®æ”¹ç©ºä½æ•°æ®
             const auto piece = pattern.str.rbegin()[i];
-            if (piece == '_' || piece == '^') { // '_'´ú±í¼º·½ÓĞĞ§¿ÕÎ»£¬'^'´ú±í¶Ô·½·´ÖÆ¿ÕÎ» 
+            if (piece == '_' || piece == '^') { // '_'ä»£è¡¨å·±æ–¹æœ‰æ•ˆç©ºä½ï¼Œ'^'ä»£è¡¨å¯¹æ–¹ååˆ¶ç©ºä½ 
                 const auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1);
                 const auto score = int(delta * multiplier * pattern.score);
                 const auto update_pose = [&](Player perspective) {
@@ -205,7 +205,7 @@ void Evaluator::Updater::updatePatterns(int delta, Direction dir) {
                     ev.scores(pattern.favour, perspective)[current] += score;
                     assert(ev.scores(pattern.favour, perspective)[current] >= 0);
                 };
-                switch (piece) { // ÀûÓÃÁËswitchµÄ´©Í¸ÌØĞÔ
+                switch (piece) { // åˆ©ç”¨äº†switchçš„ç©¿é€ç‰¹æ€§
                     case '_': update_pose(pattern.favour);
                     case '^': update_pose(-pattern.favour);
                 }
@@ -231,40 +231,40 @@ void Evaluator::Updater::updateCompound(int delta, Direction dir) {
 }
 
 void Evaluator::Updater::updateBlock(int delta, Player src_player) {
-    // Êı¾İ×¼±¸
+    // æ•°æ®å‡†å¤‡
     const auto sign = [](int x) { return x < 0 ? -1 : 1; };
     const auto mask = [](int x) { return x > 0 ? 1 : 0; };
     auto [weights, score] = BlockWeights;
     auto base_weights  = BlockView(weights, move);
     auto count_block   = BlockView(ev.density(src_player)[0], move);
     auto weight_block  = BlockView(ev.density(src_player)[1], move);
-    auto score_block   = BlockView(ev.scores(src_player, src_player), move); // Ö»Îª¹Ø¼ü¾ØÕó¸üĞÂ·ÖÊı
-    auto sign_block    = weight_block.unaryExpr(sign); // ±íÕ÷Ä³Î»ÖÃÊÇ·ñÓĞÆåµÄ{-1, 1}¶şÖµ¾ØÕó£¨0ÒÔÉÏÈÏÎªÃ»ÓĞÆå£©
-    auto mask_block    = weight_block.unaryExpr(mask).eval(); // ±íÕ÷Ä³Î»ÖÃÊÇ·ñÓĞÓĞĞ§¼ÆÊıµÄ{0, 1}¶şÖµ¾ØÕó£¨0Óë¸ºÊıÈÏÎªÊÇÎŞĞ§¼ÆÊı£©
+    auto score_block   = BlockView(ev.scores(src_player, src_player), move); // åªä¸ºå…³é”®çŸ©é˜µæ›´æ–°åˆ†æ•°
+    auto sign_block    = weight_block.unaryExpr(sign); // è¡¨å¾æŸä½ç½®æ˜¯å¦æœ‰æ£‹çš„{-1, 1}äºŒå€¼çŸ©é˜µï¼ˆ0ä»¥ä¸Šè®¤ä¸ºæ²¡æœ‰æ£‹ï¼‰
+    auto mask_block    = weight_block.unaryExpr(mask).eval(); // è¡¨å¾æŸä½ç½®æ˜¯å¦æœ‰æœ‰æ•ˆè®¡æ•°çš„{0, 1}äºŒå€¼çŸ©é˜µï¼ˆ0ä¸è´Ÿæ•°è®¤ä¸ºæ˜¯æ— æ•ˆè®¡æ•°ï¼‰
 
-    // ¸üĞÂdensity£¨sign¶ÔÓ¦Ô­Î»ÖÃÊÇ·ñÓĞÆå£¬delta¶ÔÓ¦ÏÂÆå»¹ÊÇ»ÚÆå£©¡£
+    // æ›´æ–°densityï¼ˆsignå¯¹åº”åŸä½ç½®æ˜¯å¦æœ‰æ£‹ï¼Œdeltaå¯¹åº”ä¸‹æ£‹è¿˜æ˜¯æ‚”æ£‹ï¼‰ã€‚
     weight_block += sign_block * delta * base_weights;
     count_block  += sign_block * delta * base_weights.unaryExpr(mask);
     
-    // ĞŞ¸ÄÖĞĞÄÎ»ÖÃµÄ×´Ì¬£¨ÊÇ·ñ¿ÉÒÔÓÃÀ´¼Æ·Ö£©
+    // ä¿®æ”¹ä¸­å¿ƒä½ç½®çš„çŠ¶æ€ï¼ˆæ˜¯å¦å¯ä»¥ç”¨æ¥è®¡åˆ†ï¼‰
     for (auto perspective : { Player::Black, Player::White }) 
     for (auto& count_or_weight : ev.density(perspective)) {
         switch (auto& value = count_or_weight[move]; delta) {
-            case 1: // ´ú±íÕâÀïÏÂÁËÒ»×Ó
-                value *= -1; // ·´×ª¼ÆÊı£¬±íÃ÷Õâ¸öÎ»ÖÃÒÑÓĞÆå×ÓÕ¼ÓÃ
-                value -= 1;  // ¼õÈ¥Ò»¸¨ÖúÊı£¬±£Ö¤valueÒ»¶¨ÊÇ¸ºÊı
+            case 1: // ä»£è¡¨è¿™é‡Œä¸‹äº†ä¸€å­
+                value *= -1; // åè½¬è®¡æ•°ï¼Œè¡¨æ˜è¿™ä¸ªä½ç½®å·²æœ‰æ£‹å­å ç”¨
+                value -= 1;  // å‡å»ä¸€è¾…åŠ©æ•°ï¼Œä¿è¯valueä¸€å®šæ˜¯è´Ÿæ•°
                 break;
-            case -1: // ´ú±í»ÚÁËÕâÒ»×Ó
-                value += 1;  // ³ıÈ¥Ö®Ç°¼õµôµÄ¸¨ÖúÊı
-                value *= -1; // ·´×ª¼ÆÊı£¬±íÃ÷ÕâÀï¿ÉÒÔÓÃÀ´¼Æ·ÖÁË
+            case -1: // ä»£è¡¨æ‚”äº†è¿™ä¸€å­
+                value += 1;  // é™¤å»ä¹‹å‰å‡æ‰çš„è¾…åŠ©æ•°
+                value *= -1; // åè½¬è®¡æ•°ï¼Œè¡¨æ˜è¿™é‡Œå¯ä»¥ç”¨æ¥è®¡åˆ†äº†
                 break; 
         }
     }
 
-    // ½«mask_block¸üĞÂ³É"delta_block"£¬±íÕ÷ÓĞĞ§¼ÆÊıµÄ±ä»¯£¬²¢ÒÔ´ËĞŞ¸Äscore_block
-    score_block += score * (weight_block.unaryExpr(mask) - mask_block); // score_blockÔÚÓĞÓĞĞ§¼ÆÊıµÄÎ»ÖÃÉÏÔö¼ÓÒ»¸ö¹Ì¶¨µÄ·ÖÊı
-    if (auto count = ev.density(-src_player)[0][move]; (count != 0 && count != -1)) { // countÎª0»ò-1´ú±íÔ­Î»ÖÃ×î³õÃ»ÓĞ¼Æ·Ö£¬¹Ê²»ĞŞ¸Ä·ÖÊı
-        ev.scores(-src_player, -src_player)[move] -= delta * score; // ¶Ô·½µÄ·ÖÊıÔÚmove´¦±ä»¯
+    // å°†mask_blockæ›´æ–°æˆ"delta_block"ï¼Œè¡¨å¾æœ‰æ•ˆè®¡æ•°çš„å˜åŒ–ï¼Œå¹¶ä»¥æ­¤ä¿®æ”¹score_block
+    score_block += score * (weight_block.unaryExpr(mask) - mask_block); // score_blockåœ¨æœ‰æœ‰æ•ˆè®¡æ•°çš„ä½ç½®ä¸Šå¢åŠ ä¸€ä¸ªå›ºå®šçš„åˆ†æ•°
+    if (auto count = ev.density(-src_player)[0][move]; (count != 0 && count != -1)) { // countä¸º0æˆ–-1ä»£è¡¨åŸä½ç½®æœ€åˆæ²¡æœ‰è®¡åˆ†ï¼Œæ•…ä¸ä¿®æ”¹åˆ†æ•°
+        ev.scores(-src_player, -src_player)[move] -= delta * score; // å¯¹æ–¹çš„åˆ†æ•°åœ¨moveå¤„å˜åŒ–
     }
 }
 
@@ -290,7 +290,7 @@ void Evaluator::Updater::updateMove(Position move, Player src_player) {
     }
 }
 
-/* ------------------- EvaluatorÀàÊµÏÖ ------------------- */
+/* ------------------- Evaluatorç±»å®ç° ------------------- */
 
 Evaluator::Evaluator(Board * board) : m_updater(*this), m_boardMap(board) {
     this->reset();
@@ -346,12 +346,12 @@ void Evaluator::syncWithBoard(const Board& board) {
             if (this->board().m_moveRecord[i] == board.m_moveRecord[i]) {
                 continue;
             } else {
-                revertMove(this->board().m_moveRecord.size() - i); // »ØÍËµ½Ê×´Î²»Í¬²½µÄ×´Ì¬
+                revertMove(this->board().m_moveRecord.size() - i); // å›é€€åˆ°é¦–æ¬¡ä¸åŒæ­¥çš„çŠ¶æ€
             }
         } 
         applyMove(board.m_moveRecord[i]);
     }
-    revertMove(this->board().m_moveRecord.size() - i); // »ØÍËµô¶àÓàÊÖ
+    revertMove(this->board().m_moveRecord.size() - i); // å›é€€æ‰å¤šä½™æ‰‹
 }
 
 void Evaluator::reset() {
@@ -364,14 +364,14 @@ void Evaluator::reset() {
         cnt_n_wt.resize(BOARD_SIZE), cnt_n_wt.setZero();
     }
     for (auto& distribution : m_patternDist) {
-        distribution.fill(Record{}); // ×îºóÒ»¸öÔªËØÓÃÓÚ×Ü¼ÆÊı
+        distribution.fill(Record{}); // æœ€åä¸€ä¸ªå…ƒç´ ç”¨äºæ€»è®¡æ•°
     }
     for (auto& distribution : m_compoundDist) {
-        distribution.fill(Record{}); // ×îºóÒ»¸öÔªËØÓÃÓÚ×Ü¼ÆÊı
+        distribution.fill(Record{}); // æœ€åä¸€ä¸ªå…ƒç´ ç”¨äºæ€»è®¡æ•°
     }
 }
 
-/* ------------------- Evaluator::RecordÀàÊµÏÖ ------------------- */
+/* ------------------- Evaluator::Recordç±»å®ç° ------------------- */
 
 void Evaluator::Record::set(int delta, Player player) {
     unsigned offset = 4*sizeof(field)*Group(player);
@@ -401,20 +401,20 @@ unsigned Evaluator::Record::get(Player player) const {
     return (field >> offset) & ((1 << 4*sizeof(field)) - 1);
 }
 
-/* ------------------- CompoundÀàÊµÏÖ ------------------- */
+/* ------------------- Compoundç±»å®ç° ------------------- */
 
 constexpr const Pattern::Type CompTypes[] = {
     Pattern::LiveThree, Pattern::DeadThree, Pattern::LiveTwo
 };
 
 bool Compound::Test(Evaluator& ev, Position pose, Player player) {
-    unsigned bit_field = 0; // ÏÂÃæÊÇ¸öÈË¸Ğ¾õ½ÏÃîµÄËã·¨¡­¡­
+    unsigned bit_field = 0; // ä¸‹é¢æ˜¯ä¸ªäººæ„Ÿè§‰è¾ƒå¦™çš„ç®—æ³•â€¦â€¦
     for (auto comp_type : CompTypes) {
-        // bit_field»ã×ÜÁËËÄ¸ö·½ÏòµÄL3/D3/L2ÉèÖÃÇé¿ö¡£
-        // ÓÉÓÚÎ»»òµÄÌØĞÔ£¬Ò»ÌõÏßÉÏ×î¶àÖ»¼ÇÂ¼Ò»ÖÖÄ£Ê½ÀàĞÍ£¬¹æ±ÜÁËBUG¡£
+        // bit_fieldæ±‡æ€»äº†å››ä¸ªæ–¹å‘çš„L3/D3/L2è®¾ç½®æƒ…å†µã€‚
+        // ç”±äºä½æˆ–çš„ç‰¹æ€§ï¼Œä¸€æ¡çº¿ä¸Šæœ€å¤šåªè®°å½•ä¸€ç§æ¨¡å¼ç±»å‹ï¼Œè§„é¿äº†BUGã€‚
         bit_field |= ev.m_patternDist[pose][comp_type].get(player, player);
     }
-    // is-power-of-2Ëã·¨£¬¿ìËÙÅĞ¶ÏÊÇ·ñÓĞ>=2¸öbitÎ»Îª1
+    // is-power-of-2ç®—æ³•ï¼Œå¿«é€Ÿåˆ¤æ–­æ˜¯å¦æœ‰>=2ä¸ªbitä½ä¸º1
     return bit_field & (bit_field - 1);
 }
 
@@ -422,9 +422,9 @@ void Compound::locate() {
     enum State { S0, L2, LD3, To33, To43, To44 } state = S0;
     auto [base_dir, base_type] = updater.base;
     for (auto comp_dir : Directions) {
-        // ×¼±¸×ªÒÆÌõ¼ş
-        int cond = S0; // ³õÊ¼×ªÒÆÌõ¼ş
-        int count = 0; // µ±Ç°·½ÏòÉÏÄ£Ê½¼ÆÊı
+        // å‡†å¤‡è½¬ç§»æ¡ä»¶
+        int cond = S0; // åˆå§‹è½¬ç§»æ¡ä»¶
+        int count = 0; // å½“å‰æ–¹å‘ä¸Šæ¨¡å¼è®¡æ•°
         for (auto comp_type : CompTypes) {
             switch (ev.m_patternDist[position][comp_type].get(favour, favour, comp_dir)) {
             case 0b00: count = 0; break;
@@ -441,34 +441,34 @@ void Compound::locate() {
                     cond = L2;  break;
                 }
                 if (comp_dir == base_dir && (comp_type > base_type || count == 2)) {
-                    // Èôµ±Ç°·½ÏòÓĞ¸ü¸ßÓÅÏÈ¼¶µÄÄ£Ê½£¬»òÒÑÓĞ2¸öÄ£Ê½£¨·ÀÖ¹ÖØ¸´¼ÆÊı£©
-                    return; // ÔòÏÂÃæµÄ¸üĞÂ×´Ì¬»ú²»×ªÒÆ£¬ÕâÀï¿ÉÒÔÖ±½ÓÍË³ö
+                    // è‹¥å½“å‰æ–¹å‘æœ‰æ›´é«˜ä¼˜å…ˆçº§çš„æ¨¡å¼ï¼Œæˆ–å·²æœ‰2ä¸ªæ¨¡å¼ï¼ˆé˜²æ­¢é‡å¤è®¡æ•°ï¼‰
+                    return; // åˆ™ä¸‹é¢çš„æ›´æ–°çŠ¶æ€æœºä¸è½¬ç§»ï¼Œè¿™é‡Œå¯ä»¥ç›´æ¥é€€å‡º
                 }
                 components.insert(components.end(), count, { comp_dir, comp_type });
-                break; // ÕÒµ½µÚÒ»¸ö·ûºÏÌõ¼şµÄPattern¾ÍÍË³ö¡£Òò´ËPatternÓĞÓÅÏÈ¼¶Ö®·Ö¡£
+                break; // æ‰¾åˆ°ç¬¬ä¸€ä¸ªç¬¦åˆæ¡ä»¶çš„Patternå°±é€€å‡ºã€‚å› æ­¤Patternæœ‰ä¼˜å…ˆçº§ä¹‹åˆ†ã€‚
             }
         }
 
-        // Ã»ÓĞÔÚ¸Ã·½ÏòÉÏÆ¥Åäµ½Ä£Ê½Ê±£¬×´Ì¬ÎŞĞè×ªÒÆ
+        // æ²¡æœ‰åœ¨è¯¥æ–¹å‘ä¸ŠåŒ¹é…åˆ°æ¨¡å¼æ—¶ï¼ŒçŠ¶æ€æ— éœ€è½¬ç§»
         if (cond == S0) continue;
 
-        // ×´Ì¬×ªÒÆ
+        // çŠ¶æ€è½¬ç§»
         for (int i = 0; i < count; ++i) {
             switch (int offset; state) {
             case S0:                           //                    To44(5)
-                offset = 0; goto Transfer;     //                 ¨J   ¡ü
-            case L2: case LD3:                 //          LD3(2) ¡ú To43(4)  ×´Ì¬×ªÒÆÍ¼£¨ÓĞËõ¼õ£©
-                offset = 1; goto Transfer;     //        ¨J       ¨J   ¡ü
-            case To33: case To43: case To44:    //  S0(0) ¡ú L2(1) ¡ú To33(3)
+                offset = 0; goto Transfer;     //                 â†—   â†‘
+            case L2: case LD3:                 //          LD3(2) â†’ To43(4)  çŠ¶æ€è½¬ç§»å›¾ï¼ˆæœ‰ç¼©å‡ï¼‰
+                offset = 1; goto Transfer;     //        â†—       â†—   â†‘
+            case To33: case To43: case To44:    //  S0(0) â†’ L2(1) â†’ To33(3)
                 updater.triple_cross = true;
-                offset = (state == To44 ? -cond : -1); // To44Îª×îÖÕ×´Ì¬£¬Ö»½ø²»³ö
+                offset = (state == To44 ? -cond : -1); // To44ä¸ºæœ€ç»ˆçŠ¶æ€ï¼Œåªè¿›ä¸å‡º
             Transfer:
                 state = State(state + cond + offset);
             }
         }
     }
     type = Compound::Type(state - State::To33);
-    updater.comp_count = bitset<8>(ev.m_compoundDist[position][type].get(favour, favour)).count(); // ¶¨Î»¼ÆÊı×´Ì¬
+    updater.comp_count = bitset<8>(ev.m_compoundDist[position][type].get(favour, favour)).count(); // å®šä½è®¡æ•°çŠ¶æ€
 }
 
 void Compound::update(int delta) {
@@ -479,35 +479,35 @@ void Compound::update(int delta) {
     //    assert(ev.scores(favour, perspective)[pose] >= 0);
     //};
     //const auto update_critical = [&](Component comp) {
-    //    update_pose(delta, position, comp, favour); // ¸üĞÂself_worthy
-    //    update_pose(delta, position, comp, -favour); // ¸üĞÂrival_anti
+    //    update_pose(delta, position, comp, favour); // æ›´æ–°self_worthy
+    //    update_pose(delta, position, comp, -favour); // æ›´æ–°rival_anti
     //};
-    //const auto update_antis = [&](PatternSearch::generator& generator, int delta, Component comp) { // ¸üĞÂËùÓĞ¿É·´ÖÆ¸Ã·½ÏòÉÏµÄÄ£Ê½µÄ¿Õµã¡£
+    //const auto update_antis = [&](PatternSearch::generator& generator, int delta, Component comp) { // æ›´æ–°æ‰€æœ‰å¯ååˆ¶è¯¥æ–¹å‘ä¸Šçš„æ¨¡å¼çš„ç©ºç‚¹ã€‚
     //    for (auto [pattern, offset] : generator) {
-    //        if (pattern.type == comp.type // ±ØĞëÊÇ£º¢Ù.Ä£Ê½ÀàĞÍÎªcomp.type
-    //            && PatternSearch::HasCovered({ pattern, offset }) // ¢Ú.Ä£Ê½±ØĞë¸²¸ÇÁËposition
-    //            && pattern.str.rbegin()[offset - TARGET_LEN / 2] == '_') { // ¢Û.positionÊÇ¹Ø¼üµã'_'µÄÄ£Ê½²ÅĞĞ
-    //            // ±éÀúpatternÑ°ÕÒ¿ÕÎ»£¬¸üĞÂ¶îÍâµÄrival_anti·ÖÊı
+    //        if (pattern.type == comp.type // å¿…é¡»æ˜¯ï¼šâ‘ .æ¨¡å¼ç±»å‹ä¸ºcomp.type
+    //            && PatternSearch::HasCovered({ pattern, offset }) // â‘¡.æ¨¡å¼å¿…é¡»è¦†ç›–äº†position
+    //            && pattern.str.rbegin()[offset - TARGET_LEN / 2] == '_') { // â‘¢.positionæ˜¯å…³é”®ç‚¹'_'çš„æ¨¡å¼æ‰è¡Œ
+    //            // éå†patternå¯»æ‰¾ç©ºä½ï¼Œæ›´æ–°é¢å¤–çš„rival_antiåˆ†æ•°
     //            auto current = Shift(position, offset - TARGET_LEN / 2, comp.dir);
     //            for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, comp.dir)) {
     //                auto piece = pattern.str.rbegin()[i];
-    //                if ((piece == '_' || piece == '^') && current != position) { // ²»¸üĞÂ¹Ø¼üµã
-    //                    // ¼´Ê¹ÆåĞÍÆÀ¹À³ö´íÁË£¬ÔÚMCTS»òAlphaBetaĞ­ÖúÏÂÒ²ÄÜºÜ¿ì±»Èí¼ôÖ¦µô
+    //                if ((piece == '_' || piece == '^') && current != position) { // ä¸æ›´æ–°å…³é”®ç‚¹
+    //                    // å³ä½¿æ£‹å‹è¯„ä¼°å‡ºé”™äº†ï¼Œåœ¨MCTSæˆ–AlphaBetaååŠ©ä¸‹ä¹Ÿèƒ½å¾ˆå¿«è¢«è½¯å‰ªææ‰
     //                    update_pose(delta, current, comp, -favour); 
     //                }
     //            }
-    //            break; // Ò»´ÎÖ»¸üĞÂÒ»¸öPattern
+    //            break; // ä¸€æ¬¡åªæ›´æ–°ä¸€ä¸ªPattern
     //        }
     //    }
     //};
 
-    //if ((count == 0 && delta == -1)) { // 0×´Ì¬ÔÚdelta == -1Ê±
-    //    return; // ×´Ì¬²»×ªÒÆ£¬»òËµÊÇ×ªÒÆÖÁ×ÔÉí£¨ÉÏÃæ¶¨Î»×´Ì¬»úÀïµÄreturnĞĞÊ¹ÁËÍ¬ÑùµÄ¹¦ÄÜ£©
-    //} else if (count + delta == 1) { // { 0, 1 } »ò { 2, -1 }£¬¸Ã×ªÒÆ¹ØÏµµ½¸´ºÏÄ£Ê½µÄ´æÔÚĞÔ
-    //    ev.m_compoundDist.back()[type].set(delta, favour); // ¸üĞÂ¸´ºÏÄ£Ê½×Ü¼ÆÊı
+    //if ((count == 0 && delta == -1)) { // 0çŠ¶æ€åœ¨delta == -1æ—¶
+    //    return; // çŠ¶æ€ä¸è½¬ç§»ï¼Œæˆ–è¯´æ˜¯è½¬ç§»è‡³è‡ªèº«ï¼ˆä¸Šé¢å®šä½çŠ¶æ€æœºé‡Œçš„returnè¡Œä½¿äº†åŒæ ·çš„åŠŸèƒ½ï¼‰
+    //} else if (count + delta == 1) { // { 0, 1 } æˆ– { 2, -1 }ï¼Œè¯¥è½¬ç§»å…³ç³»åˆ°å¤åˆæ¨¡å¼çš„å­˜åœ¨æ€§
+    //    ev.m_compoundDist.back()[type].set(delta, favour); // æ›´æ–°å¤åˆæ¨¡å¼æ€»è®¡æ•°
     //    auto generator = PatternSearch::generator{};
     //    auto pre_dir = Direction(-1);
-    //    for (auto [dir, comp_type] : components) { // ¸üĞÂËùÓĞ·½Ïò
+    //    for (auto [dir, comp_type] : components) { // æ›´æ–°æ‰€æœ‰æ–¹å‘
     //        update_pose(dir, comp_type);
     //        if (pre_dir != dir) {
     //            generator = ev.Patterns.execute(ev.m_boardMap.lineView(pose, dir));
@@ -517,12 +517,12 @@ void Compound::update(int delta) {
     //            update_antis(generator, delta, dir, comp_type);
     //        }
     //    }
-    //} else if ((count == 2 && delta == 1) || (count == 3 && delta == -1)) { // ´Ë×ªÒÆÓ°Ïìµ½ÊÇ·ñ¸üĞÂ¶îÍâantis·ÖÊı
+    //} else if ((count == 2 && delta == 1) || (count == 3 && delta == -1)) { // æ­¤è½¬ç§»å½±å“åˆ°æ˜¯å¦æ›´æ–°é¢å¤–antisåˆ†æ•°
     //    update_critical(base.dir, base.type);
-    //    if (l3_count == (base.type == Pattern::LiveThree)) { // ±íÃ÷³ıÁË´«ÈëµÄ»îÈı£¬¸´ºÏÄ£Ê½ÀïÃ»ÓĞÆäËûµÄ»îÈı
+    //    if (l3_count == (base.type == Pattern::LiveThree)) { // è¡¨æ˜é™¤äº†ä¼ å…¥çš„æ´»ä¸‰ï¼Œå¤åˆæ¨¡å¼é‡Œæ²¡æœ‰å…¶ä»–çš„æ´»ä¸‰
     //        auto generator = PatternSearch::generator{};
     //        auto pre_dir = Direction(-1);
-    //        for (auto [dir, comp_type] : components) { // ¸üĞÂËùÓĞ·½Ïò
+    //        for (auto [dir, comp_type] : components) { // æ›´æ–°æ‰€æœ‰æ–¹å‘
     //            if (comp_type == base.type && dir == base_dir) {
     //                continue;
     //            }
@@ -533,13 +533,13 @@ void Compound::update(int delta) {
     //            update_antis(generator, -delta, dir, comp_type);
     //        }
     //    }
-    //} else { // count > 3Ê±ÂäÈë£¬½ö¸üĞÂÒ»¸ö·½Ïò
+    //} else { // count > 3æ—¶è½å…¥ï¼Œä»…æ›´æ–°ä¸€ä¸ªæ–¹å‘
     //    assert(count != 1);
     //    update_pose(base_dir, base.type);
     //}
 }
 
-/* ------------------- Êı¾İÇø ------------------- */
+/* ------------------- æ•°æ®åŒº ------------------- */
 
 PatternSearch Evaluator::Patterns = {
     { "+xxxxx",    Pattern::Five,      9999 },

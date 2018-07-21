@@ -173,18 +173,17 @@ size_t MCTS::playout(Board& board) {
 }
 
 void MCTS::runPlayouts(Board& board) {
-    syncWithBoard(board);
+    auto start = system_clock::now();
+    this->syncWithBoard(board);
     m_policy->prepare(board);    
     if (c_constraint == Constraint::Duration) {
         m_iterations = 0;
-        for (auto start = system_clock::now(), end = start;
-            end - start < m_duration;
+        for (auto end = start; end - start < m_duration; 
             end = system_clock::now(), ++m_iterations) {
             m_size += playout(board);
         }
     } else if (c_constraint == Constraint::Iterations) {
         m_duration = 0ms;
-        auto start = system_clock::now();
         for (auto i = 0; i < m_iterations; ++i) {
             m_size += playout(board);
         }
