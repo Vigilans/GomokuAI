@@ -176,7 +176,7 @@ struct Compound {
         bool triple_cross = false; // 是否有三个模式汇集于一点
     } updater;
 
-    //Compound(Evaluator& ev, Position pose, Player favour);
+    Compound(Evaluator& ev, Position pose, Player favour);
     void locate(); // 定位复合模式类型与约束的状态机
     void update(int delta); // 更新状态机
 };
@@ -237,16 +237,18 @@ private:
         explicit Updater(Evaluator& ev) : ev(ev) { }
         void updateMove(Position move, Player src_player);
     private:
+        void reset(int delta, Position move);
         void matchPatterns(Direction dir);
-        void updatePatterns(int delta, Direction dir);
-        void updateCompound(int delta, Direction dir);
-        void updateBlock(int delta, Player src_player); 
-        void reset(Position move);
+        void updatePatterns(Direction dir);
+        void updateCompound(Direction dir);
+        void updateBlock(int delta, Player src_player);
+        auto& matchResults(Direction dir) { return results[int(dir)]; }
     private:
-        std::vector<PatternSearch::Entry> match_results;
-        std::unique_ptr<Compound> compound;
-        Position move;
-        Evaluator& ev;
+        std::vector<PatternSearch::Entry> results[4]; // 存储匹配结果
+        std::vector<Compound> compounds; // 待更新复合模式集合
+        Evaluator& ev; // 原Evaluator的引用
+        Position move; // 更新的中心位置
+        int delta; // 变化量，取值为 { 1, -1 }
     } m_updater;
 
 public:
