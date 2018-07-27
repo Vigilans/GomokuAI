@@ -12,15 +12,18 @@ struct Stats {
     template <typename Numeric>
     static Numeric ReLU(Numeric x) { return std::max(x, 0); };
 
-    static Eigen::VectorXf Softmax(Eigen::Ref<Eigen::VectorXf> logits) {
-        Eigen::VectorXf exp_logits = logits.array().exp();
+    template <typename Vector>
+    static Vector Softmax(Eigen::Ref<Vector> logits) {
+        Vector exp_logits = logits.array().exp();
         return exp_logits / exp_logits.sum();
     }
     
     // π = norm(π^(1/τ)) = softmax(log(π)/τ), 0 < τ <= 1
     static Eigen::VectorXf TempBasedProbs(Eigen::Ref<Eigen::VectorXf> logits, float temperature) {
-        Eigen::VectorXf temp_logits = (logits.array() + Epsilon).log() / temperature;
-        return Softmax(temp_logits).unaryExpr([](float probs) { return probs > Epsilon ? probs : 0; });
+        Eigen::VectorXd temp_logits = ((logits.array() + Epsilon).log() / temperature).cast<double>();
+        return Softmax(Eigen::Ref<Eigen::VectorXd>(temp_logits)).cast<float>().unaryExpr([](float probs) { 
+			return probs > Epsilon ? probs : 0; 
+		});
     }
 
     inline static const float Epsilon = Eigen::NumTraits<float>::epsilon();

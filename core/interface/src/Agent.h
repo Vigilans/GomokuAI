@@ -70,8 +70,9 @@ public:
 
     virtual Position getAction(Board& board) {
         auto [state_value, action_probs] = m_mcts->evalState(board);
-        //std::cout << state_value << std::endl;
-        //std::cout << action_probs << std::endl;
+        Eigen::Map<const Eigen::Array<float, 15, 15, Eigen::RowMajor>> probs_2d(action_probs.data());
+        std::cout << state_value << std::endl;
+        //std::cout << probs_2d << std::endl;
         Position next_move;
         action_probs.maxCoeff(&next_move.id);
         return next_move;

@@ -4,6 +4,7 @@
 #include "Statistical.hpp"
 #include "MonteCarlo.hpp"
 #include <deque>
+#include <iostream>
 
 namespace Gomoku::Algorithms {
    
@@ -31,7 +32,7 @@ struct Heuristic {
     static float EvaluationValue(Evaluator& ev, Player player) {
         auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
         auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
-        return std::tanh((self_worthy - rival_worthy) / 3000.0f);
+        return std::tanh((1.2 * self_worthy - rival_worthy) / 500.0f);
     }
 
     // weight = normalize(w/n * 1.5n/(0.5+n)) = normalize(3w/(1+2n))
@@ -85,12 +86,11 @@ struct Heuristic {
     static std::tuple<Player, int> RandomEvaluatedRollout(Evaluator& ev, bool revert = false) {
         return EvaluatedRollout(ev, [](const Board& board, Eigen::Ref<Eigen::VectorXf> action_probs) {
             float temperature = 1 - Stats::Sigmoid((board.m_moveRecord.size() - 40) / 20.0f);
-            auto a = Stats::Softmax(action_probs);
-            return board.getRandomMove(a);
+            return board.getRandomMove(action_probs);
         }, revert);
     }
 
-    // 优先度：+4 > -4 > +L3 == +To44 > -L3 == -To44 >= +To43 > -To43 > +To22 > -To22
+    // 优先度：+4 > -4 > +L3 == +To44 > -L3 == -To44 >= +To43 > -To43 > +To33 > -To33
     static auto DecisiveFilter(Evaluator& ev, Eigen::Ref<Eigen::VectorXf> probs) {
         // 数据准备
         static std::deque<std::tuple<int, Player>> candidates;

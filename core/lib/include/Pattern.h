@@ -114,7 +114,7 @@ public:
     generator execute(std::string_view target);
 
     // 一次性直接返回所有查找到的记录。
-    const std::vector<Entry>& matches(std::string_view target);
+    std::vector<Entry> matches(std::string_view target);
 
 private:
     std::vector<int> m_base;  // DAT子结点基准数组
@@ -172,11 +172,9 @@ struct Compound {
     // 原局面的引用
     Evaluator& ev;
 
-    std::string boardStr;
-
     Compound(Evaluator& ev, Position pose, Player favour);
     void locate(); // 定位复合模式类型与约束的状态机
-    void update(int delta, Component base); // 更新状态机
+    void update(int delta); // 更新状态机
     
 // 用于更新的成员
 private: 
@@ -184,7 +182,6 @@ private:
     void updateAntis(int delta, Component component);
     void updatePose(int delta, Position pose, Component component, Player perspective);
 
-    std::list<Component> candidates; // 待更新的子模式表
     PatternSearch::generator generator = {}; // 用于标定component的生成器
     Direction gen_dir = Direction(-1); // 当前正在工作的生成器的方向
     int count = 0; // 复合模式的子模式总计数
@@ -248,18 +245,19 @@ private:
         explicit Updater(Evaluator& ev) : ev(ev) { }
         void updateMove(Position move, Player src_player);
     private:
-        void reset(int delta, Position move);
+        void reset(int delta, Position move, Player player);
         void matchPatterns(Direction dir);
         void updatePatterns(Direction dir);
         void updateCompound(Direction dir);
         void updateBlock(int delta, Player src_player);
-        auto& matchResults(Direction dir) { return results[int(dir)]; }
+        auto& matchResults(int delta, Direction dir) { return results[delta == 1][int(dir)]; }
         Compound* findCompound(Position pose, Player player);
     private:
         int delta; // 变化量，取值为 { 1, -1 }
         Position move; // 更新的中心位置
+		Player player; // 更新的源玩家（Player::None代表悔棋）
         Evaluator & ev; // 原Evaluator的引用
-        std::vector<PatternSearch::Entry> results[4]; // 存储单模式匹配结果
+        std::vector<PatternSearch::Entry> results[2][4]; // 存储单模式匹配结果
         std::vector<std::tuple<Position, Player>> compound_keys; // 复合模式索引
         std::vector<Compound> compounds; // 待更新复合模式集合
     } m_updater;

@@ -34,7 +34,7 @@ struct Node {
           * position: 当前局面下最后一手下的位置。
           * player:   当前局面下最后一手下的玩家。
     */
-    Position position = Position(-1);
+    Position position = Position::npos;
     Player player = Player::None;
 
     /* 

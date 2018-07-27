@@ -12,6 +12,10 @@ static uniform_int_distribution<unsigned> rnd(0, BOARD_SIZE - 1); // 注意区�
 static mt19937 rnd_eng((random_device())());
 static ostringstream oss;
 
+/* ------------------- Position类实现 ------------------- */
+
+const Position Position::npos = -1;
+
 /* ------------------- Board类实现 ------------------- */
 
 // 由于是内联使用，不暴露成外部接口，因此无需进行额外参数检查，下同

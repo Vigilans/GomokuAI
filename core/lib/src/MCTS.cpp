@@ -1,6 +1,7 @@
 #include "MCTS.h"
 #include "policies/Random.h"
 #include "algorithms/Statistical.hpp"
+#include <iostream>
 
 using namespace std;
 using namespace std::chrono;
@@ -102,12 +103,15 @@ Position MCTS::getAction(Board& board) {
 
 Policy::EvalResult MCTS::evalState(Board& board) {
     runPlayouts(board);
-    VectorXf child_visits((int)BOARD_SIZE);
+    Eigen::VectorXf child_visits;
+    child_visits.setZero((int)BOARD_SIZE);
     for (auto&& node : m_root->children) {
         child_visits[node->position] = node->node_visits;
     }
+    cout << Eigen::Map<const Eigen::Array<float, 15, 15, Eigen::RowMajor>>(child_visits.data()) << endl;
+	child_visits = child_visits.normalized().unaryExpr([](float v) { return v ? v + 1 : v; });
     auto action_probs = Stats::TempBasedProbs(
-        child_visits, board.m_moveRecord.size() < 15 ? 1 : 1e-4 
+        child_visits, board.m_moveRecord.size() < 15 ? 1 : 1e-2 
     );
     return { m_root->state_value, action_probs };
 }
