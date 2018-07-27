@@ -3,6 +3,7 @@
 #include "Game.h"
 #include <utility>
 #include <string_view>
+#include <unordered_map>
 
 namespace Gomoku {
 
@@ -148,10 +149,14 @@ public:
 class Evaluator; // 评估器前置声明
 
 struct Compound {
-    struct Component { Direction dir; Pattern::Type type; };
+    // 检测指定的位置上是否有属于指定玩家的复合模式
     static bool Test(Evaluator& ev, Position pose, Player player);
+
     static const int BaseScore; // 双三/四三/双四共用一个分数。
 
+    // 一个复合模式的组件由{ 该组件所在方向, 该组件棋型 }组成。
+    using Component = std::tuple<Direction, Pattern::Type>;
+   
     // 表明该复合模式汇集的位置
     Position position;
     
@@ -169,16 +174,22 @@ struct Compound {
 
     std::string boardStr;
 
-    struct {
-        Component base; // 更新时的基准组成部分
-        int comp_count = 0; // 
-        int l3_count = 0; // 复合模式中活三的数量
-        bool triple_cross = false; // 是否有三个模式汇集于一点
-    } updater;
-
     Compound(Evaluator& ev, Position pose, Player favour);
     void locate(); // 定位复合模式类型与约束的状态机
-    void update(int delta); // 更新状态机
+    void update(int delta, Component base); // 更新状态机
+    
+// 用于更新的成员
+private: 
+    void updateCritical(int delta, Component component);
+    void updateAntis(int delta, Component component);
+    void updatePose(int delta, Position pose, Component component, Player perspective);
+
+    std::list<Component> candidates; // 待更新的子模式表
+    PatternSearch::generator generator = {}; // 用于标定component的生成器
+    Direction gen_dir = Direction(-1); // 当前正在工作的生成器的方向
+    int count = 0; // 复合模式的子模式总计数
+    int l3_count = 0; // 复合模式中活三的数量
+    bool triple_cross = false; // 是否有三个模式汇集于一点
 };
 
 
@@ -243,12 +254,14 @@ private:
         void updateCompound(Direction dir);
         void updateBlock(int delta, Player src_player);
         auto& matchResults(Direction dir) { return results[int(dir)]; }
+        Compound* findCompound(Position pose, Player player);
     private:
-        std::vector<PatternSearch::Entry> results[4]; // 存储匹配结果
-        std::vector<Compound> compounds; // 待更新复合模式集合
-        Evaluator& ev; // 原Evaluator的引用
-        Position move; // 更新的中心位置
         int delta; // 变化量，取值为 { 1, -1 }
+        Position move; // 更新的中心位置
+        Evaluator & ev; // 原Evaluator的引用
+        std::vector<PatternSearch::Entry> results[4]; // 存储单模式匹配结果
+        std::vector<std::tuple<Position, Player>> compound_keys; // 复合模式索引
+        std::vector<Compound> compounds; // 待更新复合模式集合
     } m_updater;
 
 public:
