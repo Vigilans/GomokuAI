@@ -23,7 +23,7 @@
     <ProjectGuid>{38C6C51A-CE17-45E7-A9CB-D6CC7180B78C}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>CoreLib</RootNamespace>
-    <WindowsTargetPlatformVersion>10.0.16299.0</WindowsTargetPlatformVersion>
+    <WindowsTargetPlatformVersion>10.0.17134.0</WindowsTargetPlatformVersion>
     <ProjectName>CoreLib</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -97,7 +97,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>.\include;$(VcpkgRoot)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\18-19-1\中国大学生计算机博弈大赛\GomokuAI-old\googletest-release-1.8.0;D:\18-19-1\中国大学生计算机博弈大赛\GomokuAI-old\eigen;D:\18-19-1\中国大学生计算机博弈大赛\GomokuAI-old;.\include;$(VcpkgRoot)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <EnableModules>false</EnableModules>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
@@ -165,10 +165,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="include\algorithms\Heuristic.hpp" />
+    <ClInclude Include="include\algorithms\Minimax.hpp" />
     <ClInclude Include="include\algorithms\Statistical.hpp" />
     <ClInclude Include="include\Game.h" />
     <ClInclude Include="include\MCTS.h" />
     <ClInclude Include="include\algorithms\MonteCarlo.hpp" />
+    <ClInclude Include="include\Minimax.h" />
     <ClInclude Include="include\Pattern.h" />
     <ClInclude Include="include\policies\PoolRAVE.h" />
     <ClInclude Include="include\policies\Random.h" />
@@ -179,6 +181,7 @@
     <ClCompile Include="src\ACAutomata.cpp" />
     <ClCompile Include="src\Game.cpp" />
     <ClCompile Include="src\MCTS.cpp" />
+    <ClCompile Include="src\Minimax.cpp" />
     <ClCompile Include="src\Pattern.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

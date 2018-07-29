@@ -2,7 +2,7 @@
 #define GOMOKU_ALGORITHMS_HEURISTIC_H_
 #include "../Pattern.h"
 #include "Statistical.hpp"
-#include "MonteCarlo.hpp"
+#include "MonteCarlo.hpp"   
 #include <deque>
 #include <iostream>
 
@@ -29,10 +29,10 @@ struct Heuristic {
     // ws_self_worthy = dot(self_worthy, normalize(self_density))
     // ws_rival_worthy = dot(rival_worthy, normalize(rival_density))
     // state_value = tanh((ws_self_worthy - ws_rival_worthy) / scale_factor)
-    static float EvaluationValue(Evaluator& ev, Player player) {
+    static float EvaluationValue(Evaluator& ev, Player player, float param = 500.0f) {
         auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
         auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
-        return std::tanh((1.2 * self_worthy - rival_worthy) / 500.0f);
+        return std::tanh((1.2 * self_worthy - rival_worthy) / param);
     }
 
     // weight = normalize(w/n * 1.5n/(0.5+n)) = normalize(3w/(1+2n))

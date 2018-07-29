@@ -5,8 +5,10 @@
 #include <nlohmann/json.hpp>
 #include "Game.h"
 #include "MCTS.h"
+#include "Minimax.h"
 #include "Pattern.h"
 #include "algorithms/Heuristic.hpp"
+#include "algorithms/Minimax.hpp"
 
 namespace Gomoku {
 
@@ -158,6 +160,44 @@ private:
     Evaluator m_evaluator;
     Position m_thisMove;
 };
+
+class MinimaxAgent : public Agent {
+public:
+	MinimaxAgent(int depth) {
+		c_depth = depth;
+	}
+
+    virtual std::string name() {
+        return "MinimaxAgent: Depth="+std::to_string(c_depth);
+    }
+     
+    virtual Position getAction(Board& board) { 
+        return m_minimax->getAction(board);
+    }
+
+    virtual json debugMessage() {
+		return { "depth", m_minimax->m_depth };
+	};
+
+    virtual void syncWithBoard(Board& board) {
+        if (m_minimax == nullptr) {
+            auto last_action = board.m_moveRecord.empty() ? Position(-1) : board.m_moveRecord.back();
+            m_minimax = std::make_unique<Minimax>(c_depth, last_action, -board.m_curPlayer, m_policy);
+		}
+		else {
+			m_minimax->syncWithBoard(board);
+		}
+    };
+
+    virtual void reset() {//valid
+        m_minimax.reset();
+	};
+
+private:
+    std::unique_ptr<Minimax> m_minimax;
+    int c_depth;
+};
+
 
 }
 

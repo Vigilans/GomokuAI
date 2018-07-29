@@ -50,6 +50,12 @@
     <ClInclude Include="src\ACAutomata.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="include\Minimax.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\algorithms\Minimax.hpp">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Game.cpp">
@@ -62,6 +68,9 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\ACAutomata.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\Minimax.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
