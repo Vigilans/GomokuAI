@@ -5,18 +5,6 @@
 
 namespace Gomoku {
 
-constexpr int Codeset[] = { 1, 2, 3, 4 };
-
-constexpr int EncodeCharset(char ch) {
-    switch (int code = 0; ch) {
-        case '-': case '_': case '^': case '~': ++code;
-        case '?': ++code;
-        case 'o': ++code;
-        case 'x': ++code;
-        default: return code;
-    }
-}
-
 class AhoCorasickBuilder {
 public:
     // 用于构建双数组的临时结点

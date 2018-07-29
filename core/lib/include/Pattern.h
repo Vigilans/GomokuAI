@@ -1,9 +1,8 @@
 #ifndef GOMOKU_PATTERN_MATCHING_H_
 #define GOMOKU_PATTERN_MATCHING_H_
-#include "Game.h"
+#include "Mapping.h"
 #include <utility>
 #include <string_view>
-#include <unordered_map>
 
 namespace Gomoku {
 
@@ -15,36 +14,6 @@ enum PatternConfig {
     TARGET_LEN = 2 * MAX_PATTERN_LEN - 1
 };
 }
-
-// 棋盘的四个方向的抽象封装
-enum class Direction : char {
-    Horizontal, Vertical, LeftDiag, RightDiag
-};
-
-// 将方向枚举解包成具体的(Δx, Δy)值
-constexpr std::pair<int, int> operator*(Direction direction) {
-    switch (direction) {
-        case Direction::Horizontal: return { 1, 0 };
-        case Direction::Vertical:   return { 0, 1 };
-        case Direction::LeftDiag:   return { 1, 1 };
-        case Direction::RightDiag:  return { -1, 1 };
-        default: return { 0, 0 };
-    }
-}
-
-// 将pose按照dir方向移动offset个单位
-constexpr Position Shift(Position pose, int offset, Direction dir) {
-    return { pose.id + offset * Position(*dir) };
-}
-
-constexpr Position& SelfShift(Position& pose, int offset, Direction dir) {
-    return pose.id += offset * Position(*dir), pose;
-}
-
-// 数组下标与Direction枚举值一一对应
-constexpr Direction Directions[] = {
-    Direction::Horizontal, Direction::Vertical, Direction::LeftDiag, Direction::RightDiag
-};
 
 
 struct Pattern {
@@ -125,28 +94,8 @@ private:
 };
 
 
-class BoardMap {
-public:
-    static std::tuple<int, int> ParseIndex(Position pose, Direction direction);
-
-    explicit BoardMap(Board* board = nullptr);
-
-    std::string_view lineView(Position pose, Direction direction);
-
-    Player applyMove(Position move);
-
-    Player revertMove(size_t count = 1);
-
-    void reset();
-
-public:
-    std::unique_ptr<Board> m_board;
-    std::array<std::string, 3*(WIDTH + HEIGHT) - 2> m_lineMap;
-    unsigned long long m_hash;
-};
-
-
 class Evaluator; // 评估器前置声明
+
 
 struct Compound {
     // 检测指定的位置上是否有属于指定玩家的复合模式
@@ -193,7 +142,7 @@ private:
 class Evaluator {
 public:
     struct Record {
-        unsigned field; // 4 White-Black组合 * 4 方向组 * 2标记位 || 2 White/Black分割 * 16计数位
+        std::uint32_t field; // 4 White-Black组合 * 4 方向组 * 2标记位 || 2 White/Black分割 * 16计数位
         void set(int delta, Player player); // 按玩家类型设置8位计数位。
         void set(int delta, Player favour, Player perspective, Direction dir);
         unsigned get(Player favour, Player perspective, Direction dir) const; // 获取某一组的某一方向的2标记位。
@@ -256,7 +205,7 @@ private:
         int delta; // 变化量，取值为 { 1, -1 }
         Position move; // 更新的中心位置
 		Player player; // 更新的源玩家（Player::None代表悔棋）
-        Evaluator & ev; // 原Evaluator的引用
+        Evaluator& ev; // 原Evaluator的引用
         std::vector<PatternSearch::Entry> results[2][4]; // 存储单模式匹配结果
         std::vector<std::tuple<Position, Player>> compound_keys; // 复合模式索引
         std::vector<Compound> compounds; // 待更新复合模式集合
