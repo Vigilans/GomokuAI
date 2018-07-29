@@ -3,8 +3,9 @@
 #pragma warning(disable:4244) // 关闭收缩转换警告
 #pragma warning(disable:4018) // 关闭有/无符号比较警告
 #include "../MCTS.h"
-#include <tuple>
+#include "algorithms/Statistical.hpp"
 #include <algorithm>
+#include <tuple>
 
 // Algorithms名空间是一组静态方法的集合，并不继承Policy。
 namespace Gomoku::Algorithms {
@@ -92,6 +93,19 @@ struct Default {
             node->state_value += (value - node->state_value) / node->node_visits;
         }
     }
+
+	static void AddNoise(Node* node, float alpha = 0.05, float epsilon = 0.25) {
+		Eigen::VectorXf prior_probs;
+		prior_probs.setZero(BOARD_SIZE);
+		for (auto&& child : node->children) {
+			prior_probs[child->position] = child->action_prob;
+		}
+		prior_probs *= 1 - epsilon;
+		prior_probs += epsilon * Stats::DirichletNoise(prior_probs, alpha);
+		for (auto&& child : node->children) {
+			child->action_prob = prior_probs[child->position];
+		}
+	}
 
 };
 

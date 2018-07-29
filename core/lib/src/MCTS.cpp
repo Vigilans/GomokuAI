@@ -1,6 +1,6 @@
 #include "MCTS.h"
+#include "algorithms/MonteCarlo.hpp"
 #include "policies/Random.h"
-#include "algorithms/Statistical.hpp"
 #include <iostream>
 
 using namespace std;
@@ -179,6 +179,7 @@ size_t MCTS::playout(Board& board) {
 void MCTS::runPlayouts(Board& board) {
     auto start = system_clock::now();
     this->syncWithBoard(board);
+	Default::AddNoise(m_root.get());
     m_policy->prepare(board);    
     if (c_constraint == Constraint::Duration) {
         m_iterations = 0;

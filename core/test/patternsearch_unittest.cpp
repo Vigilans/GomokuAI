@@ -2,7 +2,7 @@
 #include <string>
 #define private public
 #include "lib/include/Pattern.h"
-#include "lib/src/ACAutomata.h"
+#include "lib/src/utils/ACAutomata.h"
 #undef private
 
 namespace Gomoku {

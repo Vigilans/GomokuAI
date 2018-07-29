@@ -150,6 +150,9 @@ public:
     std::vector<Position> m_moveRecord;
 };
 
+// 统一的随机数引擎
+
+
 }
 
 // Generic bindings in namespace std
