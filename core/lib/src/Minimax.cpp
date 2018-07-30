@@ -66,9 +66,10 @@ namespace Gomoku {
 
 	Minimax::Minimax(
 		short   c_depth,
-		Position last_move,
-		Player   last_player
+		Position last_move ={ Config::GameConfig::WIDTH / 2 ,Config::GameConfig::HEIGHT / 2 } ,
+		Player   last_player = Player::Black
 	) :
+		m_policy(new MinimaxPolicy),
 		m_root(m_policy->createNode(nullptr, last_move, last_player, 0.0, 0.0)),
 		m_depth(c_depth),
 		c_constraint(Constraint::Depth) {
@@ -83,14 +84,7 @@ namespace Gomoku {
 	// 利用value作为minimax计分
 	// 在expand过程中利用filter判断各点概率，按概率排序
 	// 但每次都需要重新更改alpha,beta的值
-	static const Eigen::VectorXf Minimax::evalState(MinimaxNode *node, Board& board) {
-		m_evaluator.syncWithBoard(board);
-		auto action_probs = Heuristic::EvaluationProbs(m_evaluator, Player::Black);
-		Heuristic::DecisiveFilter(m_evaluator, action_probs);
-		node->current_state_value = Heuristic::EvaluationValue(m_evaluator, Player::Black, 1);
-		// return { node->state_value, action_probs };
-		return action_probs;
-	}
+
 
 	void Minimax::syncWithBoard(Board & board) {
 		auto iter = std::find(board.m_moveRecord.begin(), board.m_moveRecord.end(), m_root->position);
@@ -117,7 +111,7 @@ namespace Gomoku {
 
 	MinimaxNode* Minimax::stepForward(Position next_move) {
 		auto iter = find_if(m_root->children.begin(), m_root->children.end(), [next_move](auto&& node) {
-			return MinimaxNode->position == next_move;
+			return node->position == next_move;
 		});
 		if (iter == m_root->children.end()) { // 这个迷之hack是为了防止Python模块中出现引用Bug...
 			iter = m_root->children.emplace(
@@ -171,9 +165,9 @@ namespace Gomoku {
 		//只考虑了depth作为constraints的情况
 		double ans = -0xffff;
 		if (board.m_curPlayer == Player::Black)
-			ans = MinimaxAlgorithm::ab_max(m_root.get(), board, m_alpha, m_beta, m_depth);
+			ans = MinimaxAlgorithm::ab_max(m_root, board, m_alpha, m_beta, 0);
 		else if (board.m_curPlayer == Player::White)
-			ans = MinimaxAlgorithm::ab_min(m_root.get(), board, m_alpha, m_beta, m_depth);
+			ans = MinimaxAlgorithm::ab_min(m_root, board, m_alpha, m_beta, 0);
 		m_depth++;
 		// m_MinimaxPolicy->cleanup(board);
 	}

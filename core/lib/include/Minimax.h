@@ -1,7 +1,8 @@
-#ifndef GOMOKU_MCTS_H_
-#define GOMOKU_MCTS_H_
+#ifndef GOMOKU_MINIMAX_H_
+#define GOMOKU_MINIMAX_H_
 #include "Game.h" // Gomoku::Player, Gomoku::Position, Gomoku::Board
 #include "pattern.h"
+#include "algorithms/Heuristic.hpp"
 #include <vector>      // std::vector
 #include <memory>      // std::unique_ptr
 #include <chrono>      // std::milliseconds
@@ -12,6 +13,7 @@ namespace Gomoku {
 
 // using std::chrono::milliseconds;
 // using std::chrono_literals::operator""ms;
+	using Heuristic = Algorithms::Heuristic;
 
 inline namespace Config {
     // Minimax系相关的默认配置
@@ -92,10 +94,12 @@ public:
 
 public:
     // 当其中某一项传入nullptr时，该项将使用一个默认策略初始化。
-	MinimaxPolicy() {};
+	MinimaxPolicy() {
+		m_initActs = 0;
+	};
     //Policy(ExpandFunc = nullptr, EvalFunc = nullptr, size_t = DEPTH);
 
-    // 用于多态生成树节点的Factory函数。
+    // 用于多态生成树节点的Factory	函数。
     //virtual std::unique_ptr<MinimaxNode> createNode(MinimaxNode* parent, Position pose, Player player, float value, float prob, short );
 	static std::unique_ptr<MinimaxNode> createNode(MinimaxNode* parent, Position pose, Player player, float cur_value, float fin_value);
     
@@ -121,7 +125,7 @@ public:
 
 public: // 共通属性
     double c_depth; //限制搜索树深度
-    size_t m_initActs = 0; // Minimax搜索树的一轮Playout开始时，Board已下的棋子数。
+    size_t m_initActs; // Minimax搜索树的一轮Playout开始时，Board已下的棋子数。
 };
 
 
@@ -129,22 +133,23 @@ class Minimax {//Minimax树
 public:
     // 通过深度控制模拟迭代。
 	Minimax(
-		short   c_depth,
-		Position last_move = -1,
-		Player   last_player = Player::White
+		short   c_depth,//=3,
+		Position last_move,// = { Config::GameConfig::WIDTH / 2 ,Config::GameConfig::HEIGHT / 2 },
+		Player   last_player// = Player::Black
 	);
 
     Position getAction(Board& board);
-	static Eigen::VectorXf evalState(MinimaxNode *node, Board& board) {
+
+	static Eigen::VectorXf evalState(std::unique_ptr<MinimaxNode>& node, Board& board) {
+		Evaluator m_evaluator;
 		m_evaluator.syncWithBoard(board);
 		auto action_probs = Heuristic::EvaluationProbs(m_evaluator, Player::Black);
 		Heuristic::DecisiveFilter(m_evaluator, action_probs);
 		node->current_state_value = Heuristic::EvaluationValue(m_evaluator, Player::Black, 1);
-		// return { node->state_value, action_probs };
 		return action_probs;
 	}    
     
-    // // 将Minimax树往深推进一层
+	// 将Minimax树往深推进一层
     MinimaxNode* stepForward();                      // 选出子结点中的最好手
     MinimaxNode* stepForward(Position next_move);    // 根据提供的动作往下走
 
@@ -153,7 +158,6 @@ public:
 
 private:
     // Minimax树的一轮迭代 
-    // size_t playout(Board& board);    
 
     void runPlayouts(Board& board);
 
@@ -161,11 +165,10 @@ private:
 public:
     std::shared_ptr<MinimaxPolicy> m_policy;
     std::unique_ptr<MinimaxNode> m_root; //根节点
-    // size_t m_size; // FIXME: 由于unique_ptr的自动销毁，目前暂不能正确计数。
     size_t m_depth; // minimax树搜索深度，默认为DEPTH
-    static Evaluator m_evaluator;
-    double m_alpha = -0xffff;
-    double m_beta = 0xffff;
+    Evaluator m_evaluator;
+    double m_alpha;
+    double m_beta;
 
 private:
     enum class Constraint {

@@ -163,8 +163,9 @@ private:
 
 class MinimaxAgent : public Agent {
 public:
-	MinimaxAgent(int depth) {
+	MinimaxAgent(int depth=3) {
 		c_depth = depth;
+        //m_minimax = new Minimax(c_depth, )
 	}
 
     virtual std::string name() {
@@ -172,8 +173,8 @@ public:
     }
      
     virtual Position getAction(Board& board) { 
-        return m_minimax->getAction(board);
-    }
+            return m_minimax->getAction(board);
+    };
 
     virtual json debugMessage() {
 		return { "depth", m_minimax->m_depth };
@@ -182,7 +183,7 @@ public:
     virtual void syncWithBoard(Board& board) {
         if (m_minimax == nullptr) {
             auto last_action = board.m_moveRecord.empty() ? Position(-1) : board.m_moveRecord.back();
-            m_minimax = std::make_unique<Minimax>(c_depth, last_action, -board.m_curPlayer, m_policy);
+            m_minimax = std::make_unique<Minimax>(c_depth, last_action, -board.m_curPlayer);
 		}
 		else {
 			m_minimax->syncWithBoard(board);

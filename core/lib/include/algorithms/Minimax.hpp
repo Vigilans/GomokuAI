@@ -25,7 +25,7 @@ namespace Gomoku::Algorithms {
 
 	struct MinimaxAlgorithm {
 		//一次性扩展所有子节点 
-		static size_t Expand( MinimaxNode* node, Board& board, const Eigen::VectorXf action_probs, bool extraCheck = true) {
+		static size_t Expand( std::unique_ptr<MinimaxNode>& node, Board& board, const Eigen::VectorXf action_probs, bool extraCheck = true) {
 			if (node->children.size()) return node->children.size();
 			//node->children.reserve(action_probs.size());
 			vector<pair<float, int>> sort_tmp;
@@ -38,12 +38,12 @@ namespace Gomoku::Algorithms {
 			for (int i = 0; i < BOARD_SIZE; ++i) { //建树
 				if (sort_tmp[i].first == 0.0) break; //之后概率必定都为0
 				if (!extraCheck || board.checkMove(sort_tmp[i].second))
-					node->children.push_back(MinimaxPolicy::createNode(node, i, -node->player, 0.0f, sort_tmp[i].first));
+					node->children.push_back(MinimaxPolicy::createNode(node.get(), sort_tmp[i].second, -node->player, 0.0f, sort_tmp[i].first));
 			}
 			return node->children.size();
 		}
 
-		static double ab_max(MinimaxNode* node, Board& board, double &a, double &b, short depth) {
+		static double ab_max(std::unique_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth) {
 			if (!node->action_probs.size()) { //若size!=0 说明进行过evalstate，也就进行过Expand; 若size == 0，进行evaluate和拓展
 				node->action_probs = Minimax::evalState(node, board);
 				MinimaxAlgorithm::Expand(node, board, node->action_probs);
@@ -54,7 +54,7 @@ namespace Gomoku::Algorithms {
 			for (int i = 0; i < node->children.size(); i++) {
 				//更新board
 				board.applyMove(node->children[i]->position);
-				val = max(val, ab_min(node->children[i].get(), board, a, b, depth + 1));
+				val = max(val, ab_min(node->children[i], board, a, b, depth + 1));
 				board.revertMove();
 				if (val >= b) {
 					node->final_state_value = val;
@@ -66,7 +66,7 @@ namespace Gomoku::Algorithms {
 			return val;
 		}
 
-		static double ab_min(MinimaxNode* node, Board& board, double &a, double &b, short depth) {
+		static double ab_min(std::unique_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth) {
 			if (!node->action_probs.size()) { //若size!=0 说明进行过evalstate，也就进行过Expand; 若size == 0，进行evaluate和拓展
 				node->action_probs = Minimax::evalState(node, board);
 				MinimaxAlgorithm::Expand(node, board, node->action_probs);
@@ -77,7 +77,7 @@ namespace Gomoku::Algorithms {
 			for (int i = 0; i < node->children.size(); i++) {
 				//更新board
 				board.applyMove(node->children[i]->position);
-				val = min(val, ab_max(node->children[i].get(), board, a, b, depth + 1));
+				val = min(val, ab_max(node->children[i], board, a, b, depth + 1));
 				board.revertMove();
 				if (val >= b) {
 					node->final_state_value = val;

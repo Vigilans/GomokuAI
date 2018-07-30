@@ -68,7 +68,8 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
     Board board;
 
     srand(time(nullptr));
-    int black_player = rand() % 2;
+	int black_player = 1;
+    //int black_player = rand() % 2;
     Agent* agents[2] = { &agent0, &agent1 };
     int index[2] = { !black_player, black_player };
     auto get_agent = [&](Player player) -> tuple<Agent&, int> {
