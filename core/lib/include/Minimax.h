@@ -143,9 +143,9 @@ public:
 	static Eigen::VectorXf evalState(std::unique_ptr<MinimaxNode>& node, Board& board) {
 		Evaluator m_evaluator;
 		m_evaluator.syncWithBoard(board);
-		auto action_probs = Heuristic::EvaluationProbs(m_evaluator, Player::Black);
+		auto action_probs = Heuristic::EvaluationProbs(m_evaluator, board.m_curPlayer);
 		Heuristic::DecisiveFilter(m_evaluator, action_probs);
-		node->current_state_value = Heuristic::EvaluationValue(m_evaluator, Player::Black, 1);
+		node->current_state_value = Heuristic::EvaluationValue(m_evaluator, board.m_curPlayer, 1, true);
 		return action_probs;
 	}    
     

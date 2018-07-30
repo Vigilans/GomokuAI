@@ -9,8 +9,7 @@
 #include <utility>
 #include <iostream>
 using namespace std;
-#define DEPTH 4
-
+#define DEPTH  12
 inline bool action_probs_cmp(pair<float, int> a, pair<float,int> b){
     return a.first > b.first;
 }
@@ -19,7 +18,7 @@ inline double max(double a, double b){
 }
 inline double min(double a, double b){
     return a>b?b:a;
-}
+}	
 
 namespace Gomoku::Algorithms {
 

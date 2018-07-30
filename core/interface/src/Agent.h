@@ -9,6 +9,7 @@
 #include "Pattern.h"
 #include "algorithms/Heuristic.hpp"
 #include "algorithms/Minimax.hpp"
+using namespace std;
 
 namespace Gomoku {
 
@@ -173,7 +174,8 @@ public:
     }
      
     virtual Position getAction(Board& board) { 
-            return m_minimax->getAction(board);
+		cout << board.m_moveRecord.size();
+        return m_minimax->getAction(board);
     };
 
     virtual json debugMessage() {

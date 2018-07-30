@@ -159,15 +159,18 @@ namespace Gomoku {
 
 
 
-	void Minimax::runPlayouts(Board& board) {
+	void Minimax::runPlayouts(Board& bd) {
+		Board board(bd);
 		syncWithBoard(board);
 		m_policy->prepare(board);
-		//只考虑了depth作为constraints的情况
+		//只考虑了depth作为constraints的情况	
 		double ans = -0xffff;
+		ans = MinimaxAlgorithm::ab_max(m_root, board, m_alpha, m_beta, 0);
+/*
 		if (board.m_curPlayer == Player::Black)
 			ans = MinimaxAlgorithm::ab_max(m_root, board, m_alpha, m_beta, 0);
 		else if (board.m_curPlayer == Player::White)
-			ans = MinimaxAlgorithm::ab_min(m_root, board, m_alpha, m_beta, 0);
+			ans = MinimaxAlgorithm::ab_min(m_root, board, m_alpha, m_beta, 0);*/
 		m_depth++;
 		// m_MinimaxPolicy->cleanup(board);
 	}
