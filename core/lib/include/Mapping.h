@@ -39,11 +39,11 @@ constexpr Direction Directions[] = {
 // 编码棋盘的棋子字符
 constexpr int EncodeCharset(char ch) {
     switch (int code = 0; ch) {
-    case '-': case '_': case '^': case '~': ++code; // 空位
-    case '?': ++code; // 越界位
-    case 'o': ++code; // 白棋
-    case 'x': ++code; // 黑棋
-    default: return code;
+        case '-': case '_': case '^': case '~': ++code; // 空位
+        case '?': ++code; // 越界位
+        case 'o': ++code; // 白棋
+        case 'x': ++code; // 黑棋
+        default: return code;
     }
 }
 

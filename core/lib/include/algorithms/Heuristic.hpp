@@ -14,15 +14,40 @@ struct Heuristic {
     // w_rival_anti = rival_anti * normalize(rival_density)
     // action_probs = normalize(w * w_self_worthy + (1-w) * w_rival_anti)
     static Eigen::VectorXf EvaluationProbs(Evaluator& ev, Player player) {
-        Eigen::VectorXf action_probs;
-        if (!ev.board().m_moveRecord.empty()) {
-            Eigen::VectorXf self_worthy = ev.scores(player, player).cast<float>().cwiseProduct(DensityWeight(ev, player));
-            Eigen::VectorXf rival_anti = ev.scores(-player, player).cast<float>().cwiseProduct(DensityWeight(ev, -player));
-            action_probs = (0.6 * self_worthy + 0.4 * rival_anti).normalized();
-        } else {
-            action_probs = Eigen::VectorXf::Zero(BOARD_SIZE);
-            action_probs[Position{ WIDTH / 2 , HEIGHT / 2 }] = 1.0f;
+        using namespace Eigen;
+        Position center(WIDTH / 2, HEIGHT / 2), second;
+        VectorXf action_probs = VectorXf::Zero(BOARD_SIZE);
+        Map<MatrixXf> square_probs(action_probs.data(), HEIGHT, WIDTH);
+        // 五子棋规则的指定开局设计，也能在前期协助约束
+        switch (ev.board().m_moveRecord.size()) {
+        case 0: // 第一子应落在天元
+            action_probs[center] = 1.0f;
+            break;
+        case 1: // 第二子落在天元周围1格内（直指/斜指）
+            square_probs.block<3, 3>(center.y() - 1, center.x() - 1).fill(1.0f);
+            action_probs[center] = 0.0f; // 除去中心点概率
+            break;
+        case 2: // 第三子落在天元周围2格内（共26种）
+            second = ev.board().m_moveRecord[1];
+            square_probs.block<5, 5>(center.y() - 2, center.x() - 2).fill(1.0f);
+            action_probs[center] = 0.0f; // 除去第一子概率
+            action_probs[second] = 0.0f; // 除去第二子概率
+            for (auto sgn : { 1, -1 })   // 除去彗星/流星/游星开局
+            for (auto dir : { Direction::LeftDiag, Direction::RightDiag }) {
+                Vector2i a(second.y() - center.y(), second.x() - center.x());
+                Vector2i b(sgn * (*dir).second, sgn * (*dir).first);
+                if (a.dot(b) > 0) { // 夹角小于90°的是长星/疏星
+                    continue;
+                }
+                action_probs[Shift(center, sgn*2, dir)] = 0.0f;
+            }
+            break;
+        default: // 默认情况按照估值函数返回
+            VectorXf self_worthy = ev.scores(player, player).cast<float>().cwiseProduct(DensityWeight(ev, player));
+            VectorXf rival_anti = ev.scores(-player, player).cast<float>().cwiseProduct(DensityWeight(ev, -player));
+            action_probs = 0.6 * self_worthy + 0.4 * rival_anti;
         }
+        action_probs.normalize();
         return action_probs;
     }
 
