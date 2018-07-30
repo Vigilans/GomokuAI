@@ -152,6 +152,7 @@ public:
 	// 将Minimax树往深推进一层
     MinimaxNode* stepForward();                      // 选出子结点中的最好手
     MinimaxNode* stepForward(Position next_move);    // 根据提供的动作往下走
+	MinimaxNode* stepForward(float score);
 
     void syncWithBoard(Board& board); // 同步Minimax搜索树与棋盘，使得树的根节点为棋盘的最后一手
     void reset(); // 重置minimax树与其所用的策略
@@ -159,7 +160,7 @@ public:
 private:
     // Minimax树的一轮迭代 
 
-    void runPlayouts(Board& board);
+    float runPlayouts(Board& board);
 
 
 public:

@@ -164,9 +164,8 @@ private:
 
 class MinimaxAgent : public Agent {
 public:
-	MinimaxAgent(int depth=3) {
-		c_depth = depth;
-        //m_minimax = new Minimax(c_depth, )
+	MinimaxAgent() {
+		c_depth = 10;
 	}
 
     virtual std::string name() {

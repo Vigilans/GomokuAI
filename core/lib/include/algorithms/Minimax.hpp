@@ -9,7 +9,6 @@
 #include <utility>
 #include <iostream>
 using namespace std;
-#define DEPTH  12
 inline bool action_probs_cmp(pair<float, int> a, pair<float,int> b){
     return a.first > b.first;
 }
@@ -23,6 +22,8 @@ inline double min(double a, double b){
 namespace Gomoku::Algorithms {
 
 	struct MinimaxAlgorithm {
+
+
 		//一次性扩展所有子节点 
 		static size_t Expand( std::unique_ptr<MinimaxNode>& node, Board& board, const Eigen::VectorXf action_probs, bool extraCheck = true) {
 			if (node->children.size()) return node->children.size();
@@ -42,18 +43,18 @@ namespace Gomoku::Algorithms {
 			return node->children.size();
 		}
 
-		static double ab_max(std::unique_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth) {
+		static double ab_max(std::unique_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth, short M_DEPTH) {
 			if (!node->action_probs.size()) { //若size!=0 说明进行过evalstate，也就进行过Expand; 若size == 0，进行evaluate和拓展
 				node->action_probs = Minimax::evalState(node, board);
 				MinimaxAlgorithm::Expand(node, board, node->action_probs);
 			}
-			if (node->isLeaf() || depth == DEPTH) return node->current_state_value;
+			if (node->isLeaf() || depth == M_DEPTH) return node->current_state_value;
 
 			double /*alpha = a,*/ val = -0xffff;
 			for (int i = 0; i < node->children.size(); i++) {
 				//更新board
 				board.applyMove(node->children[i]->position);
-				val = max(val, ab_min(node->children[i], board, a, b, depth + 1));
+				val = max(val, ab_min(node->children[i], board, a, b, depth + 1,M_DEPTH));
 				board.revertMove();
 				if (val >= b) {
 					node->final_state_value = val;
@@ -65,18 +66,18 @@ namespace Gomoku::Algorithms {
 			return val;
 		}
 
-		static double ab_min(std::unique_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth) {
+		static double ab_min(std::unique_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth,short M_DEPTH) {
 			if (!node->action_probs.size()) { //若size!=0 说明进行过evalstate，也就进行过Expand; 若size == 0，进行evaluate和拓展
 				node->action_probs = Minimax::evalState(node, board);
 				MinimaxAlgorithm::Expand(node, board, node->action_probs);
 			}
-			if (node->isLeaf() || depth == DEPTH) return node->current_state_value;
+			if (node->isLeaf() || depth == M_DEPTH) return node->current_state_value;
 
 			double /*beta = b, */val = 0xffff;
 			for (int i = 0; i < node->children.size(); i++) {
 				//更新board
 				board.applyMove(node->children[i]->position);
-				val = min(val, ab_max(node->children[i], board, a, b, depth + 1));
+				val = min(val, ab_max(node->children[i], board, a, b, depth + 1, M_DEPTH));
 				board.revertMove();
 				if (val >= b) {
 					node->final_state_value = val;

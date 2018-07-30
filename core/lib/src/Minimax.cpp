@@ -65,7 +65,7 @@ namespace Gomoku {
 	}
 
 	Minimax::Minimax(
-		short   c_depth,
+		short   c_depth = 12,
 		Position last_move ={ Config::GameConfig::WIDTH / 2 ,Config::GameConfig::HEIGHT / 2 } ,
 		Player   last_player = Player::Black
 	) :
@@ -73,11 +73,13 @@ namespace Gomoku {
 		m_root(m_policy->createNode(nullptr, last_move, last_player, 0.0, 0.0)),
 		m_depth(c_depth),
 		c_constraint(Constraint::Depth) {
+			m_alpha = -0xffff;
+			m_beta = 0xffff;
 	};
 
 	Position Minimax::getAction(Board& board) {
-		runPlayouts(board);
-		return Minimax::stepForward()->position;
+		float ans = runPlayouts(board);
+		return Minimax::stepForward(ans)->position;
 	}
 
 	// MinimaxPolicy::EvalResult 
@@ -95,18 +97,18 @@ namespace Gomoku {
 	}
 
 	MinimaxNode* Minimax::stepForward() {
-		if (m_root->player == Player::White) {
+		//if (m_root->player == Player::White) {
+		//	auto iter = max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
+		//		return lhs->final_state_value < rhs->final_state_value;
+		//	});
+		//	return iter != m_root->children.end() ? updateRoot(*this, std::move(*iter)) : m_root.get();
+		//}
+		//else if (m_root->player == Player::Black) {
 			auto iter = max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
-				return lhs->final_state_value < rhs->final_state_value;
+				return lhs->final_state_value > rhs->final_state_value;
 			});
 			return iter != m_root->children.end() ? updateRoot(*this, std::move(*iter)) : m_root.get();
-		}
-		else if (m_root->player == Player::Black) {
-			auto iter = min_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
-				return lhs->final_state_value < rhs->final_state_value;
-			});
-			return iter != m_root->children.end() ? updateRoot(*this, std::move(*iter)) : m_root.get();
-		}
+		//}
 	}
 
 	MinimaxNode* Minimax::stepForward(Position next_move) {
@@ -121,6 +123,20 @@ namespace Gomoku {
 		}
 		return updateRoot(*this, std::move(*iter));
 	}
+
+	MinimaxNode* Minimax::stepForward(float score) {
+		auto iter = find_if(m_root->children.begin(), m_root->children.end(), [score](auto&& node) {
+			return node->final_state_value == score;
+		});
+		//if (iter == m_root->children.end()) { // 这个迷之hack是为了防止Python模块中出现引用Bug...
+		//	iter = m_root->children.emplace(
+		//		m_root->children.end(),
+		//		m_policy->createNode(nullptr, next_move, -m_root->player, 0.0f, 1.0f)
+		//	);
+		//}
+		return updateRoot(*this, std::move(*iter));
+	}
+
 
 	void Minimax::reset() {
 		auto iter = m_root->children.emplace(
@@ -159,19 +175,15 @@ namespace Gomoku {
 
 
 
-	void Minimax::runPlayouts(Board& bd) {
+	float Minimax::runPlayouts(Board& bd) {
 		Board board(bd);
 		syncWithBoard(board);
 		m_policy->prepare(board);
 		//只考虑了depth作为constraints的情况	
-		double ans = -0xffff;
-		ans = MinimaxAlgorithm::ab_max(m_root, board, m_alpha, m_beta, 0);
-/*
-		if (board.m_curPlayer == Player::Black)
-			ans = MinimaxAlgorithm::ab_max(m_root, board, m_alpha, m_beta, 0);
-		else if (board.m_curPlayer == Player::White)
-			ans = MinimaxAlgorithm::ab_min(m_root, board, m_alpha, m_beta, 0);*/
+		float ans = -0xffff;
+		ans = MinimaxAlgorithm::ab_max(m_root, board, m_alpha, m_beta, 0, m_depth);
 		m_depth++;
-		// m_MinimaxPolicy->cleanup(board);
+		cout << "m_depth :" << m_depth << endl;
+		return ans;
 	}
 }
