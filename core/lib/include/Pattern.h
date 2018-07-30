@@ -204,7 +204,7 @@ private:
     private:
         int delta; // 变化量，取值为 { 1, -1 }
         Position move; // 更新的中心位置
-		Player player; // 更新的源玩家（Player::None代表悔棋）
+        Player player; // 更新的源玩家（Player::None代表悔棋）
         Evaluator& ev; // 原Evaluator的引用
         std::vector<PatternSearch::Entry> results[2][4]; // 存储单模式匹配结果
         std::vector<std::tuple<Position, Player>> compound_keys; // 复合模式索引

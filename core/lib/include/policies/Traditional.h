@@ -60,7 +60,7 @@ public:
             //board.applyMove(next_move);
 
             float value = Heuristic::EvaluationValue(m_evaluator, init_player);
-            //Heuristic::TunedRandomRollout(board, value);
+            //Default::TunedRandomRollout(board, value);
             //auto [winner, total_moves] = Heuristic::MaxEvaluatedRollout(m_evaluator, true);
             ////auto [winner, total_moves] = Default::RandomRollout(board, true);
             //auto state_value = 0.4*value + 0.6*CalcScore(init_player, winner);

@@ -5,6 +5,7 @@
 #include <nlohmann/json.hpp>
 #include "Game.h"
 #include "MCTS.h"
+#include "Minimax.h"
 #include "Pattern.h"
 #include "algorithms/Heuristic.hpp"
 
@@ -31,21 +32,45 @@ public:
 
 class HumanAgent : public Agent {
 public:
+    using Heuristic = Algorithms::Heuristic;
+
+    HumanAgent(bool output_probs = false) : c_output(output_probs) { }
+
     virtual std::string name() {
         return "HumanAgent";
     }
 
     virtual Position getAction(Board& board) {
-        using namespace std;
-        int x, y;
-        cout << "\nInput your move({-1 -1} to revert): ";
-        cin >> hex >> x >> y;
+        std::cout << "\nInput your move({-1 -1} to revert): ";
+        std::cin >> std::hex >> m_move.first >> m_move.second;
         m_evaluator.syncWithBoard(board);
-        m_evaluator.applyMove({ x, y });
-        return { x, y };
+        
+        return m_move;
+    }
+
+    virtual json debugMessage() {
+        if (c_output) {
+            auto reshaped_probs = [this] {
+                return Eigen::Map<const Eigen::Array<float, 15, 15, Eigen::RowMajor>>(m_probs.data());
+            };
+
+            m_probs = Heuristic::EvaluationProbs(m_evaluator, m_evaluator.board().m_curPlayer);
+            Heuristic::DecisiveFilter(m_evaluator, m_probs);
+            std::cout << "before:\n" << reshaped_probs() << std::endl;
+
+            m_evaluator.applyMove(m_move);
+
+            m_probs = Heuristic::EvaluationProbs(m_evaluator, m_evaluator.board().m_curPlayer);
+            Heuristic::DecisiveFilter(m_evaluator, m_probs);
+            std::cout << "after:\n" << reshaped_probs() << std::endl;
+        }
+        return {};
     }
 
     Evaluator m_evaluator;
+    std::pair<int, int> m_move;
+    Eigen::VectorXf m_probs;
+    bool c_output;
 };
 
 class RandomAgent : public Agent {
@@ -87,7 +112,7 @@ public:
 
     virtual void syncWithBoard(Board& board) {
         if (m_mcts == nullptr) {
-            auto last_action = board.m_moveRecord.empty() ? Position(-1) : board.m_moveRecord.back();
+            auto last_action = board.m_moveRecord.empty() ? Position::npos : board.m_moveRecord.back();
             m_mcts = std::make_unique<MCTS>(c_duration, last_action, -board.m_curPlayer, m_policy);
         } else {
             m_mcts->syncWithBoard(board);
@@ -158,6 +183,38 @@ private:
     Evaluator m_evaluator;
     Position m_thisMove;
 };
+
+class MinimaxAgent : public Agent {
+public:
+	MinimaxAgent(int depth) : m_minimax(depth) {
+        c_depth = depth;
+	}
+
+    virtual std::string name() {
+        return "MinimaxAgent: Depth="+std::to_string(c_depth);
+    }
+     
+    virtual Position getAction(Board& board) { 
+        return m_minimax.getAction(board);
+    }
+
+ //   virtual json debugMessage() {
+	//	return { "depth", m_minimax->m_depth };
+	//};
+
+    virtual void syncWithBoard(Board& board) {
+        m_minimax.syncWithBoard(board);
+    };
+
+    virtual void reset() {//valid
+        //m_minimax->reset();
+	};
+
+private:
+    Minimax m_minimax;
+    int c_depth;
+};
+
 
 }
 

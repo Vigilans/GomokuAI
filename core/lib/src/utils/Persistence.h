@@ -4,12 +4,12 @@
 
 namespace Gomoku {
 
-	using json = nlohmann::json;
+using json = nlohmann::json;
 
-	struct Persistence {
-		static json Load(std::string_view name);
-		static void Save(std::string_view name, json value);
-	};
+struct Persistence {
+    static json Load(std::string_view name);
+    static void Save(std::string_view name, json value);
+};
 
 }
 

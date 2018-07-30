@@ -1,6 +1,6 @@
 #ifndef GOMOKU_AHO_CORASICK_H_
 #define GOMOKU_AHO_CORASICK_H_
-#include "../include/Pattern.h"
+#include "../../include/Pattern.h"
 #include <set>
 
 namespace Gomoku {

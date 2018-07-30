@@ -43,7 +43,7 @@ constexpr float CalcScore(Player player, float stateValue) {
 
 // 可用来表示第一/第四象限的坐标。也就是说，x/y坐标必须同正或同负。
 struct Position {
-	static const Position npos; // 用于表示无位置的标志量
+    static const Position npos; // 用于表示无位置的标志量
     short id; // 内部存储使用short，其余情况均转换为int计算。
 
     constexpr Position(int id = npos)              : id(id) {}

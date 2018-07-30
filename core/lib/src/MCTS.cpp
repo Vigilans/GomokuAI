@@ -105,45 +105,45 @@ Policy::EvalResult MCTS::evalState(Board& board) {
     runPlayouts(board);
     Eigen::VectorXf child_visits;
     child_visits.setZero((int)BOARD_SIZE);
-    for (auto&& node : m_root->children) {
+    for (const auto& node : m_root->children) {
         child_visits[node->position] = node->node_visits;
     }
     cout << Eigen::Map<const Eigen::Array<float, 15, 15, Eigen::RowMajor>>(child_visits.data()) << endl;
-	child_visits = child_visits.normalized().unaryExpr([](float v) { return v ? v + 1 : v; });
+    child_visits = child_visits.normalized().unaryExpr([](float v) { return v ? v + 1 : v; });
     auto action_probs = Stats::TempBasedProbs(
         child_visits, board.m_moveRecord.size() < 15 ? 1 : 1e-2 
     );
     return { m_root->state_value, action_probs };
 }
 
-void MCTS::syncWithBoard(Board & board) {
-    auto iter = std::find(board.m_moveRecord.begin(), board.m_moveRecord.end(), m_root->position);
-    for (iter = (iter == board.m_moveRecord.end() ? board.m_moveRecord.begin() : ++iter);
-        iter != board.m_moveRecord.end(); ++iter) {
-        stepForward(*iter);
-    }
-}
-
 // AlphaZero的论文中，对MCTS的再利用策略
 // 参见https://stackoverflow.com/questions/47389700
 Node* MCTS::stepForward() {
-    auto iter = max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
+    auto iter = max_element(m_root->children.begin(), m_root->children.end(), [](auto& lhs, auto& rhs) {
         return lhs->node_visits < rhs->node_visits;
     });
     return iter != m_root->children.end() ? updateRoot(*this, std::move(*iter)) : m_root.get();
 }
 
-Node* MCTS::stepForward(Position next_move) {
-    auto iter = find_if(m_root->children.begin(), m_root->children.end(), [next_move](auto&& node) {
-        return node->position == next_move;
+Node* MCTS::stepForward(Position move) {
+    auto iter = find_if(m_root->children.begin(), m_root->children.end(), [move](auto& node) {
+        return node->position == move;
     });
-    if (iter == m_root->children.end()) { // 这个迷之hack是为了防止Python模块中出现引用Bug...
-        iter = m_root->children.emplace(
+    // 若没找到指定子结点，则新开一个结点，将其作为根节点
+    if (iter == m_root->children.end()) { 
+        // 这个迷之hack是为了防止Python模块中出现引用Bug...
+        iter = m_root->children.insert(
             m_root->children.end(), 
-            m_policy->createNode(nullptr, next_move, -m_root->player, 0.0f, 1.0f)
+            m_policy->createNode(nullptr, move, -m_root->player, 0.0f, 1.0f)
         );
     }
     return updateRoot(*this, std::move(*iter));
+}
+
+void MCTS::syncWithBoard(const Board& board) {
+    auto beg = std::find(board.m_moveRecord.begin(), board.m_moveRecord.end(), m_root->position);
+    auto cur = (beg == board.m_moveRecord.end() ? board.m_moveRecord.begin() : ++beg);
+    std::for_each(cur, board.m_moveRecord.end(), [this](auto move) { stepForward(move); });
 }
 
 void MCTS::reset() {
@@ -179,7 +179,7 @@ size_t MCTS::playout(Board& board) {
 void MCTS::runPlayouts(Board& board) {
     auto start = system_clock::now();
     this->syncWithBoard(board);
-	Default::AddNoise(m_root.get());
+    Default::AddNoise(m_root.get());
     m_policy->prepare(board);    
     if (c_constraint == Constraint::Duration) {
         m_iterations = 0;

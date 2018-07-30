@@ -2,8 +2,8 @@
 #define GOMOKU_ALGORITHMS_HEURISTIC_H_
 #include "../Pattern.h"
 #include "Statistical.hpp"
-#include "MonteCarlo.hpp"
 #include <deque>
+#include <iostream>
 #include <iostream>
 
 namespace Gomoku::Algorithms {
@@ -29,10 +29,10 @@ struct Heuristic {
     // ws_self_worthy = dot(self_worthy, normalize(self_density))
     // ws_rival_worthy = dot(rival_worthy, normalize(rival_density))
     // state_value = tanh((ws_self_worthy - ws_rival_worthy) / scale_factor)
-    static float EvaluationValue(Evaluator& ev, Player player) {
+    static float EvaluationValue(Evaluator& ev, Player player, float param = 1500.0f) {
         auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
         auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
-        return std::tanh((1.2 * self_worthy - rival_worthy) / 500.0f);
+        return std::tanh((1.2 * self_worthy - rival_worthy) / param);
     }
 
     // weight = normalize(w/n * 1.5n/(0.5+n)) = normalize(3w/(1+2n))
@@ -42,20 +42,6 @@ struct Heuristic {
         auto N = counts.unaryExpr(filter).cast<float>();
         auto W = weights.unaryExpr(filter).cast<float>();
         return ((3 * W) / (1 + 2 * N)).matrix().normalized();
-    }
-
-    // 进行多轮随机rollout，用各轮结果来不断调整value的值。
-    static void TunedRandomRollout(Board& board, float& value, size_t c_rollouts = 5) {
-        auto init_player = board.m_curPlayer;
-        auto total_moves = 0;
-        for (int i = 0; i < c_rollouts; ++i) {
-            auto [winner, total_moves] = Default::RandomRollout(board, true);
-            auto score = CalcScore(init_player, winner); // 计算相对于局面初始应下玩家的价值
-            value = 0.8*value + 0.2*score;
-            if (value * score > 0) { // 若两次结果一样则可提前结束
-                break;
-            }
-        }
     }
 
     template <typename Func>
@@ -129,9 +115,16 @@ struct Heuristic {
                     count = ev.m_compoundDist.back()[pattern - Pattern::Size].get(player);
                 }
                 if (count != 0) { // 成功找到一个有计数的模式
-                    // 当反击对方非四连棋型时，己方眠三同样有价值
-                    if (is_antiMove && state != State::_4) {
-                        candidates.push_back({ Pattern::DeadThree, -player });
+                    // 额外反击棋型判断
+                    if (is_antiMove) {
+                        // 当反击对方非四连棋型时，己方眠三同样有价值
+                        if (state != State::_4) {
+                            candidates.push_back({ Pattern::DeadThree, -player });
+                        } 
+                        // 当反击对方双三棋型时，己方活二同样有价值
+                        if (state == State::To33) {
+                            candidates.push_back({ Pattern::LiveThree, -player });
+                        }
                     }
                     break; // 直接跳出，保留后面的候选者
                 }

@@ -39,21 +39,21 @@ Player BoardMap::applyMove(Position move) {
         const auto [index, offset] = ParseIndex(move, direction);
         m_lineMap[index][offset] = EncodeCharset(m_board->m_curPlayer == Player::Black ? 'x' : 'o');
     }
-	m_hash ^= BoardHash::HashPose(move, Player::None);
-	m_hash ^= BoardHash::HashPose(move, m_board->m_curPlayer);
+    m_hash ^= BoardHash::HashPose(move, Player::None);
+    m_hash ^= BoardHash::HashPose(move, m_board->m_curPlayer);
     return m_board->applyMove(move, false);
 }
 
 Player BoardMap::revertMove(size_t count) {
     for (int i = 0; i < count; ++i) {
-		auto move = m_board->m_moveRecord.back();
+        auto move = m_board->m_moveRecord.back();
         for (auto direction : Directions) {
             const auto [index, offset] = ParseIndex(move, direction);
             m_lineMap[index][offset] = EncodeCharset('-');
         }
         m_board->revertMove();
-		m_hash ^= BoardHash::HashPose(move, m_board->m_curPlayer);
-		m_hash ^= BoardHash::HashPose(move, Player::None);
+        m_hash ^= BoardHash::HashPose(move, m_board->m_curPlayer);
+        m_hash ^= BoardHash::HashPose(move, Player::None);
     }
     return m_board->m_curPlayer;
 }
@@ -64,13 +64,13 @@ void BoardMap::reset() {
     for (auto& line : m_lineMap) {
         line.resize(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // 线前填充越界位('?')
     }
-	for (auto i = 0; i < BOARD_SIZE; ++i) {
-		for (auto direction : Directions) {
-			auto[index, _] = ParseIndex(i, direction);
-			m_lineMap[index].push_back(EncodeCharset('-')); // 按每个位置填充空位('-')
-		}
-		m_hash ^= BoardHash::HashPose(i, Player::None);
-	}
+    for (auto i = 0; i < BOARD_SIZE; ++i) {
+        for (auto direction : Directions) {
+            auto[index, _] = ParseIndex(i, direction);
+            m_lineMap[index].push_back(EncodeCharset('-')); // 按每个位置填充空位('-')
+        }
+        m_hash ^= BoardHash::HashPose(i, Player::None);
+    }
     for (auto& line : m_lineMap) {
         line.append(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // 线后填充越界位('?')
     }
@@ -79,18 +79,18 @@ void BoardMap::reset() {
 /* ------------------- BoardHash类实现 ------------------- */
 
 const array<std::uint64_t[3], BOARD_SIZE> BoardHash::Zorbrist = []() {
-	array<std::uint64_t[3], BOARD_SIZE> keys;
-	auto data = Persistence::Load("zobrist");
-	if (data.is_null()) {
-		uniform_int_distribution<std::uint64_t> rnd;
-		mt19937_64 eng((random_device())()); // 64位引擎
-		for (int i = 0; i < BOARD_SIZE; ++i) {
-			data.push_back({ rnd(eng), rnd(eng), rnd(eng) });
-		}
-		Persistence::Save("zobrist", data); // data不是很大，且下面还要用，故不需move
-	}
-	for (int i = 0; i < BOARD_SIZE; ++i) {
-		std::copy(begin(data[i]), end(data[i]), begin(keys[i]));
-	}
-	return keys;
+    array<std::uint64_t[3], BOARD_SIZE> keys;
+    auto data = Persistence::Load("zobrist");
+    if (data.is_null()) {
+        uniform_int_distribution<std::uint64_t> rnd;
+        mt19937_64 eng((random_device())()); // 64位引擎
+        for (int i = 0; i < BOARD_SIZE; ++i) {
+            data.push_back({ rnd(eng), rnd(eng), rnd(eng) });
+        }
+        Persistence::Save("zobrist", data); // data不是很大，且下面还要用，故不需move
+    }
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        std::copy(begin(data[i]), end(data[i]), begin(keys[i]));
+    }
+    return keys;
 }();

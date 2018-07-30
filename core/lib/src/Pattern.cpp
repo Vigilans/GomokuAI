@@ -109,9 +109,9 @@ inline auto BlockView(Array_t& src, Position move) {
 }
 
 void Evaluator::Updater::reset(int delta, Position move, Player player) {
-	this->delta = delta;
+    this->delta = delta;
     this->move = move;
-	this->player = player;
+    this->player = player;
     this->compound_keys.clear();
     this->compounds.clear();
 }
@@ -166,68 +166,68 @@ void Evaluator::Updater::updatePatterns(Direction dir) {
 
 void Evaluator::Updater::updateCompound(Direction dir) {
 #if true
-	const auto view = ev.m_boardMap.lineView(move, dir);
-	for (const auto player : { Player::White, Player::Black }) {
-		auto current = Position::npos;
-		auto offset = 0;
-		for (int i = 0; i < view.size(); ++i) {
-			if (view[i] != EncodeCharset('-')) {
-				continue;
-			} else if (current == Position::npos) {
-				current = Shift(move, i - TARGET_LEN / 2, dir);
-			} else {
-				SelfShift(current, i - offset, dir);
-			}
-			offset = i;
-			if (ev.density(player)[0][current] < 2) {
-				continue; // 周围至少要有2个同色子
-			} 
-			if (findCompound(current, player) != nullptr) {
-				continue; // 若找到复合模式记录，则代表已更新过，直接跳过
-			} 
-			if (Compound::Test(ev, current, player)) {
-				compound_keys.emplace_back(current, player);
-				compounds.emplace_back(ev, current, player);
-				compounds.back().update(delta);
-			}
-			if (view[i] == EncodeCharset('?')) {
-				break;
-			}
-		}
-	}
+    const auto view = ev.m_boardMap.lineView(move, dir);
+    for (const auto player : { Player::White, Player::Black }) {
+        auto current = Position::npos;
+        auto offset = 0;
+        for (int i = 0; i < view.size(); ++i) {
+            if (view[i] != EncodeCharset('-')) {
+                continue;
+            } else if (current == Position::npos) {
+                current = Shift(move, i - TARGET_LEN / 2, dir);
+            } else {
+                SelfShift(current, i - offset, dir);
+            }
+            offset = i;
+            if (ev.density(player)[0][current] < 2) {
+                continue; // 周围至少要有2个同色子
+            } 
+            if (findCompound(current, player) != nullptr) {
+                continue; // 若找到复合模式记录，则代表已更新过，直接跳过
+            } 
+            if (Compound::Test(ev, current, player)) {
+                compound_keys.emplace_back(current, player);
+                compounds.emplace_back(ev, current, player);
+                compounds.back().update(delta);
+            }
+            if (view[i] == EncodeCharset('?')) {
+                break;
+            }
+        }
+    }
 #elif
     for (auto [pattern, offset] : matchResults(delta, dir)) {
         auto current = Shift(move, offset - TARGET_LEN / 2, dir);
         for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, dir)) {
             const auto piece = pattern.str.rbegin()[i];
             if (piece != '_') {
-				continue; // 只允许关键空位通过
+                continue; // 只允许关键空位通过
             }
-			switch (pattern.type) {
-			case Pattern::DeadOne:
-				continue; // 直接过滤
-			case Pattern::LiveOne:
-				// 活一不会对对方的复合模式造成影响
-				if (pattern.favour != player) {
-					continue; 
-				}
-				// 此时，若下棋不能delta == 1，若悔棋不能delta == -1
-				if ((delta == 1) ^ (player == Player::None)) {
-					continue; // 即：仅当活一的棋子不是updater.move时才能通过
-				}
-				continue;
-				break;
-			case Pattern::DeadFour:
-				continue;
-			}
-			if (findCompound(current, pattern.favour) != nullptr) {
-				continue; // 若找到复合模式记录，则代表已更新过，直接跳过
-			}
-			if (Compound::Test(ev, current, pattern.favour)) {
-				compound_keys.emplace_back(current, pattern.favour);
-				compounds.emplace_back(ev, current, pattern.favour);
-				compounds.back().update(delta);
-			}
+            switch (pattern.type) {
+            case Pattern::DeadOne:
+                continue; // 直接过滤
+            case Pattern::LiveOne:
+                // 活一不会对对方的复合模式造成影响
+                if (pattern.favour != player) {
+                    continue; 
+                }
+                // 此时，若下棋不能delta == 1，若悔棋不能delta == -1
+                if ((delta == 1) ^ (player == Player::None)) {
+                    continue; // 即：仅当活一的棋子不是updater.move时才能通过
+                }
+                continue;
+                break;
+            case Pattern::DeadFour:
+                continue;
+            }
+            if (findCompound(current, pattern.favour) != nullptr) {
+                continue; // 若找到复合模式记录，则代表已更新过，直接跳过
+            }
+            if (Compound::Test(ev, current, pattern.favour)) {
+                compound_keys.emplace_back(current, pattern.favour);
+                compounds.emplace_back(ev, current, pattern.favour);
+                compounds.back().update(delta);
+            }
         }
     }
 #endif
@@ -273,13 +273,13 @@ void Evaluator::Updater::updateBlock(int delta, Player src_player) {
 
 void Evaluator::Updater::updateMove(Position move, Player src_player) {
     this->reset(-1, move, src_player); // 撤销旧状态
-	for (auto dir : Directions) {
-		matchPatterns(dir);
+    for (auto dir : Directions) {
+        matchPatterns(dir);
     }
     for (auto dir : Directions) {
         updateCompound(dir);
     }
-	for (auto dir : Directions) {
+    for (auto dir : Directions) {
         updatePatterns(dir);
     }
     if (src_player != Player::None) {
@@ -290,10 +290,10 @@ void Evaluator::Updater::updateMove(Position move, Player src_player) {
         updateBlock(-1, ev.board().m_curPlayer);
     }
     this->reset(1, move, src_player); // 更新新状态
-	for (auto dir : Directions) {
+    for (auto dir : Directions) {
         matchPatterns(dir);
     }
-	for (auto dir : Directions) {
+    for (auto dir : Directions) {
         updatePatterns(dir);
     }
     for (auto dir : Directions) {
@@ -316,9 +316,9 @@ Player Evaluator::applyMove(Position move) {
             for (int j = 0; j < 4; ++j) {
                 if (m_scores[j][i] != 0) {
                     auto b = board().toString();
-					for (auto pose : board().m_moveRecord) {
-						std::cout << std::to_string(pose) << std::endl;
-					}
+                    for (auto pose : board().m_moveRecord) {
+                        std::cout << std::to_string(pose) << std::endl;
+                    }
                     throw b;
                 }
             }
@@ -508,7 +508,7 @@ void Compound::update(int delta) {
         }
 
         // 状态正式转移
-		count += delta;
+        count += delta;
     }
 }
 
