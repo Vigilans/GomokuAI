@@ -127,8 +127,8 @@ Compound* Evaluator::Updater::findCompound(Position pose, Player player) {
 
 void Evaluator::Updater::matchPatterns(Direction dir) {
     matchResults(delta, dir).clear();
-    auto target = ev.m_boardMap.lineView(move, dir);
-    for (auto&& entry : Patterns.execute(target)) {
+    auto target = ev.m_boardMap.m_lineView(move, dir);
+    for (auto&& entry : Searcher.execute(target)) {
         if (PatternSearch::HasCovered(entry, TARGET_LEN / 2)) {
             matchResults(delta, dir).push_back(std::move(entry));
         }
@@ -166,7 +166,7 @@ void Evaluator::Updater::updatePatterns(Direction dir) {
 
 void Evaluator::Updater::updateCompound(Direction dir) {
 #if true
-    const auto view = ev.m_boardMap.lineView(move, dir);
+    const auto view = ev.m_boardMap.m_lineView(move, dir);
     for (const auto player : { Player::White, Player::Black }) {
         auto current = Position::npos;
         auto offset = 0;
@@ -303,7 +303,7 @@ void Evaluator::Updater::updateMove(Position move, Player src_player) {
 
 /* ------------------- Evaluator类实现 ------------------- */
 
-Evaluator::Evaluator(Board * board) : m_updater(*this), m_boardMap(board) {
+Evaluator::Evaluator() : m_updater(*this) {
     this->reset();
 }
 
@@ -520,8 +520,8 @@ void Compound::updateCritical(int delta, Component component) {
 void Compound::updateAntis(int delta, Component component) {
     const auto [comp_dir, comp_type] = component;
     if (gen_dir != comp_dir) {
-        auto target = ev.m_boardMap.lineView(position, comp_dir);
-        generator = ev.Patterns.execute(target);
+        auto target = ev.m_boardMap.m_lineView(position, comp_dir);
+        generator = ev.Searcher.execute(target);
         gen_dir = comp_dir;
     }
     for (auto [pattern, offset] : generator) {
@@ -545,13 +545,13 @@ void Compound::updateAntis(int delta, Component component) {
 void Compound::updatePose(int delta, Position pose, Component component, Player perspective) {
     const auto comp_dir = std::get<0>(component);
     ev.m_compoundDist[pose][type].set(delta, favour, perspective, comp_dir);
-    ev.scores(favour, perspective)[pose] += delta * Compound::BaseScore;
+    ev.scores(favour, perspective)[pose] += delta * Compound::Scores[type];
     assert(ev.scores(favour, perspective)[pose] >= 0);
 }
 
 /* ------------------- 数据区 ------------------- */
 
-PatternSearch Evaluator::Patterns = {
+PatternSearch Evaluator::Searcher = {
     { "+xxxxx",    Pattern::Five,      9999 },
     { "-_oooo_",   Pattern::LiveFour,  9000 },
     { "-xoooo_",   Pattern::DeadFour,  2500 },
@@ -608,6 +608,8 @@ tuple<Array<int, BLOCK_SIZE, BLOCK_SIZE, RowMajor>, int> Evaluator::BlockWeights
     return make_tuple(weight, score);
 }();
 
-const int Compound::BaseScore = 600;
+array<const int, Compound::Size> Compound::Scores = { 600, 800, 700 };
+
+array<bool, Compound::Size> Compound::IsForbidden = { false, false, false };
 
 }

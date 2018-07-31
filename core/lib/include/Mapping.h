@@ -32,11 +32,21 @@ constexpr Position& SelfShift(Position& pose, int offset, Direction dir) {
 
 // 数组下标与Direction枚举值一一对应
 constexpr Direction Directions[] = {
- Direction::Horizontal, Direction::Vertical, Direction::LeftDiag, Direction::RightDiag
+    Direction::Horizontal, Direction::Vertical, Direction::LeftDiag, Direction::RightDiag
 };
 
 
-// 编码棋盘的棋子字符
+// 编码玩家至棋子字符
+constexpr char EncodePlayer(Player player) {
+    switch (player) {
+        case Player::White: return 'o';
+        case Player::None:  return '-';
+        case Player::Black: return 'x';
+        default: return '?';
+    }
+}
+
+// 编码棋子字符
 constexpr int EncodeCharset(char ch) {
     switch (int code = 0; ch) {
         case '-': case '_': case '^': case '~': ++code; // 空位
@@ -51,27 +61,23 @@ constexpr int EncodeCharset(char ch) {
 constexpr int Codeset[] = { 1, 2, 3, 4 };
 
 
-class BoardMap {
+// 由编码后的各行/列/斜线构成的字符串集合
+class BoardLines {
 public:
-    static std::tuple<int, int> ParseIndex(Position pose, Direction direction);
+    BoardLines();
 
-    explicit BoardMap(Board* board = nullptr);
+    std::string_view operator()(Position pose, Direction direction);
 
-    std::string_view lineView(Position pose, Direction direction);
-
-    Player applyMove(Position move);
-
-    Player revertMove(size_t count = 1);
+    void updateMove(Position move, Player player);
 
     void reset();
 
-public:
-    std::unique_ptr<Board> m_board;
-    std::array<std::string, 3 * (WIDTH + HEIGHT) - 2> m_lineMap;
-    std::uint64_t m_hash;
+private:
+    std::array<std::string, 3 * (WIDTH + HEIGHT) - 2> m_lines;
 };
 
 
+// 棋子与棋盘的哈希器
 struct BoardHash {
     // Zobrist哈希，存储黑/白/无棋子三种状态
     static const std::array<std::uint64_t[3], BOARD_SIZE> Zorbrist;
@@ -80,19 +86,44 @@ struct BoardHash {
         return Zorbrist[pose.id][static_cast<int>(player) + 1];
     }
 
-    // WARNING: 64位编译环境下sizeof(size_t)才能为64位
-    std::size_t operator()(const BoardMap& boardMap) {
-        return boardMap.m_hash;
-    }
+    BoardHash();
+
+    void updateMove(Position move, Player player);
+
+    void reset();
+
+    // 64位哈希，冲突的概率很低
+    std::uint64_t m_hash;
 };
 
+
+// 棋盘映射的总集合
+class BoardMap {
+public:
+    Player applyMove(Position move);
+
+    Player revertMove(size_t count = 1);
+
+    void reset();
+
+public:
+    Board m_board;
+    BoardHash m_hasher;
+    BoardLines m_lineView;
+};
 
 }
 
 namespace std {
-template <>
-struct hash<Gomoku::BoardMap>
-    : public Gomoku::BoardHash { };
+
+template <> 
+struct hash<Gomoku::BoardMap> {
+    // WARNING: 64位编译环境下sizeof(size_t)才能为64位
+    std::size_t operator()(const BoardMap& boardMap) {
+        return boardMap.m_hasher.m_hash;
+    }
+};
+
 }
 
 #endif // !GOMOKU_MAPPING_H_

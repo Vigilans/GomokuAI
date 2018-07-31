@@ -6,9 +6,9 @@
 using namespace std;
 using namespace Gomoku;
 
-/* ------------------- BoardMap类实现 ------------------- */
+/* ------------------- BoardLines类实现 ------------------- */
 
-tuple<int, int> BoardMap::ParseIndex(Position pose, Direction direction) {
+constexpr tuple<int, int> ParseIndex(Position pose, Direction direction) {
     // 由于前与后MAX_PATTERN_LEN - 1位均为'?'（越界位），故需设初始offset
     switch (int offset = MAX_PATTERN_LEN - 1; direction) {
         case Direction::Horizontal: // 0 + y∈[0, HEIGHT) | x: 0 -> WIDTH
@@ -24,57 +24,36 @@ tuple<int, int> BoardMap::ParseIndex(Position pose, Direction direction) {
     }
 }
 
-BoardMap::BoardMap(Board* board) : m_board(board ? board : new Board) {
+BoardLines::BoardLines() {
     this->reset();
 }
 
-string_view BoardMap::lineView(Position pose, Direction direction) {
+string_view BoardLines::operator()(Position pose, Direction direction) {
     const auto [index, offset] = ParseIndex(pose, direction);
-    return string_view(&m_lineMap[index][offset - TARGET_LEN / 2],  TARGET_LEN);
+    return string_view(&m_lines[index][offset - TARGET_LEN / 2], TARGET_LEN);
 }
 
-// WARNING: applyMove与revertMove未进行有效性检查，需在boardMap被调用之前自行检查
-Player BoardMap::applyMove(Position move) {
+void BoardLines::updateMove(Position move, Player player) {
     for (auto direction : Directions) {
         const auto [index, offset] = ParseIndex(move, direction);
-        m_lineMap[index][offset] = EncodeCharset(m_board->m_curPlayer == Player::Black ? 'x' : 'o');
+        m_lines[index][offset] = EncodeCharset(EncodePlayer(player));
     }
-    m_hash ^= BoardHash::HashPose(move, Player::None);
-    m_hash ^= BoardHash::HashPose(move, m_board->m_curPlayer);
-    return m_board->applyMove(move, false);
 }
 
-Player BoardMap::revertMove(size_t count) {
-    for (int i = 0; i < count; ++i) {
-        auto move = m_board->m_moveRecord.back();
-        for (auto direction : Directions) {
-            const auto [index, offset] = ParseIndex(move, direction);
-            m_lineMap[index][offset] = EncodeCharset('-');
-        }
-        m_board->revertMove();
-        m_hash ^= BoardHash::HashPose(move, m_board->m_curPlayer);
-        m_hash ^= BoardHash::HashPose(move, Player::None);
-    }
-    return m_board->m_curPlayer;
-}
-
-void BoardMap::reset() {
-    m_hash = 0ul;
-    m_board->reset();
-    for (auto& line : m_lineMap) {
+void BoardLines::reset() {
+    for (auto& line : m_lines) {
         line.resize(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // 线前填充越界位('?')
     }
-    for (auto i = 0; i < BOARD_SIZE; ++i) {
-        for (auto direction : Directions) {
-            auto[index, _] = ParseIndex(i, direction);
-            m_lineMap[index].push_back(EncodeCharset('-')); // 按每个位置填充空位('-')
-        }
-        m_hash ^= BoardHash::HashPose(i, Player::None);
+    for (auto i = 0; i < BOARD_SIZE; ++i)
+    for (auto direction : Directions) {
+        auto[index, _] = ParseIndex(i, direction);
+        m_lines[index].push_back(EncodeCharset('-')); // 按每个位置填充空位('-')
     }
-    for (auto& line : m_lineMap) {
+    for (auto& line : m_lines) {
         line.append(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // 线后填充越界位('?')
     }
 }
+
 
 /* ------------------- BoardHash类实现 ------------------- */
 
@@ -94,3 +73,44 @@ const array<std::uint64_t[3], BOARD_SIZE> BoardHash::Zorbrist = []() {
     }
     return keys;
 }();
+
+BoardHash::BoardHash() {
+    this->reset();
+}
+
+void BoardHash::updateMove(Position move, Player player) {
+    m_hash ^= BoardHash::HashPose(move, player);
+    m_hash ^= BoardHash::HashPose(move, Player::None);
+}
+
+void BoardHash::reset() {
+    m_hash = 0ul;
+    for (int i = 0; i < BOARD_SIZE; ++i) {
+        m_hash ^= BoardHash::HashPose(i, Player::None);
+    }
+}
+
+/* ------------------- BoardMap类实现 ------------------- */
+
+// WARNING: applyMove与revertMove未进行有效性检查
+Player BoardMap::applyMove(Position move) {
+    m_lineView.updateMove(move, m_board.m_curPlayer);
+    m_hasher.updateMove(move, m_board.m_curPlayer);
+    return m_board.applyMove(move, false);
+}
+
+Player BoardMap::revertMove(size_t count) {
+    for (int i = 0; i < count; ++i) {
+        auto move = m_board.m_moveRecord.back();
+        m_lineView.updateMove(move, Player::None);
+        m_board.revertMove();
+        m_hasher.updateMove(move, m_board.m_curPlayer);
+    }
+    return m_board.m_curPlayer;
+}
+
+void BoardMap::reset() {
+    m_board.reset();
+    m_hasher.reset();
+    m_lineView.reset();
+}

@@ -223,7 +223,7 @@ TEST_F(PatternSearchTest, PatternMatch) {
 }
 
 TEST_F(PatternSearchTest, InvariantState) {
-    auto& ps = Evaluator::Patterns;
+    auto& ps = Evaluator::Searcher;
     int state, code;
     // 'x'的不动点状态为"xxxxx"
     state = 0, code = EncodeCharset('x');

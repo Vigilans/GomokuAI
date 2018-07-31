@@ -85,45 +85,56 @@ public:
     // 一次性直接返回所有查找到的记录。
     std::vector<Entry> matches(std::string_view target);
 
+public:
+    std::vector<Pattern> m_patterns; // 可检索模式集合
+
 private:
     std::vector<int> m_base;  // DAT子结点基准数组
     std::vector<int> m_check; // DAT父结点检索数组
     std::vector<int> m_fail;  // AC自动机fail指针数组
     std::vector<int> m_invariants;   // AC自动机「不动点」状态数组
-    std::vector<Pattern> m_patterns; // 可检索模式集合
 };
 
 
-class Evaluator; // 评估器前置声明
-
-
 struct Compound {
-    // 检测指定的位置上是否有属于指定玩家的复合模式
-    static bool Test(Evaluator& ev, Position pose, Player player);
-
-    static const int BaseScore; // 双三/四三/双四共用一个分数。
+    // 复合模式的类型
+    enum Type { DoubleThree, FourThree, DoubleFour, Size };
 
     // 一个复合模式的组件由{ 该组件所在方向, 该组件棋型 }组成。
     using Component = std::tuple<Direction, Pattern::Type>;
-   
+
+    // 检测指定的位置上是否有属于指定玩家的复合模式
+    static bool Test(Evaluator& ev, Position pose, Player player);
+
+    // 复合模式的分数记录
+    static std::array<const int, Compound::Size> Scores;
+
+    // 复合模式的有效性记录
+    static std::array<bool, Compound::Size> IsForbidden;
+
     // 表明该复合模式汇集的位置
     Position position;
     
     // 表明该复合模式对何方有利
     Player favour;
 
-    // 记录构成复合模式的各单个模式，及它们所在方向
+    // 记录该复合模式的类型
+    Type type;
+
+    // 记录构成复合模式的各单模式，及它们所在方向
     std::vector<Component> components;
 
-    // 记录该复合模式的类型
-    enum Type { DoubleThree, FourThree, DoubleFour, Size } type;
+    // 原局面的引用（前置声明）
+    class Evaluator &ev;
 
-    // 原局面的引用
-    Evaluator& ev;
-
+    // 构造函数，表明一个复合模式由评估器、位置与玩家组成。
     Compound(Evaluator& ev, Position pose, Player favour);
-    void locate(); // 定位复合模式类型与约束的状态机
-    void update(int delta); // 更新状态机
+
+    // 定位状态机
+    void locate(); 
+
+    // 更新状态机
+    void update(int delta);
     
 // 用于更新的成员
 private: 
@@ -161,7 +172,7 @@ public:
     }
 
     // 基于AC自动机实现的多模式匹配器。
-    static PatternSearch Patterns;
+    static PatternSearch Searcher;
 
     // 基于Eigen向量化操作与Map引用实现的区域棋子密度计数器，tuple组成: { 权重， 分数 }。
     static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE, Eigen::RowMajor>, int> BlockWeights;
@@ -170,9 +181,9 @@ public:
     using Distribution = std::array<std::array<Record, Size>, BOARD_SIZE + 1>; // 最后一个元素用于总计数
 
 public:
-    explicit Evaluator(Board* board = nullptr);
+    Evaluator();
 
-    auto& board() { return *m_boardMap.m_board; }
+    auto& board() { return m_boardMap.m_board; }
 
     auto& scores(Player player, Player perspect) { return m_scores[Group(player, perspect)]; }
 
