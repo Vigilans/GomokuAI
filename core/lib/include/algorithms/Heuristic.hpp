@@ -54,10 +54,10 @@ struct Heuristic {
     // ws_self_worthy = dot(self_worthy, normalize(self_density))
     // ws_rival_worthy = dot(rival_worthy, normalize(rival_density))
     // state_value = tanh((ws_self_worthy - ws_rival_worthy) / scale_factor)
-    static float EvaluationValue(Evaluator& ev, Player player, float param = 1500.0f) {
-        auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
-        auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
-        return std::tanh((1.2 * self_worthy - rival_worthy) / param);
+    static float EvaluationValue(Evaluator& ev, Player player, float scale = 3000.0f) {
+        //auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
+        //auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
+        return std::tanh((500 + CalcScore(player, ev.m_patternScores.sum())) / scale);
     }
 
     // weight = normalize(w/n * 1.5n/(0.5+n)) = normalize(3w/(1+2n))
@@ -157,6 +157,7 @@ struct Heuristic {
             }
             // 如果仍有候选者，则寻找成功
             if (int i = -1; !candidates.empty()) {
+                report.level = is_antiMove ? report.Anti : report.Favour;
                 // 将所有非Decisive点概率全部Mask为0
                 probs = probs.unaryExpr([&](float prob) { // 这个较别扭的写法是为了vectorize的性能……
                     return ++i, std::any_of(candidates.begin(), candidates.end(), [&](auto candidate) {
@@ -167,7 +168,7 @@ struct Heuristic {
                             return ev.m_compoundDist[i][pattern % Pattern::Size].get(player, cur_player);
                         }
                     });
-                }).select(probs, Eigen::VectorXf::Zero((int)BOARD_SIZE)); 
+                }).select(probs, Eigen::VectorXf::Zero(BOARD_SIZE)); 
                 probs.normalize(); // 重新标准化概率
                 candidates.clear(); // 清空候选队列
                 state = State::End; // 状态直接跳转到结束

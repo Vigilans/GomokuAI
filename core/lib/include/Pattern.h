@@ -51,8 +51,8 @@ public:
     // 利用friend指明类实现里使用了AC自动机。
     friend class AhoCorasickBuilder;
 
-    // 一条匹配记录包含了{ 匹配到的模式, 相对于起始位置的偏移 }
-    using Entry = std::tuple<const Pattern&, int>;
+    // 一条匹配记录包含了{ 匹配到的模式, 相对于起始位置的偏移, 模式在patterns里的下标 }
+    using Entry = std::tuple<const Pattern&, int, int>;
 
     // 验证entry是否覆盖了某个点位（以相对原点的偏移表示）。默认为TARGET_LEN/2，即中心点。
     static bool HasCovered(const Entry& entry, size_t pose = TARGET_LEN / 2);
@@ -103,8 +103,8 @@ struct Compound {
     // 一个复合模式的组件由{ 该组件所在方向, 该组件棋型 }组成。
     using Component = std::tuple<Direction, Pattern::Type>;
 
-    // 检测指定的位置上是否有属于指定玩家的复合模式
-    static bool Test(Evaluator& ev, Position pose, Player player);
+    // 检测指定的位置上是否有属于指定玩家的复合模式。前置声明了评估器。
+    static bool Test(class Evaluator &ev, Position pose, Player player);
 
     // 复合模式的分数记录
     static std::array<const int, Compound::Size> Scores;
@@ -124,8 +124,8 @@ struct Compound {
     // 记录构成复合模式的各单模式，及它们所在方向
     std::vector<Component> components;
 
-    // 原局面的引用（前置声明）
-    class Evaluator &ev;
+    // 原局面的引用
+    Evaluator& ev;
 
     // 构造函数，表明一个复合模式由评估器、位置与玩家组成。
     Compound(Evaluator& ev, Position pose, Player favour);
@@ -185,9 +185,11 @@ public:
 
     auto& board() { return m_boardMap.m_board; }
 
+    auto& density(Player player) { return m_density[Group(player)]; }
+
     auto& scores(Player player, Player perspect) { return m_scores[Group(player, perspect)]; }
 
-    auto& density(Player player) { return m_density[Group(player)]; }
+    Eigen::VectorXi patternScores(Player perspect) { return static_cast<int>(perspect) * m_patternScores; }
 
     Player applyMove(Position move);
 
@@ -228,6 +230,7 @@ public:
     Distribution<Compound::Size> m_compoundDist;
     Eigen::ArrayXi m_density[2][2]; // 第一维: { White, Black }, 第二维: { Σ1, Σweight }
     Eigen::VectorXi m_scores[4]; // 按照Group函数分组
+    Eigen::VectorXi m_patternScores; // 与Searcher + Compounds同步的向量，存储绝对分数（黑正/白负）
 };
 
 }

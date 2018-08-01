@@ -119,7 +119,7 @@ namespace std {
 template <> 
 struct hash<Gomoku::BoardMap> {
     // WARNING: 64位编译环境下sizeof(size_t)才能为64位
-    std::size_t operator()(const BoardMap& boardMap) {
+    std::size_t operator()(const Gomoku::BoardMap& boardMap) {
         return boardMap.m_hasher.m_hash;
     }
 };

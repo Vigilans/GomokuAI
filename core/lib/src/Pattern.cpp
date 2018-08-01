@@ -20,7 +20,7 @@ Pattern::Pattern(std::string_view proto, Type type, int score)
 /* ------------------- PatternSearch类实现 ------------------- */
 
 bool PatternSearch::HasCovered(const Entry& entry, size_t pose) {
-    const auto [pattern, offset] = entry;
+    const auto [pattern, offset, _] = entry;
     return 0 <= offset - pose && offset - pose < pattern.str.length();
 }
 
@@ -58,7 +58,8 @@ const PatternSearch::generator& PatternSearch::generator::operator++() {
 // 解析当前成功匹配到的模式
 PatternSearch::Entry PatternSearch::generator::operator*() const {
     const auto leaf = ref->m_base[state];
-    return { ref->m_patterns[-ref->m_base[leaf]], offset };
+    const auto index = -ref->m_base[leaf];
+    return { ref->m_patterns[index], offset, index };
 }
 
 PatternSearch::generator PatternSearch::execute(string_view target) {
@@ -136,7 +137,7 @@ void Evaluator::Updater::matchPatterns(Direction dir) {
 }
 
 void Evaluator::Updater::updatePatterns(Direction dir) {
-    for (const auto [pattern, offset] : matchResults(delta, dir)) {
+    for (const auto [pattern, offset, index] : matchResults(delta, dir)) {
         if (pattern.type == Pattern::Five) {
             // 此前board已完成applyMove，故此处设置curPlayer为None不会发生阻塞。
             ev.board().m_curPlayer = Player::None;
@@ -144,21 +145,23 @@ void Evaluator::Updater::updatePatterns(Direction dir) {
             continue;
         }
         auto current = Shift(move, offset - TARGET_LEN / 2, dir);
-        ev.m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改总计数
+        const auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1); // 斜线分数更高
+        const auto score = static_cast<int>(delta * multiplier * pattern.score);
+        ev.m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改分布总计数
+        ev.m_patternScores[index] += CalcScore(pattern.favour, score); // 修改该条pattern对应的分数
         for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, dir)) { // 修改空位数据
             const auto piece = pattern.str.rbegin()[i];
-            if (piece == '_' || piece == '^') { // '_'代表己方有效空位，'^'代表对方反制空位 
-                const auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1);
-                const auto score = int(delta * multiplier * pattern.score);
-                const auto update_pose = [&](Player perspective) {
-                    ev.m_patternDist[current][pattern.type].set(delta, pattern.favour, perspective, dir);
-                    ev.scores(pattern.favour, perspective)[current] += score;
-                    assert(ev.scores(pattern.favour, perspective)[current] >= 0);
-                };
-                switch (piece) { // 利用了switch的穿透特性
-                    case '_': update_pose(pattern.favour);
-                    case '^': update_pose(-pattern.favour);
-                }
+            const auto update_pose = [&](int type, Player perspective, int score) {
+                ev.m_patternDist[current][type].set(delta, pattern.favour, perspective, dir);
+                ev.scores(pattern.favour, perspective)[current] += score;
+                assert(ev.scores(pattern.favour, perspective)[current] >= 0);
+            };
+            if (piece == '_') { // 己方有效空位、对方反制空位
+                update_pose(pattern.type, pattern.favour, score);
+                update_pose(pattern.type, -pattern.favour, score);
+            } else if (piece == '^') { // 对方反制空位、己方次一级有效空位（活->眠，只有活棋型才有'^'）
+                update_pose(pattern.type, -pattern.favour, score);
+                update_pose(pattern.type - 1, pattern.favour, score / 4);
             }
         }
     }
@@ -383,6 +386,8 @@ void Evaluator::reset() {
     for (auto& distribution : m_compoundDist) {
         distribution.fill(Record{}); // 最后一个元素用于总计数
     }
+    // patternScores存储所有单模式与复合模式各自的分数
+    m_patternScores.setZero(Searcher.m_patterns.size() + Compound::Size);
 }
 
 /* ------------------- Evaluator::Record类实现 ------------------- */
@@ -504,6 +509,7 @@ void Compound::update(int delta) {
         // 后置转移处理
         switch (2 * count + delta) {
             case 3:  // 1 <-> 2，该转移关系到复合模式的存在性
+                ev.m_patternScores.tail<Type::Size>()[type] += CalcScore(favour, delta * Scores[type]);
                 ev.m_compoundDist.back()[type].set(delta, favour); // 更新复合模式总计数
         }
 
@@ -524,9 +530,9 @@ void Compound::updateAntis(int delta, Component component) {
         generator = ev.Searcher.execute(target);
         gen_dir = comp_dir;
     }
-    for (auto [pattern, offset] : generator) {
+    for (auto [pattern, offset, _] : generator) {
         if (pattern.type == comp_type // 必须是：①.模式类型为comp.type
-              && PatternSearch::HasCovered({ pattern, offset }) // ②.模式必须覆盖了position
+              && PatternSearch::HasCovered({ pattern, offset, _ }) // ②.模式必须覆盖了position
               && pattern.str.rbegin()[offset - TARGET_LEN / 2] == '_') { // ③.position是关键点'_'的模式才行
             // 遍历pattern寻找空位，更新额外的rival_anti分数
             auto current = Shift(position, offset - TARGET_LEN / 2, gen_dir);
@@ -559,11 +565,7 @@ PatternSearch Evaluator::Searcher = {
     { "-oo_oo",    Pattern::DeadFour,  2600 },
     { "-~_ooo_~",  Pattern::LiveThree, 3000 },
     { "-x^ooo_~",  Pattern::LiveThree, 2900 },
-    { "-~o_oo~",   Pattern::LiveThree, 2800 },
-    { "-~o~oo_~",  Pattern::DeadThree, 1400 },
-    { "-~oo~o_~",  Pattern::DeadThree, 1200 },
-    { "-x_o~oo~",  Pattern::DeadThree, 1300 },
-    { "-x_oo~o~",  Pattern::DeadThree, 1100 },
+    { "-^oo_o^",   Pattern::LiveThree, 2800 },
     { "-xooo__~",  Pattern::DeadThree, 510 },
     { "-xoo_o_~",  Pattern::DeadThree, 520 },
     { "-xoo__o~",  Pattern::DeadThree, 520 },

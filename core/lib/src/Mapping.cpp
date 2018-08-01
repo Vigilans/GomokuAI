@@ -54,7 +54,6 @@ void BoardLines::reset() {
     }
 }
 
-
 /* ------------------- BoardHash¿‡ µœ÷ ------------------- */
 
 const array<std::uint64_t[3], BOARD_SIZE> BoardHash::Zorbrist = []() {
