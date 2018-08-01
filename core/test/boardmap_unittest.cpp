@@ -1,6 +1,6 @@
 #include "pch.h"
 #include "lib/include/Pattern.h"
-#include "lib/src/ACAutomata.h"
+#include "lib/src/utils/ACAutomata.h"
 #include <string>
 
 using namespace Gomoku;

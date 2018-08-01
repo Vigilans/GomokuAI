@@ -13,7 +13,7 @@ using std::chrono::milliseconds;
 using std::chrono_literals::operator""ms;
 
 inline namespace Config {
-    // 蒙特卡洛树系相关的默认配置
+    // 蒙特卡洛树相关的默认配置
     constexpr double C_PUCT = 5.0;
     constexpr size_t C_ITERATIONS = 10000;
     constexpr milliseconds C_DURATION = 1000ms;
@@ -42,8 +42,8 @@ struct Node {
           * state_value: 结点对应局面对于结点对应玩家的价值。一般为胜率。
           * action_prob: 在父结点对应的局面下，选择该动作的概率。
     */
-    float state_value = 0.0;
-    float action_prob = 0.0;
+    float state_value = 0.0f;
+    float action_prob = 0.0f;
     size_t node_visits = 0;
 
     /*
@@ -56,7 +56,6 @@ struct Node {
         构造与赋值函数。
         显式声明两个函数的移动版本，以阻止复制版本的自动生成。 
     */
-    Node() = default;
     Node(Node&&) = default;
     Node& operator=(Node&&) = default;
 
@@ -151,13 +150,13 @@ public:
     );
 
     Position getAction(Board& board);
-    Policy::EvalResult evalState(Board& board); // Tree-policy的评估函数
+    Policy::EvalResult evalState(Board& board);
     
     // 将蒙特卡洛树往深推进一层
-    Node* stepForward();                      // 选出子结点中的最好手
-    Node* stepForward(Position next_move);    // 根据提供的动作往下走
+    Node* stepForward();              // 选出子结点中的最好手
+    Node* stepForward(Position move); // 根据提供的动作往下走
 
-    void syncWithBoard(Board& board); // 同步MCTS与棋盘，使得树的根节点为棋盘的最后一手
+    void syncWithBoard(const Board& board); // 同步MCTS与棋盘，使得树的根节点为棋盘的最后一手
     void reset(); // 重置蒙特卡洛树与其所用的策略
 
 private:

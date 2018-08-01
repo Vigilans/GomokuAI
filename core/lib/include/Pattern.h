@@ -1,9 +1,8 @@
 #ifndef GOMOKU_PATTERN_MATCHING_H_
 #define GOMOKU_PATTERN_MATCHING_H_
-#include "Game.h"
+#include "Mapping.h"
 #include <utility>
 #include <string_view>
-#include <unordered_map>
 
 namespace Gomoku {
 
@@ -15,36 +14,6 @@ enum PatternConfig {
     TARGET_LEN = 2 * MAX_PATTERN_LEN - 1
 };
 }
-
-// 棋盘的四个方向的抽象封装
-enum class Direction : char {
-    Horizontal, Vertical, LeftDiag, RightDiag
-};
-
-// 将方向枚举解包成具体的(Δx, Δy)值
-constexpr std::pair<int, int> operator*(Direction direction) {
-    switch (direction) {
-        case Direction::Horizontal: return { 1, 0 };
-        case Direction::Vertical:   return { 0, 1 };
-        case Direction::LeftDiag:   return { 1, 1 };
-        case Direction::RightDiag:  return { -1, 1 };
-        default: return { 0, 0 };
-    }
-}
-
-// 将pose按照dir方向移动offset个单位
-constexpr Position Shift(Position pose, int offset, Direction dir) {
-    return { pose.id + offset * Position(*dir) };
-}
-
-constexpr Position& SelfShift(Position& pose, int offset, Direction dir) {
-    return pose.id += offset * Position(*dir), pose;
-}
-
-// 数组下标与Direction枚举值一一对应
-constexpr Direction Directions[] = {
-    Direction::Horizontal, Direction::Vertical, Direction::LeftDiag, Direction::RightDiag
-};
 
 
 struct Pattern {
@@ -82,8 +51,8 @@ public:
     // 利用friend指明类实现里使用了AC自动机。
     friend class AhoCorasickBuilder;
 
-    // 一条匹配记录包含了{ 匹配到的模式, 相对于起始位置的偏移 }
-    using Entry = std::tuple<const Pattern&, int>;
+    // 一条匹配记录包含了{ 匹配到的模式, 相对于起始位置的偏移, 模式在原型里的索引 }
+    using Entry = std::tuple<const Pattern&, int, int>;
 
     // 验证entry是否覆盖了某个点位（以相对原点的偏移表示）。默认为TARGET_LEN/2，即中心点。
     static bool HasCovered(const Entry& entry, size_t pose = TARGET_LEN / 2);
@@ -116,15 +85,20 @@ public:
     // 一次性直接返回所有查找到的记录。
     std::vector<Entry> matches(std::string_view target);
 
+public:
+    std::vector<Pattern> m_prototypes; // 可检索模式原型
+    std::vector<Pattern> m_patterns;   // 可检索模式集合
+    std::vector<int> m_trace; // 可检索模式指向其原型的指针
+
 private:
     std::vector<int> m_base;  // DAT子结点基准数组
     std::vector<int> m_check; // DAT父结点检索数组
     std::vector<int> m_fail;  // AC自动机fail指针数组
     std::vector<int> m_invariants;   // AC自动机「不动点」状态数组
-    std::vector<Pattern> m_patterns; // 可检索模式集合
 };
 
 
+<<<<<<< HEAD
 class BoardMap {
 public:
     static std::tuple<int, int> ParseIndex(Position pose, Direction direction);
@@ -144,37 +118,47 @@ public:
     std::array<std::string, 3*(WIDTH + HEIGHT) - 2> m_lineMap;
     unsigned long long m_hash;
 };
-
-
-class Evaluator; // 评估器前置声明
-
+=======
 struct Compound {
-    // 检测指定的位置上是否有属于指定玩家的复合模式
-    static bool Test(Evaluator& ev, Position pose, Player player);
-
-    static const int BaseScore; // 双三/四三/双四共用一个分数。
+    // 复合模式的类型
+    enum Type { DoubleThree, FourThree, DoubleFour, Size };
+>>>>>>> tmp
 
     // 一个复合模式的组件由{ 该组件所在方向, 该组件棋型 }组成。
     using Component = std::tuple<Direction, Pattern::Type>;
-   
+
+    // 检测指定的位置上是否有属于指定玩家的复合模式。前置声明了评估器。
+    static bool Test(class Evaluator &ev, Position pose, Player player);
+
+    // 复合模式的分数记录
+    static std::array<const int, Compound::Size> Scores;
+
+    // 复合模式的有效性记录
+    static std::array<bool, Compound::Size> IsForbidden;
+
     // 表明该复合模式汇集的位置
     Position position;
     
     // 表明该复合模式对何方有利
     Player favour;
 
-    // 记录构成复合模式的各单个模式，及它们所在方向
-    std::vector<Component> components;
-
     // 记录该复合模式的类型
-    enum Type { DoubleThree, FourThree, DoubleFour, Size } type;
+    Type type;
+
+    // 记录构成复合模式的各单模式，及它们所在方向
+    std::vector<Component> components;
 
     // 原局面的引用
     Evaluator& ev;
 
+    // 构造函数，表明一个复合模式由评估器、位置与玩家组成。
     Compound(Evaluator& ev, Position pose, Player favour);
-    void locate(); // 定位复合模式类型与约束的状态机
-    void update(int delta); // 更新状态机
+
+    // 定位状态机
+    void locate(); 
+
+    // 更新状态机
+    void update(int delta);
     
 // 用于更新的成员
 private: 
@@ -193,7 +177,7 @@ private:
 class Evaluator {
 public:
     struct Record {
-        unsigned field; // 4 White-Black组合 * 4 方向组 * 2标记位 || 2 White/Black分割 * 16计数位
+        std::uint32_t field; // 4 White-Black组合 * 4 方向组 * 2标记位 || 2 White/Black分割 * 16计数位
         void set(int delta, Player player); // 按玩家类型设置8位计数位。
         void set(int delta, Player favour, Player perspective, Direction dir);
         unsigned get(Player favour, Player perspective, Direction dir) const; // 获取某一组的某一方向的2标记位。
@@ -212,7 +196,7 @@ public:
     }
 
     // 基于AC自动机实现的多模式匹配器。
-    static PatternSearch Patterns;
+    static PatternSearch Searcher;
 
     // 基于Eigen向量化操作与Map引用实现的区域棋子密度计数器，tuple组成: { 权重， 分数 }。
     static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE, Eigen::RowMajor>, int> BlockWeights;
@@ -221,13 +205,15 @@ public:
     using Distribution = std::array<std::array<Record, Size>, BOARD_SIZE + 1>; // 最后一个元素用于总计数
 
 public:
-    explicit Evaluator(Board* board = nullptr);
+    Evaluator();
 
-    auto& board() { return *m_boardMap.m_board; }
+    auto& board() { return m_boardMap.m_board; }
+
+    auto& density(Player player) { return m_density[Group(player)]; }
 
     auto& scores(Player player, Player perspect) { return m_scores[Group(player, perspect)]; }
 
-    auto& density(Player player) { return m_density[Group(player)]; }
+    auto& patternScores(Player player) { return m_patternScores[Group(player)]; }
 
     Player applyMove(Position move);
 
@@ -255,8 +241,8 @@ private:
     private:
         int delta; // 变化量，取值为 { 1, -1 }
         Position move; // 更新的中心位置
-		Player player; // 更新的源玩家（Player::None代表悔棋）
-        Evaluator & ev; // 原Evaluator的引用
+        Player player; // 更新的源玩家（Player::None代表悔棋）
+        Evaluator& ev; // 原Evaluator的引用
         std::vector<PatternSearch::Entry> results[2][4]; // 存储单模式匹配结果
         std::vector<std::tuple<Position, Player>> compound_keys; // 复合模式索引
         std::vector<Compound> compounds; // 待更新复合模式集合
@@ -268,8 +254,9 @@ public:
     Distribution<Compound::Size> m_compoundDist;
     Eigen::ArrayXi m_density[2][2]; // 第一维: { White, Black }, 第二维: { Σ1, Σweight }
     Eigen::VectorXi m_scores[4]; // 按照Group函数分组
+    Eigen::VectorXi m_patternScores[2]; // 与Searcher + Compounds同步的向量，存储绝对分数（黑正/白负）
 };
-
+/*
 static std::vector<Pattern> protos= {
 { "+xxxxx",    Pattern::Five,      100000 },
 { "-_oooo_",   Pattern::LiveFour,  9000 },
@@ -312,7 +299,7 @@ static std::vector<Pattern> protos= {
 { "-xo___~",   Pattern::DeadOne,   30 },
 { "-x_o___x",  Pattern::DeadOne,   40 },
 { "-x__o__x",  Pattern::DeadOne,   50 },
-};
+};*/
 }
 
 #endif // !GOMOKU_PATTERN_MATCHING_H_

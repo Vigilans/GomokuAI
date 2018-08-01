@@ -32,15 +32,10 @@ public:
 
     virtual Player applyMove(Board& board, Position move) override {
         return Heuristic::CachedApplyMove(board, move, m_evaluator, m_cachedActs);
-        //board.applyMove(move);
-        //return m_evaluator.applyMove(move);
     }
 
     virtual Player revertMove(Board& board, size_t count) override {
-        assert(count >= 0);
         return Heuristic::CachedRevertMove(board, count, m_evaluator, m_cachedActs, m_initActs);
-        //board.revertMove(count);
-        //return m_evaluator.revertMove(count);
     }
 
     // 检查的同时，将外部棋盘状态与内部棋盘状态同步
@@ -60,14 +55,14 @@ public:
             return { 1.0, action_probs };
         } else {
             // Fallback to default policy
-            Position next_move; 
-            action_probs.maxCoeff(&next_move.id);
-            board.applyMove(next_move);
+            //Position next_move; 
+            //action_probs.maxCoeff(&next_move.id);
+            //board.applyMove(next_move);
 
             float value = Heuristic::EvaluationValue(m_evaluator, init_player);
-            Heuristic::TunedRandomRollout(board, value);
+            //Default::TunedRandomRollout(board, value);
             //auto [winner, total_moves] = Heuristic::MaxEvaluatedRollout(m_evaluator, true);
-            //auto [winner, total_moves] = Default::RandomRollout(board, true);
+            ////auto [winner, total_moves] = Default::RandomRollout(board, true);
             //auto state_value = 0.4*value + 0.6*CalcScore(init_player, winner);
             return { value, action_probs };
         }

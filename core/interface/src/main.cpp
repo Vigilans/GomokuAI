@@ -5,8 +5,9 @@ using namespace Gomoku::Interface;
 using namespace Gomoku::Policies;
 
 int main() {
+
     HumanAgent agent1;
-    //RandomAgent agent2;
+    RandomAgent agent2;
     MCTSAgent agent3(1s, new RandomPolicy);
     //MCTSAgent agent4(10000, new RandomPolicy);
     MCTSAgent agent6(1000ms, new TraditionalPolicy(5));
