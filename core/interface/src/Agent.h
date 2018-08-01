@@ -21,14 +21,23 @@ class Agent {
 public:
     virtual std::string name() = 0;
 
+    virtual void syncWithBoard(Board& board) { };
+
     virtual Position getAction(Board& board) = 0;
+
+    //virtual int queryProposalCount() { return 2; }
+
+    //virtual bool querySwap(Board& board) { return false; }
+
+    //virtual std::vector<Position> requestProposals(Board& board, int N) = 0;
+
+    //virtual Position respondProposals(std::vector<Position> proposal) = 0;
 
     virtual json debugMessage() { return json(); };
 
-    virtual void syncWithBoard(Board& board) { };
-
     virtual void reset() { }
 };
+
 
 class HumanAgent : public Agent {
 public:
@@ -73,6 +82,7 @@ public:
     bool c_output;
 };
 
+
 class RandomAgent : public Agent {
 public:
     virtual std::string name() {
@@ -83,6 +93,7 @@ public:
         return board.getRandomMove();
     }
 };
+
 
 class MCTSAgent : public Agent {
 public:
@@ -128,6 +139,7 @@ protected:
     std::shared_ptr<Policy> m_policy;
     std::chrono::milliseconds c_duration;
 };
+
 
 class PatternEvalAgent : public Agent {
 public:
@@ -183,6 +195,7 @@ private:
     Evaluator m_evaluator;
     Position m_thisMove;
 };
+
 
 class MinimaxAgent : public Agent {
 public:

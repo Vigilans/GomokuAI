@@ -9,8 +9,9 @@
 
 namespace Gomoku {
 
-// using std::chrono::milliseconds;
-// using std::chrono_literals::operator""ms;
+using std::uint8_t;
+using std::chrono::milliseconds;
+using std::chrono_literals::operator""ms;
 
 inline namespace Config {
 enum MinimaxConfig {
@@ -56,6 +57,18 @@ public:
         Node& operator=(Node&&) = default;
     };
 
+    // 置换表的记录。内存被严格控制。
+    struct Entry {
+        enum NodeType : uint8_t {
+            Alpha, Exact, Beta
+        };
+
+        float value;   // 4 Byte
+        Position pose; // 2 Byte
+        NodeType type; // 1 Byte
+        uint8_t depth; // 1 Byte
+    };
+
 public:
     // 通过深度控制模拟迭代。
 	Minimax(
@@ -85,8 +98,9 @@ private:
 
 public:
     std::unique_ptr<Node> m_root; //根节点
-    std::unordered_map<BoardMap, int> m_hashmap;
+    std::unordered_map<BoardMap, Entry> m_transTable;
     Evaluator m_evaluator;
+    BoardMap& m_boardMap;
 
 private:
     enum class Constraint {

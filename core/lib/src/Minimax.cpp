@@ -21,11 +21,12 @@ Minimax::Minimax(
 	Player   last_player
 ) :
     m_root(make_unique<Node>(nullptr, last_move, last_player)),
+    m_boardMap(m_evaluator.m_boardMap),
 	c_constraint(Constraint::Depth) {
 };
 
 Position Minimax::getAction(Board& board) {
-	m_root->value = alphaBeta(m_root.get(), 3, -1.0, 1.0);
+	m_root->value = -alphaBeta(m_root.get(), 1, -1.0, 1.0);
     Eigen::MatrixXf values;
     values.setZero(15, 15);
     for (const auto& child : m_root->children) {
@@ -87,10 +88,25 @@ size_t Minimax::expand(Node* node, Eigen::VectorXf action_probs) {
 float Minimax::alphaBeta(Node* node, int depth, float alpha, float beta) {
     // Base case: 棋盘抵达结束状态或抵达深度限制
     if (m_evaluator.checkGameEnd()) {
-        return CalcScore(node->player, m_evaluator.board().m_winner);
+        return CalcScore(-node->player, m_evaluator.board().m_winner);
     } else if (depth == 0) { // 以当前下棋玩家为标准返回价值评估
-        return -Heuristic::EvaluationValue(m_evaluator, -node->player);
+        return Heuristic::EvaluationValue(m_evaluator, -node->player);
     }
+
+    //// 置换表搜索策略
+    //if (m_transTable.count(m_boardMap)) {
+    //    auto entry = m_transTable[m_boardMap];
+    //    if (entry.depth > depth) { // 查询的记录足够深
+    //        switch (entry.type) {
+    //        case Entry::Alpha:
+    //            
+    //        case Entry::Exact:
+    //            return entry.value;
+    //        case Entry::Beta:
+    //            
+    //        }
+    //    }
+    //}
 
     // 若结点为叶结点，则新扩张一层子结点
     if (node->children.empty()) {
@@ -103,7 +119,7 @@ float Minimax::alphaBeta(Node* node, int depth, float alpha, float beta) {
     // Recursive Step: 按序遍历子结点，递归搜索价值
     for (const auto& child : node->children) {
         m_evaluator.applyMove(child->position);
-        child->value = alphaBeta(child.get(), depth - 1, -beta, -alpha);
+        child->value = -alphaBeta(child.get(), depth - 1, -beta, -alpha);
         m_evaluator.revertMove();
 
         if (alpha < -child->value) {
