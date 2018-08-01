@@ -64,6 +64,8 @@ constexpr int Codeset[] = { 1, 2, 3, 4 };
 // 由编码后的各行/列/斜线构成的字符串集合
 class BoardLines {
 public:
+    
+
     BoardLines();
 
     std::string_view operator()(Position pose, Direction direction);
@@ -116,7 +118,7 @@ public:
 
 namespace std {
 
-template <> 
+template <>
 struct hash<Gomoku::BoardMap> {
     // WARNING: 64位编译环境下sizeof(size_t)才能为64位
     std::size_t operator()(const Gomoku::BoardMap& boardMap) {

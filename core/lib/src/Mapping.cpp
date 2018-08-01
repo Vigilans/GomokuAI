@@ -4,23 +4,24 @@
 #include <random>
 
 using namespace std;
-using namespace Gomoku;
+
+namespace Gomoku {
 
 /* ------------------- BoardLines类实现 ------------------- */
 
 constexpr tuple<int, int> ParseIndex(Position pose, Direction direction) {
     // 由于前与后MAX_PATTERN_LEN - 1位均为'?'（越界位），故需设初始offset
     switch (int offset = MAX_PATTERN_LEN - 1; direction) {
-        case Direction::Horizontal: // 0 + y∈[0, HEIGHT) | x: 0 -> WIDTH
-            return { pose.y(), offset + pose.x() };
-        case Direction::Vertical:   // HEIGHT + x∈[0, WIDTH) | y: 0 -> HEIGHT
-            return { HEIGHT + pose.x(), offset + pose.y() };
-        case Direction::LeftDiag:   // (WIDTH + HEIGHT) + (HEIGHT - 1) + x-y∈[-(HEIGHT - 1), WIDTH) | min(x, y): (x, y) -> (x+1, y+1)
-            return { WIDTH + 2 * HEIGHT - 1 + pose.x() - pose.y(), offset + std::min(pose.x(), pose.y()) };
-        case Direction::RightDiag:  // 2*(WIDTH + HEIGHT) - 1 + x+y∈[0, WIDTH + HEIGHT - 1) | min(WIDTH - 1 - x, y): (x, y) -> (x-1, y+1)
-            return { 2 * (WIDTH + HEIGHT) - 1 + pose.x() + pose.y(), offset + std::min(WIDTH - 1 - pose.x(), pose.y()) };
-        default:
-            throw direction;
+    case Direction::Horizontal: // 0 + y∈[0, HEIGHT) | x: 0 -> WIDTH
+        return { pose.y(), offset + pose.x() };
+    case Direction::Vertical:   // HEIGHT + x∈[0, WIDTH) | y: 0 -> HEIGHT
+        return { HEIGHT + pose.x(), offset + pose.y() };
+    case Direction::LeftDiag:   // (WIDTH + HEIGHT) + (HEIGHT - 1) + x-y∈[-(HEIGHT - 1), WIDTH) | min(x, y): (x, y) -> (x+1, y+1)
+        return { WIDTH + 2 * HEIGHT - 1 + pose.x() - pose.y(), offset + std::min(pose.x(), pose.y()) };
+    case Direction::RightDiag:  // 2*(WIDTH + HEIGHT) - 1 + x+y∈[0, WIDTH + HEIGHT - 1) | min(WIDTH - 1 - x, y): (x, y) -> (x-1, y+1)
+        return { 2 * (WIDTH + HEIGHT) - 1 + pose.x() + pose.y(), offset + std::min(WIDTH - 1 - pose.x(), pose.y()) };
+    default:
+        throw direction;
     }
 }
 
@@ -29,13 +30,13 @@ BoardLines::BoardLines() {
 }
 
 string_view BoardLines::operator()(Position pose, Direction direction) {
-    const auto [index, offset] = ParseIndex(pose, direction);
+    const auto[index, offset] = ParseIndex(pose, direction);
     return string_view(&m_lines[index][offset - TARGET_LEN / 2], TARGET_LEN);
 }
 
 void BoardLines::updateMove(Position move, Player player) {
     for (auto direction : Directions) {
-        const auto [index, offset] = ParseIndex(move, direction);
+        const auto[index, offset] = ParseIndex(move, direction);
         m_lines[index][offset] = EncodeCharset(EncodePlayer(player));
     }
 }
@@ -45,10 +46,10 @@ void BoardLines::reset() {
         line.resize(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // 线前填充越界位('?')
     }
     for (auto i = 0; i < BOARD_SIZE; ++i)
-    for (auto direction : Directions) {
-        auto[index, _] = ParseIndex(i, direction);
-        m_lines[index].push_back(EncodeCharset('-')); // 按每个位置填充空位('-')
-    }
+        for (auto direction : Directions) {
+            auto[index, _] = ParseIndex(i, direction);
+            m_lines[index].push_back(EncodeCharset('-')); // 按每个位置填充空位('-')
+        }
     for (auto& line : m_lines) {
         line.append(MAX_PATTERN_LEN - 1, EncodeCharset('?')); // 线后填充越界位('?')
     }
@@ -112,4 +113,6 @@ void BoardMap::reset() {
     m_board.reset();
     m_hasher.reset();
     m_lineView.reset();
+}
+
 }

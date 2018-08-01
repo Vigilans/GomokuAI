@@ -57,7 +57,7 @@ struct Heuristic {
     static float EvaluationValue(Evaluator& ev, Player player, float scale = 3000.0f) {
         //auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
         //auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
-        return std::tanh((500 + CalcScore(player, ev.m_patternScores.sum())) / scale);
+        return std::tanh((500 + ev.patternScores(player).sum() - ev.patternScores(-player).sum()) / scale);
     }
 
     // weight = normalize(w/n * 1.5n/(0.5+n)) = normalize(3w/(1+2n))

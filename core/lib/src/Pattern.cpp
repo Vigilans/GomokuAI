@@ -137,7 +137,7 @@ void Evaluator::Updater::matchPatterns(Direction dir) {
 }
 
 void Evaluator::Updater::updatePatterns(Direction dir) {
-    for (const auto [pattern, offset, index] : matchResults(delta, dir)) {
+    for (const auto [pattern, offset, trace] : matchResults(delta, dir)) {
         if (pattern.type == Pattern::Five) {
             // 此前board已完成applyMove，故此处设置curPlayer为None不会发生阻塞。
             ev.board().m_curPlayer = Player::None;
@@ -148,7 +148,7 @@ void Evaluator::Updater::updatePatterns(Direction dir) {
         const auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1); // 斜线分数更高
         const auto score = static_cast<int>(delta * multiplier * pattern.score);
         ev.m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改分布总计数
-        ev.m_patternScores[index] += CalcScore(pattern.favour, score); // 修改该条pattern对应的分数
+        ev.patternScores(pattern.favour)[trace] += score; // 修改该条pattern对应的分数
         for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, dir)) { // 修改空位数据
             const auto piece = pattern.str.rbegin()[i];
             const auto update_pose = [&](int type, Player perspective, int score) {
@@ -386,8 +386,10 @@ void Evaluator::reset() {
     for (auto& distribution : m_compoundDist) {
         distribution.fill(Record{}); // 最后一个元素用于总计数
     }
-    // patternScores存储所有单模式与复合模式各自的分数
-    m_patternScores.setZero(Searcher.m_prototypes.size() + Compound::Size);
+    for (auto& patternScores : m_patternScores) {
+        // patternScores存储所有单模式与复合模式各自的分数
+        patternScores.setZero(Searcher.m_prototypes.size() + Compound::Size);
+    }
 }
 
 /* ------------------- Evaluator::Record类实现 ------------------- */
@@ -509,7 +511,7 @@ void Compound::update(int delta) {
         // 后置转移处理
         switch (2 * count + delta) {
             case 3:  // 1 <-> 2，该转移关系到复合模式的存在性
-                ev.m_patternScores.tail<Type::Size>()[type] += CalcScore(favour, delta * Scores[type]);
+                ev.patternScores(favour).tail<Type::Size>()[type] += delta * Scores[type];
                 ev.m_compoundDist.back()[type].set(delta, favour); // 更新复合模式总计数
         }
 

@@ -7,8 +7,10 @@
 #include <iostream>
 
 using namespace std;
-using namespace Gomoku;
-using namespace Gomoku::Algorithms;
+
+namespace Gomoku {
+
+using namespace Algorithms;
 
 /* ------------------- Minimax类实现 ------------------- */
 
@@ -16,26 +18,26 @@ Minimax::Node::Node(Node* parent, Position position, Player player)
     : parent(parent), position(position), player(player) { }
 
 Minimax::Minimax(
-	short    c_depth,
-	Position last_move,
-	Player   last_player
+    short    c_depth,
+    Position last_move,
+    Player   last_player
 ) :
     m_root(make_unique<Node>(nullptr, last_move, last_player)),
     m_boardMap(m_evaluator.m_boardMap),
-	c_constraint(Constraint::Depth) {
+    c_constraint(Constraint::Depth) {
 };
 
 Position Minimax::getAction(Board& board) {
-	m_root->value = -alphaBeta(m_root.get(), 1, -1.0, 1.0);
+    m_root->value = -alphaBeta(m_root.get(), 1, -1.0, 1.0);
     Eigen::MatrixXf values;
     values.setZero(15, 15);
     for (const auto& child : m_root->children) {
-        auto [x, y] = child->position;
+        auto[x, y] = child->position;
         values(y, x) = child->value;
     }
     cout << m_root->children.size() << endl;
     cout << values << endl;
-	return Minimax::stepForward()->position;
+    return Minimax::stepForward()->position;
 }
 
 // 更新后，原根节点由unique_ptr自动释放，其余的非子树结点也会被链式自动销毁。
@@ -137,4 +139,6 @@ void Minimax::syncWithBoard(const Board& board) {
     auto cur = (beg == board.m_moveRecord.end() ? board.m_moveRecord.begin() : ++beg);
     std::for_each(cur, board.m_moveRecord.end(), [this](auto move) { stepForward(move); });
     m_evaluator.syncWithBoard(board);
+}
+
 }

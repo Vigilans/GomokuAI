@@ -191,7 +191,7 @@ public:
 
     auto& scores(Player player, Player perspect) { return m_scores[Group(player, perspect)]; }
 
-    Eigen::VectorXi patternScores(Player perspect) { return static_cast<int>(perspect) * m_patternScores; }
+    auto& patternScores(Player player) { return m_patternScores[Group(player)]; }
 
     Player applyMove(Position move);
 
@@ -232,7 +232,7 @@ public:
     Distribution<Compound::Size> m_compoundDist;
     Eigen::ArrayXi m_density[2][2]; // 第一维: { White, Black }, 第二维: { Σ1, Σweight }
     Eigen::VectorXi m_scores[4]; // 按照Group函数分组
-    Eigen::VectorXi m_patternScores; // 与Searcher + Compounds同步的向量，存储绝对分数（黑正/白负）
+    Eigen::VectorXi m_patternScores[2]; // 与Searcher + Compounds同步的向量，存储绝对分数（黑正/白负）
 };
 
 }
