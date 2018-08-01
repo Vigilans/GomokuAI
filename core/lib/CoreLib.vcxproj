@@ -116,7 +116,7 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <AdditionalIncludeDirectories>.\include;.\lib;$(VcpkgRoot)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\18-19-1\中国大学生计算机博弈大赛\GomokuAI-old\googletest-release-1.8.0;D:\18-19-1\中国大学生计算机博弈大赛\GomokuAI-old\eigen;D:\18-19-1\中国大学生计算机博弈大赛\GomokuAI-old;.\include;.\lib;$(VcpkgRoot)include\;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <LanguageStandard>stdcpp17</LanguageStandard>
       <EnableModules>false</EnableModules>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>

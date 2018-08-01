@@ -199,7 +199,7 @@ private:
 
 class MinimaxAgent : public Agent {
 public:
-	MinimaxAgent(int depth) : m_minimax(depth) {
+	MinimaxAgent(int depth=10)/* : m_minimax(depth) */{
         c_depth = depth;
 	}
 
@@ -208,7 +208,7 @@ public:
     }
      
     virtual Position getAction(Board& board) { 
-        return m_minimax.getAction(board);
+        return m_minimax->getAction(board);
     }
 
  //   virtual json debugMessage() {
@@ -231,7 +231,7 @@ public:
 	};
 
 private:
-    Minimax m_minimax;
+    std::shared_ptr<Minimax> m_minimax;
     int c_depth;
 };
 

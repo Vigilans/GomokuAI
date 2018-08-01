@@ -65,11 +65,12 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
 
 inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
     using namespace std;
+	/*
     if(agent1.m_minimax) {
         for(auto it = agent1.minimax.node_trace.begin(); it !=  agent1.minimax.node_trace.end(); it++){
             cout << (*it)->position;
         }
-    }
+    }*/
     Board board;
 
     srand(time(nullptr));

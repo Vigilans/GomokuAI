@@ -54,9 +54,10 @@ struct Heuristic {
     // ws_self_worthy = dot(self_worthy, normalize(self_density))
     // ws_rival_worthy = dot(rival_worthy, normalize(rival_density))
     // state_value = tanh((ws_self_worthy - ws_rival_worthy) / scale_factor)
-    static float EvaluationValue(Evaluator& ev, Player player, float scale = 3000.0f) {
+    static float EvaluationValue(Evaluator& ev, Player player, float scale = 3000.0f, bool isMinimax = false) {
         //auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
         //auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
+		if (isMinimax) return (ev.patternScores(player).sum() - ev.patternScores(-player).sum())/ scale;
         return std::tanh((500 + ev.patternScores(player).sum() - ev.patternScores(-player).sum()) / scale);
     }
 

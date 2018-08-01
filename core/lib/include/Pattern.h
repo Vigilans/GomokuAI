@@ -97,7 +97,7 @@ private:
     std::vector<int> m_invariants;   // AC自动机「不动点」状态数组
 };
 
-
+/*
 <<<<<<< HEAD
 class BoardMap {
 public:
@@ -118,11 +118,11 @@ public:
     std::array<std::string, 3*(WIDTH + HEIGHT) - 2> m_lineMap;
     unsigned long long m_hash;
 };
-=======
+=======*/
 struct Compound {
     // 复合模式的类型
     enum Type { DoubleThree, FourThree, DoubleFour, Size };
->>>>>>> tmp
+//>>>>>>> tmp
 
     // 一个复合模式的组件由{ 该组件所在方向, 该组件棋型 }组成。
     using Component = std::tuple<Direction, Pattern::Type>;
@@ -255,6 +255,47 @@ public:
     Eigen::ArrayXi m_density[2][2]; // 第一维: { White, Black }, 第二维: { Σ1, Σweight }
     Eigen::VectorXi m_scores[4]; // 按照Group函数分组
     Eigen::VectorXi m_patternScores[2]; // 与Searcher + Compounds同步的向量，存储绝对分数（黑正/白负）
+};
+/* ------------------- 数据区 ------------------- */
+
+static std::vector<Pattern> protos = {
+	{ "+xxxxx",    Pattern::Five,      9999 },
+{ "-_oooo_",   Pattern::LiveFour,  9000 },
+{ "-xoooo_",   Pattern::DeadFour,  2500 },
+{ "-o_ooo",    Pattern::DeadFour,  3000 },
+{ "-oo_oo",    Pattern::DeadFour,  2600 },
+{ "-~_ooo_~",  Pattern::LiveThree, 3000 },
+{ "-x^ooo_~",  Pattern::LiveThree, 2900 },
+{ "-^oo_o^",   Pattern::LiveThree, 2800 },
+{ "-xooo__~",  Pattern::DeadThree, 510 },
+{ "-xoo_o_~",  Pattern::DeadThree, 520 },
+{ "-xoo__o~",  Pattern::DeadThree, 520 },
+{ "-xo_oo_~",  Pattern::DeadThree, 530 },
+{ "-xo__oo",   Pattern::DeadThree, 530 },
+{ "-xooo__x",  Pattern::DeadThree, 500 },
+{ "-xoo_o_x",  Pattern::DeadThree, 500 },
+{ "-xoo__ox",  Pattern::DeadThree, 500 },
+{ "-xo_oo_x",  Pattern::DeadThree, 500 },
+{ "-x_ooo_x",  Pattern::DeadThree, 500 },
+{ "-~oo__o~",  Pattern::DeadThree, 750 },
+{ "-oo__oo",   Pattern::DeadThree, 540 },
+{ "-o_o_o",    Pattern::DeadThree, 550 },
+{ "-~oo__~",   Pattern::LiveTwo,   650 },
+{ "-~_o_o_~",  Pattern::LiveTwo,   600 },
+{ "-x^o_o_^",  Pattern::LiveTwo,   550 },
+{ "-^o__o^",   Pattern::LiveTwo,   550 },
+{ "-xoo___",   Pattern::DeadTwo,   150 },
+{ "-xo_o__",   Pattern::DeadTwo,   160 },
+{ "-xo__o_",   Pattern::DeadTwo,   170 },
+{ "-o___o",    Pattern::DeadTwo,   180 },
+{ "-x_oo__x",  Pattern::DeadTwo,   120 },
+{ "-x_o_o_x",  Pattern::DeadTwo,   120 },
+{ "-~o___~",   Pattern::LiveOne,   150 },
+{ "-x~_o__^",  Pattern::LiveOne,   140 },
+{ "-x~__o_^",  Pattern::LiveOne,   150 },
+{ "-xo___~",   Pattern::DeadOne,   30 },
+{ "-x_o___x",  Pattern::DeadOne,   40 },
+{ "-x__o__x",  Pattern::DeadOne,   50 },
 };
 /*
 static std::vector<Pattern> protos= {
