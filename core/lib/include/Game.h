@@ -35,15 +35,16 @@ constexpr float CalcScore(Player player, Player winner) {
     return static_cast<float>(player) * static_cast<float>(winner); 
 }
 
-// 返回当前局面评分相对于参数的player的价值。
-constexpr float CalcScore(Player player, float stateValue) {
-    return static_cast<float>(player) * stateValue;
+// 返回当前局面评分相对于参数的player的价值
+template <typename Numeric>
+constexpr float CalcScore(Player player, Numeric stateValue) {
+    return static_cast<Numeric>(player) * stateValue;
 }
 
 
 // 可用来表示第一/第四象限的坐标。也就是说，x/y坐标必须同正或同负。
 struct Position {
-	static const Position npos; // 用于表示无位置的标志量
+    static const Position npos; // 用于表示无位置的标志量
     short id; // 内部存储使用short，其余情况均转换为int计算。
 
     constexpr Position(int id = npos)              : id(id) {}
@@ -149,6 +150,9 @@ public:
     //保存了棋局的完整记录的栈式结构。
     std::vector<Position> m_moveRecord;
 };
+
+// 统一的随机数引擎
+
 
 }
 

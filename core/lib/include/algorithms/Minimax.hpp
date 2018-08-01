@@ -25,7 +25,7 @@ namespace Gomoku::Algorithms {
 
 
 		//一次性扩展所有子节点 
-		static size_t Expand( std::unique_ptr<MinimaxNode>& node, Board& board, const Eigen::VectorXf action_probs, bool extraCheck = true) {
+		static size_t Expand( std::shared_ptr<MinimaxNode>& node, Board& board, const Eigen::VectorXf action_probs, bool extraCheck = true) {
 			if (node->children.size()) return node->children.size();
 			//node->children.reserve(action_probs.size());
 			vector<pair<float, int>> sort_tmp;
@@ -43,7 +43,7 @@ namespace Gomoku::Algorithms {
 			return node->children.size();
 		}
 
-		static double ab_max(std::unique_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth, short M_DEPTH) {
+		static double ab_max(std::shared_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth, short M_DEPTH) {
 			if (!node->action_probs.size()) { //若size!=0 说明进行过evalstate，也就进行过Expand; 若size == 0，进行evaluate和拓展
 				node->action_probs = Minimax::evalState(node, board);
 				MinimaxAlgorithm::Expand(node, board, node->action_probs);
@@ -66,7 +66,7 @@ namespace Gomoku::Algorithms {
 			return val;
 		}
 
-		static double ab_min(std::unique_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth,short M_DEPTH) {
+		static double ab_min(std::shared_ptr<MinimaxNode>& node, Board& board, double &a, double &b, short depth,short M_DEPTH) {
 			if (!node->action_probs.size()) { //若size!=0 说明进行过evalstate，也就进行过Expand; 若size == 0，进行evaluate和拓展
 				node->action_probs = Minimax::evalState(node, board);
 				MinimaxAlgorithm::Expand(node, board, node->action_probs);

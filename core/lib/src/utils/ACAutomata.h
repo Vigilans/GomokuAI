@@ -1,21 +1,9 @@
 #ifndef GOMOKU_AHO_CORASICK_H_
 #define GOMOKU_AHO_CORASICK_H_
-#include "../include/Pattern.h"
+#include "../../include/Pattern.h"
 #include <set>
 
 namespace Gomoku {
-
-constexpr int Codeset[] = { 1, 2, 3, 4 };
-
-constexpr int EncodeCharset(char ch) {
-    switch (int code = 0; ch) {
-        case '-': case '_': case '^': case '~': ++code;
-        case '?': ++code;
-        case 'o': ++code;
-        case 'x': ++code;
-        default: return code;
-    }
-}
 
 class AhoCorasickBuilder {
 public:
@@ -43,11 +31,14 @@ public:
     using NodeIter = std::set<Node>::iterator;
 
 public:
-    AhoCorasickBuilder(std::vector<Pattern> protos);
+    AhoCorasickBuilder();
 
     void build(PatternSearch* searcher);
 
 public:
+    // 将原型拷贝至检索模式集合中并设置追溯指针
+    void preparePatterns();
+
     // 不对称的pattern反过来看与原pattern等价
     void reverseAugment();
 
@@ -64,10 +55,10 @@ public:
     void buildNodeBasedTrie();
 
     // DFS遍历生成双数组Trie树
-    void buildDAT(PatternSearch* ps);
+    void buildDoubleArrayTrie();
 
     // BFS遍历，为DAT构建AC自动机的fail指针数组
-    void buildACGraph(PatternSearch* ps);
+    void buildACGraph();
 
 private:
     std::pair<NodeIter, NodeIter> children(NodeIter node) {
@@ -77,8 +68,10 @@ private:
     }
 
 private:
+    PatternSearch* ps = nullptr;
     std::set<Node> m_tree; // 利用在插入中保持有序的RB树，作为临时保存Trie树的结构
     std::vector<Pattern> m_patterns;
+    std::vector<int> m_trace;
 };
 
 }

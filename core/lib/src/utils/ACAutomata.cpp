@@ -7,19 +7,27 @@ using namespace std;
 
 namespace Gomoku {
 
-AhoCorasickBuilder::AhoCorasickBuilder(vector<Pattern> protos)
-    : m_tree{ Node{} }, m_patterns(protos) {
+AhoCorasickBuilder::AhoCorasickBuilder()
+    : m_tree{ Node{} } {
 
 }
 
 void AhoCorasickBuilder::build(PatternSearch* searcher) {
+    this->ps = searcher;
+    this->preparePatterns();
     this->reverseAugment();
     this->flipAugment(); 
     this->boundaryAugment(); 
     this->sortPatterns();
     this->buildNodeBasedTrie();
-    this->buildDAT(searcher);
-    this->buildACGraph(searcher);
+    this->buildDoubleArrayTrie();
+    this->buildACGraph();
+}
+
+void AhoCorasickBuilder::preparePatterns() {
+    m_patterns = ps->m_prototypes;
+    m_trace.resize(ps->m_prototypes.size());
+    std::iota(m_trace.begin(), m_trace.end(), 0);
 }
 
 void AhoCorasickBuilder::reverseAugment() {
@@ -28,6 +36,7 @@ void AhoCorasickBuilder::reverseAugment() {
         std::reverse(reversed.str.begin(), reversed.str.end());
         if (reversed.str != m_patterns[i].str) {
             m_patterns.push_back(std::move(reversed));
+            m_trace.push_back(m_trace[i]);
         }
     }
 }
@@ -41,6 +50,7 @@ void AhoCorasickBuilder::flipAugment() {
             else if (piece == 'o') piece = 'x';
         }
         m_patterns.push_back(std::move(flipped));
+        m_trace.push_back(m_trace[i]);
     }
 }
 
@@ -53,11 +63,14 @@ void AhoCorasickBuilder::boundaryAugment() {
             Pattern bounded(m_patterns[i]);
             bounded.str[first] = '?';
             m_patterns.push_back(bounded);
+            m_trace.push_back(m_trace[i]);
             if (last != first) {
                 bounded.str[last] = '?';
                 m_patterns.push_back(bounded);
+                m_trace.push_back(m_trace[i]);
                 bounded.str[first] = enemy;
-                m_patterns.push_back(std::move(bounded));
+                m_patterns.push_back(bounded);
+                m_trace.push_back(m_trace[i]);
             }
         }
     }
@@ -80,13 +93,14 @@ void AhoCorasickBuilder::sortPatterns() {
         return codes[lhs] < codes[rhs];
     });
 
-    // 根据indices重排m_patterns
-    vector<Pattern> medium;
-    medium.reserve(m_patterns.size());
+    // 根据indices重排m_patterns与m_trace，并插入ps中
+    assert(m_trace.size() == m_patterns.size());
+    ps->m_patterns.reserve(m_patterns.size());
+    ps->m_trace.reserve(m_trace.size());
     for (auto index : indices) {
-        medium.push_back(std::move(m_patterns[index]));
+        ps->m_patterns.push_back(std::move(m_patterns[index]));
+        ps->m_trace.push_back(m_trace[index]);
     }
-    m_patterns.swap(medium);
 }
 
 /*
@@ -128,7 +142,7 @@ void AhoCorasickBuilder::buildNodeBasedTrie() {
         }
     };
     auto root = m_tree.find({});
-    for (auto pattern : m_patterns) {
+    for (auto pattern : ps->m_patterns) {
         insert_pattern(pattern.str, root); // 按字典序插入pattern
     }
 }
@@ -155,7 +169,7 @@ void AhoCorasickBuilder::buildNodeBasedTrie() {
       * 对应模式的下标为0，则check[0] < 0，也不会判断叶结点还有叶结点。
     因此也不会产生冲突。
 */
-void AhoCorasickBuilder::buildDAT(PatternSearch* ps) {
+void AhoCorasickBuilder::buildDoubleArrayTrie() {
     // index为node在双数组中的索引，之前的递归中已确定好
     function<void(int, NodeIter)> build_recursive = [&](int index, NodeIter node) {
         if (node->depth > 0 && node->code == 0) {
@@ -225,10 +239,9 @@ void AhoCorasickBuilder::buildDAT(PatternSearch* ps) {
     ps->m_check.resize(1, -1); // 根节点(0)由于没有父结点，故其无本义check值，该位置用来作为前向链表的起点。
     auto root = m_tree.find({});
     build_recursive(0, root);
-    ps->m_patterns.swap(m_patterns);
 }
 
-void AhoCorasickBuilder::buildACGraph(PatternSearch* ps) {
+void AhoCorasickBuilder::buildACGraph() {
     // 初始，所有结点的fail指针都指向根节点
     ps->m_fail.resize(ps->m_base.size(), 0);
     ps->m_invariants.resize(std::size(Codeset) + 1, 0);

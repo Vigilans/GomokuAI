@@ -8,8 +8,6 @@
 #include "Minimax.h"
 #include "Pattern.h"
 #include "algorithms/Heuristic.hpp"
-#include "algorithms/Minimax.hpp"
-using namespace std;
 
 namespace Gomoku {
 
@@ -23,33 +21,67 @@ class Agent {
 public:
     virtual std::string name() = 0;
 
+    virtual void syncWithBoard(Board& board) { };
+
     virtual Position getAction(Board& board) = 0;
 
-    virtual json debugMessage() { return json(); };
+    //virtual int queryProposalCount() { return 2; }
 
-    virtual void syncWithBoard(Board& board) { };
+    //virtual bool querySwap(Board& board) { return false; }
+
+    //virtual std::vector<Position> requestProposals(Board& board, int N) = 0;
+
+    //virtual Position respondProposals(std::vector<Position> proposal) = 0;
+
+    virtual json debugMessage() { return json(); };
 
     virtual void reset() { }
 };
 
+
 class HumanAgent : public Agent {
 public:
+    using Heuristic = Algorithms::Heuristic;
+
+    HumanAgent(bool output_probs = false) : c_output(output_probs) { }
+
     virtual std::string name() {
         return "HumanAgent";
     }
 
     virtual Position getAction(Board& board) {
-        using namespace std;
-        int x, y;
-        cout << "\nInput your move({-1 -1} to revert): ";
-        cin >> hex >> x >> y;
+        std::cout << "\nInput your move({-1 -1} to revert): ";
+        std::cin >> std::hex >> m_move.first >> m_move.second;
         m_evaluator.syncWithBoard(board);
-        m_evaluator.applyMove({ x, y });
-        return { x, y };
+        
+        return m_move;
+    }
+
+    virtual json debugMessage() {
+        if (c_output) {
+            auto reshaped_probs = [this] {
+                return Eigen::Map<const Eigen::Array<float, 15, 15, Eigen::RowMajor>>(m_probs.data());
+            };
+
+            m_probs = Heuristic::EvaluationProbs(m_evaluator, m_evaluator.board().m_curPlayer);
+            Heuristic::DecisiveFilter(m_evaluator, m_probs);
+            std::cout << "before:\n" << reshaped_probs() << std::endl;
+
+            m_evaluator.applyMove(m_move);
+
+            m_probs = Heuristic::EvaluationProbs(m_evaluator, m_evaluator.board().m_curPlayer);
+            Heuristic::DecisiveFilter(m_evaluator, m_probs);
+            std::cout << "after:\n" << reshaped_probs() << std::endl;
+        }
+        return {};
     }
 
     Evaluator m_evaluator;
+    std::pair<int, int> m_move;
+    Eigen::VectorXf m_probs;
+    bool c_output;
 };
+
 
 class RandomAgent : public Agent {
 public:
@@ -61,6 +93,7 @@ public:
         return board.getRandomMove();
     }
 };
+
 
 class MCTSAgent : public Agent {
 public:
@@ -90,7 +123,7 @@ public:
 
     virtual void syncWithBoard(Board& board) {
         if (m_mcts == nullptr) {
-            auto last_action = board.m_moveRecord.empty() ? Position(-1) : board.m_moveRecord.back();
+            auto last_action = board.m_moveRecord.empty() ? Position::npos : board.m_moveRecord.back();
             m_mcts = std::make_unique<MCTS>(c_duration, last_action, -board.m_curPlayer, m_policy);
         } else {
             m_mcts->syncWithBoard(board);
@@ -106,6 +139,7 @@ protected:
     std::shared_ptr<Policy> m_policy;
     std::chrono::milliseconds c_duration;
 };
+
 
 class PatternEvalAgent : public Agent {
 public:
@@ -162,10 +196,11 @@ private:
     Position m_thisMove;
 };
 
+
 class MinimaxAgent : public Agent {
 public:
-	MinimaxAgent() {
-		c_depth = 10;
+	MinimaxAgent(int depth) : m_minimax(depth) {
+        c_depth = depth;
 	}
 
     virtual std::string name() {
@@ -173,30 +208,23 @@ public:
     }
      
     virtual Position getAction(Board& board) { 
-		cout << board.m_moveRecord.size();
-        return m_minimax->getAction(board);
-    };
+        return m_minimax.getAction(board);
+    }
 
-    virtual json debugMessage() {
-		return { "depth", m_minimax->m_depth };
-	};
+ //   virtual json debugMessage() {
+	//	return { "depth", m_minimax->m_depth };
+	//};
 
     virtual void syncWithBoard(Board& board) {
-        if (m_minimax == nullptr) {
-            auto last_action = board.m_moveRecord.empty() ? Position(-1) : board.m_moveRecord.back();
-            m_minimax = std::make_unique<Minimax>(c_depth, last_action, -board.m_curPlayer);
-		}
-		else {
-			m_minimax->syncWithBoard(board);
-		}
+        m_minimax.syncWithBoard(board);
     };
 
     virtual void reset() {//valid
-        m_minimax.reset();
+        //m_minimax->reset();
 	};
 
 private:
-    std::unique_ptr<Minimax> m_minimax;
+    Minimax m_minimax;
     int c_depth;
 };
 

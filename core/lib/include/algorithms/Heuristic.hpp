@@ -2,8 +2,8 @@
 #define GOMOKU_ALGORITHMS_HEURISTIC_H_
 #include "../Pattern.h"
 #include "Statistical.hpp"
-#include "MonteCarlo.hpp"   
 #include <deque>
+#include <iostream>
 #include <iostream>
 
 namespace Gomoku::Algorithms {
@@ -14,26 +14,50 @@ struct Heuristic {
     // w_rival_anti = rival_anti * normalize(rival_density)
     // action_probs = normalize(w * w_self_worthy + (1-w) * w_rival_anti)
     static Eigen::VectorXf EvaluationProbs(Evaluator& ev, Player player) {
-        Eigen::VectorXf action_probs;
-        if (!ev.board().m_moveRecord.empty()) {
-            Eigen::VectorXf self_worthy = ev.scores(player, player).cast<float>().cwiseProduct(DensityWeight(ev, player));
-            Eigen::VectorXf rival_anti = ev.scores(-player, player).cast<float>().cwiseProduct(DensityWeight(ev, -player));
-            action_probs = (0.6 * self_worthy + 0.4 * rival_anti).normalized();
-        } else {
-            action_probs = Eigen::VectorXf::Zero(BOARD_SIZE);
-            action_probs[Position{ WIDTH / 2 , HEIGHT / 2 }] = 1.0f;
+        using namespace Eigen;
+        Position center(WIDTH / 2, HEIGHT / 2), second;
+        VectorXf action_probs = VectorXf::Zero(BOARD_SIZE);
+        Map<MatrixXf> square_probs(action_probs.data(), HEIGHT, WIDTH);
+        // 五子棋规则的指定开局设计，也能在前期协助约束
+        switch (ev.board().m_moveRecord.size()) {
+        case 0: // 第一子应落在天元
+            action_probs[center] = 1.0f;
+            break;
+        case 1: // 第二子落在天元周围1格内（直指/斜指）
+            square_probs.block<3, 3>(center.y() - 1, center.x() - 1).fill(1.0f);
+            action_probs[center] = 0.0f; // 除去中心点概率
+            break;
+        case 2: // 第三子落在天元周围2格内（共26种）
+            second = ev.board().m_moveRecord[1];
+            square_probs.block<5, 5>(center.y() - 2, center.x() - 2).fill(1.0f);
+            action_probs[center] = 0.0f; // 除去第一子概率
+            action_probs[second] = 0.0f; // 除去第二子概率
+            for (auto sgn : { 1, -1 })   // 除去彗星/流星/游星开局
+            for (auto dir : { Direction::LeftDiag, Direction::RightDiag }) {
+                Vector2i a(second.y() - center.y(), second.x() - center.x());
+                Vector2i b(sgn * (*dir).second, sgn * (*dir).first);
+                if (a.dot(b) > 0) { // 夹角小于90°的是长星/疏星
+                    continue;
+                }
+                action_probs[Shift(center, sgn*2, dir)] = 0.0f;
+            }
+            break;
+        default: // 默认情况按照估值函数返回
+            VectorXf self_worthy = ev.scores(player, player).cast<float>().cwiseProduct(DensityWeight(ev, player));
+            VectorXf rival_anti = ev.scores(-player, player).cast<float>().cwiseProduct(DensityWeight(ev, -player));
+            action_probs = 0.6 * self_worthy + 0.4 * rival_anti;
         }
+        action_probs.normalize();
         return action_probs;
     }
 
     // ws_self_worthy = dot(self_worthy, normalize(self_density))
     // ws_rival_worthy = dot(rival_worthy, normalize(rival_density))
     // state_value = tanh((ws_self_worthy - ws_rival_worthy) / scale_factor)
-	static float EvaluationValue(Evaluator& ev, Player player, float param = 500.0f, bool isMinimax = false) {
-        auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
-        auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
-		if (isMinimax) return (self_worthy - rival_worthy)/param;
-		else return std::tanh((1.2 * self_worthy - rival_worthy) / param);
+    static float EvaluationValue(Evaluator& ev, Player player, float scale = 3000.0f) {
+        //auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
+        //auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
+        return std::tanh((500 + ev.patternScores(player).sum() - ev.patternScores(-player).sum()) / scale);
     }
 
     // weight = normalize(w/n * 1.5n/(0.5+n)) = normalize(3w/(1+2n))
@@ -43,20 +67,6 @@ struct Heuristic {
         auto N = counts.unaryExpr(filter).cast<float>();
         auto W = weights.unaryExpr(filter).cast<float>();
         return ((3 * W) / (1 + 2 * N)).matrix().normalized();
-    }
-
-    // 进行多轮随机rollout，用各轮结果来不断调整value的值。
-    static void TunedRandomRollout(Board& board, float& value, size_t c_rollouts = 5) {
-        auto init_player = board.m_curPlayer;
-        auto total_moves = 0;
-        for (int i = 0; i < c_rollouts; ++i) {
-            auto [winner, total_moves] = Default::RandomRollout(board, true);
-            auto score = CalcScore(init_player, winner); // 计算相对于局面初始应下玩家的价值
-            value = 0.8*value + 0.2*score;
-            if (value * score > 0) { // 若两次结果一样则可提前结束
-                break;
-            }
-        }
     }
 
     template <typename Func>
@@ -130,9 +140,16 @@ struct Heuristic {
                     count = ev.m_compoundDist.back()[pattern - Pattern::Size].get(player);
                 }
                 if (count != 0) { // 成功找到一个有计数的模式
-                    // 当反击对方非四连棋型时，己方眠三同样有价值
-                    if (is_antiMove && state != State::_4) {
-                        candidates.push_back({ Pattern::DeadThree, -player });
+                    // 额外反击棋型判断
+                    if (is_antiMove) {
+                        // 当反击对方非四连棋型时，己方眠三同样有价值
+                        if (state != State::_4) {
+                            candidates.push_back({ Pattern::DeadThree, -player });
+                        } 
+                        // 当反击对方双三棋型时，己方活二同样有价值
+                        if (state == State::To33) {
+                            candidates.push_back({ Pattern::LiveThree, -player });
+                        }
                     }
                     break; // 直接跳出，保留后面的候选者
                 }
@@ -140,6 +157,7 @@ struct Heuristic {
             }
             // 如果仍有候选者，则寻找成功
             if (int i = -1; !candidates.empty()) {
+                report.level = is_antiMove ? report.Anti : report.Favour;
                 // 将所有非Decisive点概率全部Mask为0
                 probs = probs.unaryExpr([&](float prob) { // 这个较别扭的写法是为了vectorize的性能……
                     return ++i, std::any_of(candidates.begin(), candidates.end(), [&](auto candidate) {
@@ -150,7 +168,7 @@ struct Heuristic {
                             return ev.m_compoundDist[i][pattern % Pattern::Size].get(player, cur_player);
                         }
                     });
-                }).select(probs, Eigen::VectorXf::Zero((int)BOARD_SIZE)); 
+                }).select(probs, Eigen::VectorXf::Zero(BOARD_SIZE)); 
                 probs.normalize(); // 重新标准化概率
                 candidates.clear(); // 清空候选队列
                 state = State::End; // 状态直接跳转到结束

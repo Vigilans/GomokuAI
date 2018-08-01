@@ -3,14 +3,15 @@
 #pragma warning(disable:4244) // 关闭收缩转换警告
 #pragma warning(disable:4018) // 关闭有/无符号比较警告
 #include "../MCTS.h"
-#include <tuple>
+#include "Statistical.hpp"
 #include <algorithm>
+#include <tuple>
 
 // Algorithms名空间是一组静态方法的集合，并不继承Policy。
 namespace Gomoku::Algorithms {
 
 struct Default {
-    
+
     // 仅考虑Exploration的UCB1公式。
     static double UCB1(const Node* node, double expl_param) {
         const double N = node->parent->node_visits;
@@ -39,17 +40,31 @@ struct Default {
             result = board.applyMove(board.getRandomMove());
         }
         auto winner = board.m_winner;
-        if (revert) { 
-            board.revertMove(total_moves); 
+        if (revert) {
+            board.revertMove(total_moves);
         }
         return { winner, total_moves };
+    }
+
+    // 进行多轮随机rollout，用各轮结果来不断调整value的值。
+    static void TunedRandomRollout(Board& board, float& value, size_t c_rollouts = 5) {
+        auto init_player = board.m_curPlayer;
+        auto total_moves = 0;
+        for (int i = 0; i < c_rollouts; ++i) {
+            auto[winner, total_moves] = Default::RandomRollout(board, true);
+            auto score = CalcScore(init_player, winner); // 计算相对于局面初始应下玩家的价值
+            value = 0.8*value + 0.2*score;
+            if (value * score > 0) { // 若两次结果一样则可提前结束
+                break;
+            }
+        }
     }
 
     // 返回均匀概率分布。
     static Eigen::VectorXf UniformProbs(Board& board) {
         Eigen::VectorXf action_probs = BoardMask(board).cast<float>();
         action_probs /= board.moveCounts(Player::None);
-        
+
         return action_probs;
     }
 
@@ -81,7 +96,7 @@ struct Default {
     // 进行1局随机游戏。
     static Policy::EvalResult Simulate(Policy* policy, Board& board) {
         auto init_player = board.m_curPlayer;
-        auto [winner, total_moves] = RandomRollout(board);
+        auto[winner, total_moves] = RandomRollout(board);
         board.revertMove(total_moves);
         return { CalcScore(init_player, winner), UniformProbs(board) };
     }
@@ -90,6 +105,19 @@ struct Default {
         for (; node != nullptr; node = node->parent, value = -value) {
             node->node_visits += 1;
             node->state_value += (value - node->state_value) / node->node_visits;
+        }
+    }
+
+    static void AddNoise(Node* node, float alpha = 0.05, float epsilon = 0.25) {
+        Eigen::VectorXf prior_probs;
+        prior_probs.setZero(BOARD_SIZE);
+        for (auto&& child : node->children) {
+            prior_probs[child->position] = child->action_prob;
+        }
+        prior_probs *= 1 - epsilon;
+        prior_probs += epsilon * Stats::DirichletNoise(prior_probs, alpha);
+        for (auto&& child : node->children) {
+            child->action_prob = prior_probs[child->position];
         }
     }
 
