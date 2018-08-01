@@ -7,7 +7,7 @@ using namespace std;
 
 namespace Gomoku {
 
-AhoCorasickBuilder::AhoCorasickBuilder(initializer_list<Pattern> protos)
+AhoCorasickBuilder::AhoCorasickBuilder(vector<Pattern> protos)
     : m_tree{ Node{} }, m_patterns(protos) {
 
 }

@@ -10,12 +10,16 @@ int main() {
     MCTSAgent agent3(1s, new RandomPolicy);
     //MCTSAgent agent4(10000, new RandomPolicy);
     MCTSAgent agent6(1000ms, new TraditionalPolicy(5));
-    MCTSAgent agent6x(1001ms, new TraditionalPolicy(7));
     PatternEvalAgent agent7;
-	MinimaxAgent agent8;
     //MCTSAgent agent7x(50000, new PoolRAVEPolicy(2, 0));
+	int cnt = 1;
+	while (cnt--) {
+		MCTSAgent agent6x(1001ms, new TraditionalPolicy(7));
+		MinimaxAgent agent8;
 
-    return ConsoleInterface(agent7, agent8);
+		ConsoleInterface(agent6x, agent8);
+
+	}
     //return KeepAliveBotzoneInterface(agent6);
     //return BotzoneInterface(agent6);
 }

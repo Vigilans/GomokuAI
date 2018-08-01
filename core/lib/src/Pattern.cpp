@@ -23,7 +23,7 @@ bool PatternSearch::HasCovered(const Entry& entry, size_t pose) {
     return 0 <= offset - pose && offset - pose < pattern.str.length();
 }
 
-PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
+PatternSearch::PatternSearch(std::vector<Pattern> protos) {
     AhoCorasickBuilder builder(protos);
     builder.build(this);
 }
@@ -366,6 +366,7 @@ void Evaluator::Updater::updateMove(Position move, Player src_player) {
 
 Evaluator::Evaluator(Board * board) : m_updater(*this), m_boardMap(board) {
     this->reset();
+
 }
 
 Player Evaluator::applyMove(Position move) {
@@ -612,49 +613,8 @@ void Compound::updatePose(int delta, Position pose, Component component, Player 
 
 /* ------------------- 数据区 ------------------- */
 
-PatternSearch Evaluator::Patterns = {
-    { "+xxxxx",    Pattern::Five,      9999 },
-    { "-_oooo_",   Pattern::LiveFour,  9000 },
-    { "-xoooo_",   Pattern::DeadFour,  2500 },
-    { "-o_ooo",    Pattern::DeadFour,  3000 },
-    { "-oo_oo",    Pattern::DeadFour,  2600 },
-    { "-~_ooo_~",  Pattern::LiveThree, 3000 },
-    { "-x^ooo_~",  Pattern::LiveThree, 2900 },
-    { "-~o_oo~",   Pattern::LiveThree, 2800 },
-    { "-~o~oo_~",  Pattern::DeadThree, 1400 },
-    { "-~oo~o_~",  Pattern::DeadThree, 1200 },
-    { "-x_o~oo~",  Pattern::DeadThree, 1300 },
-    { "-x_oo~o~",  Pattern::DeadThree, 1100 },
-    { "-xooo__~",  Pattern::DeadThree, 510 },
-    { "-xoo_o_~",  Pattern::DeadThree, 520 },
-    { "-xoo__o~",  Pattern::DeadThree, 520 },
-    { "-xo_oo_~",  Pattern::DeadThree, 530 },
-    { "-xo__oo",   Pattern::DeadThree, 530 },
-    { "-xooo__x",  Pattern::DeadThree, 500 },
-    { "-xoo_o_x",  Pattern::DeadThree, 500 },
-    { "-xoo__ox",  Pattern::DeadThree, 500 },
-    { "-xo_oo_x",  Pattern::DeadThree, 500 },
-    { "-x_ooo_x",  Pattern::DeadThree, 500 },
-    { "-~oo__o~",  Pattern::DeadThree, 750 },
-    { "-oo__oo",   Pattern::DeadThree, 540 },
-    { "-o_o_o",    Pattern::DeadThree, 550 },
-    { "-~oo__~",   Pattern::LiveTwo,   650 },
-    { "-~_o_o_~",  Pattern::LiveTwo,   600 },
-    { "-x^o_o_^",  Pattern::LiveTwo,   550 },
-    { "-^o__o^",   Pattern::LiveTwo,   550 },
-    { "-xoo___",   Pattern::DeadTwo,   150 },
-    { "-xo_o__",   Pattern::DeadTwo,   160 },
-    { "-xo__o_",   Pattern::DeadTwo,   170 },
-    { "-o___o",    Pattern::DeadTwo,   180 },
-    { "-x_oo__x",  Pattern::DeadTwo,   120 },
-    { "-x_o_o_x",  Pattern::DeadTwo,   120 },
-    { "-~o___~",   Pattern::LiveOne,   150 },
-    { "-x~_o__^",  Pattern::LiveOne,   140 },
-    { "-x~__o_^",  Pattern::LiveOne,   150 },
-    { "-xo___~",   Pattern::DeadOne,   30 },
-    { "-x_o___x",  Pattern::DeadOne,   40 },
-    { "-x__o__x",  Pattern::DeadOne,   50 },
-};
+
+PatternSearch Evaluator::Patterns =protos;
 
 tuple<Array<int, BLOCK_SIZE, BLOCK_SIZE, RowMajor>, int> Evaluator::BlockWeights = []() {
     tuple_element_t<0, decltype(BlockWeights)> weight;

@@ -43,7 +43,7 @@ public:
     using NodeIter = std::set<Node>::iterator;
 
 public:
-    AhoCorasickBuilder(std::initializer_list<Pattern> protos);
+    AhoCorasickBuilder(std::vector<Pattern> protos);
 
     void build(PatternSearch* searcher);
 

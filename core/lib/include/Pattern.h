@@ -108,7 +108,7 @@ public:
     PatternSearch() = default;
 
     // 构造函数中传入的模式原型将经过几层强化，获得完整的模式表。
-    PatternSearch(std::initializer_list<Pattern> protos);
+    PatternSearch(std::vector<Pattern> protos);
     
     // 返回一个生成器，每一次解引用返回当前匹配到的模式，并移动到下一个模式。
     generator execute(std::string_view target);
@@ -140,7 +140,7 @@ public:
     void reset();
 
 public:
-    std::unique_ptr<Board> m_board;
+    std::shared_ptr<Board> m_board;
     std::array<std::string, 3*(WIDTH + HEIGHT) - 2> m_lineMap;
     unsigned long long m_hash;
 };
@@ -270,6 +270,49 @@ public:
     Eigen::VectorXi m_scores[4]; // 按照Group函数分组
 };
 
+static std::vector<Pattern> protos= {
+{ "+xxxxx",    Pattern::Five,      100000 },
+{ "-_oooo_",   Pattern::LiveFour,  9000 },
+{ "-xoooo_",   Pattern::DeadFour,  2500 },
+{ "-o_ooo",    Pattern::DeadFour,  3000 },
+{ "-oo_oo",    Pattern::DeadFour,  2600 },
+{ "-~_ooo_~",  Pattern::LiveThree, 3000 },
+{ "-x^ooo_~",  Pattern::LiveThree, 2900 },
+{ "-~o_oo~",   Pattern::LiveThree, 2800 },
+{ "-~o~oo_~",  Pattern::DeadThree, 1400 },
+{ "-~oo~o_~",  Pattern::DeadThree, 1200 },
+{ "-x_o~oo~",  Pattern::DeadThree, 1300 },
+{ "-x_oo~o~",  Pattern::DeadThree, 1100 },
+{ "-xooo__~",  Pattern::DeadThree, 510 },
+{ "-xoo_o_~",  Pattern::DeadThree, 520 },
+{ "-xoo__o~",  Pattern::DeadThree, 520 },
+{ "-xo_oo_~",  Pattern::DeadThree, 530 },
+{ "-xo__oo",   Pattern::DeadThree, 530 },
+{ "-xooo__x",  Pattern::DeadThree, 500 },
+{ "-xoo_o_x",  Pattern::DeadThree, 500 },
+{ "-xoo__ox",  Pattern::DeadThree, 500 },
+{ "-xo_oo_x",  Pattern::DeadThree, 500 },
+{ "-x_ooo_x",  Pattern::DeadThree, 500 },
+{ "-~oo__o~",  Pattern::DeadThree, 750 },
+{ "-oo__oo",   Pattern::DeadThree, 540 },
+{ "-o_o_o",    Pattern::DeadThree, 550 },
+{ "-~oo__~",   Pattern::LiveTwo,   650 },
+{ "-~_o_o_~",  Pattern::LiveTwo,   600 },
+{ "-x^o_o_^",  Pattern::LiveTwo,   550 },
+{ "-^o__o^",   Pattern::LiveTwo,   550 },
+{ "-xoo___",   Pattern::DeadTwo,   150 },
+{ "-xo_o__",   Pattern::DeadTwo,   160 },
+{ "-xo__o_",   Pattern::DeadTwo,   170 },
+{ "-o___o",    Pattern::DeadTwo,   180 },
+{ "-x_oo__x",  Pattern::DeadTwo,   120 },
+{ "-x_o_o_x",  Pattern::DeadTwo,   120 },
+{ "-~o___~",   Pattern::LiveOne,   150 },
+{ "-x~_o__^",  Pattern::LiveOne,   140 },
+{ "-x~__o_^",  Pattern::LiveOne,   150 },
+{ "-xo___~",   Pattern::DeadOne,   30 },
+{ "-x_o___x",  Pattern::DeadOne,   40 },
+{ "-x__o__x",  Pattern::DeadOne,   50 },
+};
 }
 
 #endif // !GOMOKU_PATTERN_MATCHING_H_

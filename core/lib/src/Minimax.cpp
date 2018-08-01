@@ -31,7 +31,7 @@ namespace Gomoku {
 	//}
 
 	// 若未被重写，则创建基类结点
-	std::unique_ptr<MinimaxNode> MinimaxPolicy::createNode(MinimaxNode* parent, Position pose, Player player, float cur_value, float fin_value) {
+	std::shared_ptr<MinimaxNode> MinimaxPolicy::createNode(MinimaxNode* parent, Position pose, Player player, float cur_value, float fin_value) {
 		return std::make_unique<MinimaxNode>(MinimaxNode{ parent, pose, player, cur_value, fin_value });
 	}
 
@@ -57,8 +57,8 @@ namespace Gomoku {
 
 	/* ------------------- Minimax类实现 ------------------- */
 
-	// 更新后，原根节点由unique_ptr自动释放，其余的非子树结点也会被链式自动销毁。
-	inline MinimaxNode* updateRoot(Minimax& Minimax, std::unique_ptr<MinimaxNode>&& next_node) {
+	// 更新后，原根节点由shared_ptr自动释放，其余的非子树结点也会被链式自动销毁。
+	inline MinimaxNode* updateRoot(Minimax& Minimax, std::shared_ptr<MinimaxNode>&& next_node) {
 		Minimax.m_root = std::move(next_node);
 		Minimax.m_root->parent = nullptr;
 		return Minimax.m_root.get();
@@ -75,6 +75,7 @@ namespace Gomoku {
 		c_constraint(Constraint::Depth) {
 			m_alpha = -0xffff;
 			m_beta = 0xffff;
+			node_trace.push_back(m_root);
 	};
 
 	Position Minimax::getAction(Board& board) {
@@ -89,6 +90,7 @@ namespace Gomoku {
 
 
 	void Minimax::syncWithBoard(Board & board) {
+
 		auto iter = std::find(board.m_moveRecord.begin(), board.m_moveRecord.end(), m_root->position);
 		for (iter = (iter == board.m_moveRecord.end() ? board.m_moveRecord.begin() : ++iter);
 			iter != board.m_moveRecord.end(); ++iter) {
@@ -107,6 +109,7 @@ namespace Gomoku {
 			auto iter = max_element(m_root->children.begin(), m_root->children.end(), [](auto&& lhs, auto&& rhs) {
 				return lhs->final_state_value > rhs->final_state_value;
 			});
+			node_trace.push_back(*iter);// add current action into node list
 			return iter != m_root->children.end() ? updateRoot(*this, std::move(*iter)) : m_root.get();
 		//}
 	}
@@ -115,6 +118,7 @@ namespace Gomoku {
 		auto iter = find_if(m_root->children.begin(), m_root->children.end(), [next_move](auto&& node) {
 			return node->position == next_move;
 		});
+		node_trace.push_back(*iter);
 		if (iter == m_root->children.end()) { // 这个迷之hack是为了防止Python模块中出现引用Bug...
 			iter = m_root->children.emplace(
 				m_root->children.end(),

@@ -102,7 +102,7 @@ public:
     }
 
 protected:
-    std::unique_ptr<MCTS> m_mcts;
+    std::shared_ptr<MCTS> m_mcts;
     std::shared_ptr<Policy> m_policy;
     std::chrono::milliseconds c_duration;
 };
@@ -185,6 +185,7 @@ public:
         if (m_minimax == nullptr) {
             auto last_action = board.m_moveRecord.empty() ? Position(-1) : board.m_moveRecord.back();
             m_minimax = std::make_unique<Minimax>(c_depth, last_action, -board.m_curPlayer);
+    //        m_minimax.node_trace.push_back(m_minimax.m_root);
 		}
 		else {
 			m_minimax->syncWithBoard(board);
@@ -196,7 +197,7 @@ public:
 	};
 
 private:
-    std::unique_ptr<Minimax> m_minimax;
+    std::shared_ptr<Minimax> m_minimax;
     int c_depth;
 };
 

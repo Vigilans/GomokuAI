@@ -4,7 +4,7 @@
 #include "pattern.h"
 #include "algorithms/Heuristic.hpp"
 #include <vector>      // std::vector
-#include <memory>      // std::unique_ptr
+#include <memory>      // std::shared_ptr
 #include <chrono>      // std::milliseconds
 #include <functional>  // std::function
 #include <Eigen/Dense> // Eigen::VectorXf
@@ -48,7 +48,7 @@ struct MinimaxNode {
         树结构部分 - 子结点。
         结点为独有指针集合，对每个子结点拥有所有权。
     */
-    std::vector<std::unique_ptr<MinimaxNode>> children = {};
+    std::vector<std::shared_ptr<MinimaxNode>> children = {};
 
     /* 
         构造与赋值函数。
@@ -100,8 +100,8 @@ public:
     //Policy(ExpandFunc = nullptr, EvalFunc = nullptr, size_t = DEPTH);
 
     // 用于多态生成树节点的Factory	函数。
-    //virtual std::unique_ptr<MinimaxNode> createNode(MinimaxNode* parent, Position pose, Player player, float value, float prob, short );
-	static std::unique_ptr<MinimaxNode> createNode(MinimaxNode* parent, Position pose, Player player, float cur_value, float fin_value);
+    //virtual std::shared_ptr<MinimaxNode> createNode(MinimaxNode* parent, Position pose, Player player, float value, float prob, short );
+	static std::shared_ptr<MinimaxNode> createNode(MinimaxNode* parent, Position pose, Player player, float cur_value, float fin_value);
     
 
     // 在执行所有Playout前的准备操作。
@@ -140,7 +140,7 @@ public:
 
     Position getAction(Board& board);
 
-	static Eigen::VectorXf evalState(std::unique_ptr<MinimaxNode>& node, Board& board) {
+	static Eigen::VectorXf evalState(std::shared_ptr<MinimaxNode>& node, Board& board) {
 		Evaluator m_evaluator;
 		m_evaluator.syncWithBoard(board);
 		auto action_probs = Heuristic::EvaluationProbs(m_evaluator, board.m_curPlayer);
@@ -165,11 +165,12 @@ private:
 
 public:
     std::shared_ptr<MinimaxPolicy> m_policy;
-    std::unique_ptr<MinimaxNode> m_root; //根节点
+    std::shared_ptr<MinimaxNode> m_root; //根节点
     size_t m_depth; // minimax树搜索深度，默认为DEPTH
     Evaluator m_evaluator;
     double m_alpha;
     double m_beta;
+    std::vector<std::shared_ptr<MinimaxNode>> node_trace;
 
 private:
     enum class Constraint {

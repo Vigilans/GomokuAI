@@ -3,6 +3,7 @@
 #include <iostream>
 #include <iomanip>
 #include "Agent.h"
+#include "Pattern.h"
 
 namespace Gomoku::Interface {
 
@@ -105,6 +106,12 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
     }
 
     if (board.m_winner != Player::None) {
+		//if game has won: get and modify evaluator scores
+		for (auto it = protos.begin(); it != protos.end(); it++) {
+			cout << (*it).score << endl;
+			//(*it).score += 10;
+		}
+		
         auto [winner, idx] = get_agent(board.m_winner);
         printf("\nGame end. Winner: %d.%s\nRecord JSON:\n", idx, winner.name().data());
     } else {
