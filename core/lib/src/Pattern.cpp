@@ -24,8 +24,8 @@ bool PatternSearch::HasCovered(const Entry& entry, size_t pose) {
     return 0 <= offset - pose && offset - pose < pattern.str.length();
 }
 
-PatternSearch::PatternSearch(initializer_list<Pattern> protos) {
-    AhoCorasickBuilder builder(protos);
+PatternSearch::PatternSearch(initializer_list<Pattern> protos) : m_prototypes(protos) {
+    AhoCorasickBuilder builder;
     builder.build(this);
 }
 
@@ -59,7 +59,7 @@ const PatternSearch::generator& PatternSearch::generator::operator++() {
 PatternSearch::Entry PatternSearch::generator::operator*() const {
     const auto leaf = ref->m_base[state];
     const auto index = -ref->m_base[leaf];
-    return { ref->m_patterns[index], offset, index };
+    return { ref->m_patterns[index], offset, ref->m_trace[index] };
 }
 
 PatternSearch::generator PatternSearch::execute(string_view target) {
@@ -387,7 +387,7 @@ void Evaluator::reset() {
         distribution.fill(Record{}); // 最后一个元素用于总计数
     }
     // patternScores存储所有单模式与复合模式各自的分数
-    m_patternScores.setZero(Searcher.m_patterns.size() + Compound::Size);
+    m_patternScores.setZero(Searcher.m_prototypes.size() + Compound::Size);
 }
 
 /* ------------------- Evaluator::Record类实现 ------------------- */

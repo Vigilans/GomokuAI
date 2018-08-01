@@ -51,7 +51,7 @@ public:
     // 利用friend指明类实现里使用了AC自动机。
     friend class AhoCorasickBuilder;
 
-    // 一条匹配记录包含了{ 匹配到的模式, 相对于起始位置的偏移, 模式在patterns里的下标 }
+    // 一条匹配记录包含了{ 匹配到的模式, 相对于起始位置的偏移, 模式在原型里的索引 }
     using Entry = std::tuple<const Pattern&, int, int>;
 
     // 验证entry是否覆盖了某个点位（以相对原点的偏移表示）。默认为TARGET_LEN/2，即中心点。
@@ -86,7 +86,9 @@ public:
     std::vector<Entry> matches(std::string_view target);
 
 public:
-    std::vector<Pattern> m_patterns; // 可检索模式集合
+    std::vector<Pattern> m_prototypes; // 可检索模式原型
+    std::vector<Pattern> m_patterns;   // 可检索模式集合
+    std::vector<int> m_trace; // 可检索模式指向其原型的指针
 
 private:
     std::vector<int> m_base;  // DAT子结点基准数组
