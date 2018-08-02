@@ -1,8 +1,10 @@
 #ifndef GOMOKU_INTERFACE_H_
 #define GOMOKU_INTERFACE_H_
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include "Agent.h"
+#include "time.h"
 
 namespace Gomoku::Interface {
 
@@ -62,7 +64,7 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
     return 0;
 }
 
-//// è‹¥shuffleä¸ºfalseï¼Œåˆ™agent0å…ˆè¡Œã€‚
+//// ÈôshuffleÎªfalse£¬Ôòagent0ÏÈĞĞ¡£
 //inline int NewConsoleInterface(Agent& agent0, Agent& agent1, bool RIFRule = false, bool shuffle = true, bool debug = true) {
 //    using namespace std;
 //
@@ -84,16 +86,16 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
 //        }
 //    }
 //
-//    // è¾“å‡ºAgentç®€ä»‹
+//    // Êä³öAgent¼ò½é
 //    for (auto player : { Player::Black, Player::White }) {
 //        auto [index, agent] = get_agent(player);
 //        printf("%s: Agent%d.%s\n", to_string(player).c_str(), index, agent.name().c_str());
 //    }
-//    // è¾“å‡ºåˆå§‹æ£‹ç›˜
+//    // Êä³ö³õÊ¼ÆåÅÌ
 //    cout << endl << to_string(board);
 //    cout << "\n-------------------------\n";
 //
-//    // çŠ¶æ€æœºæ­£å¼å·¥ä½œ
+//    // ×´Ì¬»úÕıÊ½¹¤×÷
 //    while (state != State::End) {
 //        auto [index, agent] = get_agent(player);
 //        agent.syncWithBoard(board);
@@ -107,9 +109,9 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
 //                printf("Agent%d announce %d proposals.\n", index, proposal_count);
 //            case 3:
 //                if (player == Player::Black) {
-//                    player = Player::White; // æ”¹ç”±ç™½æ–¹ä¸‹ç¬¬4æ‰‹æ£‹
-//                    state = State::Swap; // åˆ‡æ¢ä¸ºä¸‰æ‰‹äº¤æ¢çŠ¶æ€
-//                    continue; // ä¸‹ä¸€æ¬¡çŠ¶æ€æœºå°†ç”±å‡ç™½æ–¹Agentå“åº”
+//                    player = Player::White; // ¸ÄÓÉ°×·½ÏÂµÚ4ÊÖÆå
+//                    state = State::Swap; // ÇĞ»»ÎªÈıÊÖ½»»»×´Ì¬
+//                    continue; // ÏÂÒ»´Î×´Ì¬»ú½«ÓÉ¼Ù°×·½AgentÏìÓ¦
 //                }
 //            case 4:
 //                if (player == Player::White) {
@@ -118,7 +120,7 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
 //                    continue;
 //                }
 //            }
-//        } // è¿™é‡Œä¼šç©¿é€
+//        } // ÕâÀï»á´©Í¸
 //        case State::Ongoing:
 //        {
 //            auto move = agent.getAction(board);
@@ -151,7 +153,7 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
 //                cout << "Black and white are swapped." << endl;
 //                swap(agents[0], agents[1]);
 //            }
-//            state = State::Opening; // ä»å¤„äºå¼€å±€é˜¶æ®µ
+//            state = State::Opening; // ÈÔ´¦ÓÚ¿ª¾Ö½×¶Î
 //            break;
 //        }
 //        case State::NProposals:
@@ -168,13 +170,13 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
 //            printf("%s\n", to_string(board).c_str());
 //            printf("Debug Messages: %s", agent.debugMessage().dump().c_str());
 //            printf("\n-------------------------\n");
-//            state = State::Ongoing; // å¼€å±€é˜¶æ®µç»“æŸ
+//            state = State::Ongoing; // ¿ª¾Ö½×¶Î½áÊø
 //            break;
 //        }
 //        }
 //    }
 //
-//    // ç»“æœä¿¡æ¯è¾“å‡º
+//    // ½á¹ûĞÅÏ¢Êä³ö
 //    if (board.m_winner != Player::None) {
 //        auto [index, winner] = get_agent(board.m_winner);
 //        printf("\nGame end. Winner: %d.%s\n", index, winner.name().c_str());
@@ -182,7 +184,7 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
 //        printf("\nTie.\n");
 //    }
 //
-//    // æŒ‰èµ¢å®¶çš„è§†è§’è¾“å‡ºå¯è¢«botzoneè¯»å–çš„jsonæ•°æ®
+//    // °´Ó®¼ÒµÄÊÓ½ÇÊä³ö¿É±»botzone¶ÁÈ¡µÄjsonÊı¾İ
 //    json records;
 //    printf("Record JSON:\n");
 //    for (int i = 0; i < board.m_moveRecord.size(); ++i) {
@@ -199,11 +201,47 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
 //
 //    return board.m_winner == Player::None;
 //}
+inline std::string get_name(std::string info_type, std::string default_info = "") {
+	char flag;
+	std::string info;
+	while (true) {
+		std::cout << "ÇëÊäÈë-" << info_type << ":";
+        if(default_info != "") {
+            std::cout << default_info << std::endl;
+            return default_info;
+        }
+		std::cin >> info;
+		std::cout << "È·ÈÏ?/y :";
+        std::cin >> flag;
+        if(flag == 'y' || flag == 'Y' )
+            return info;
+	}
+}
+
 
 inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
     using namespace std;
+    /////////////////////
+	string first_player = get_name("ÏÈÊÖ"),
+		second_player = get_name("ºóÊÖ");
+	char start_time[300];
+	string header_info;
+	string game = "C5";
+	string location = "2017 CCGC";
+    time_t timep;
+    time (&timep);
+    strftime(start_time, sizeof(start_time), "%Y.%m.%d %H:%M °²»Õ",localtime(&timep) );
+	string title = game + "-" + first_player + "-" + second_player + "-WINNER.txt";
+	header_info = "[" + game + "][" + first_player + "][" + second_player + "][" + "WINNER" + "][" + start_time + "][" + location+"]";
+    //sprintf(title,"%s-%s-%s-%s-%s.txt",game,first_player,second_player,"WINNER",start_time );
+    //sprintf(header_info,"[%s][%s][%s][%s][%s][%s]",game,first_player,second_player,"WINNER",start_time ,location);
+	//header_info = 
+	ofstream game_records(title);
+	game_records << "{" << header_info;
+    ////////////////
 
     Board board;
+
 
     srand(time(nullptr));
     int black_player = rand() % 2;
@@ -225,6 +263,8 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
             board.revertMove(2);
             cout << std::to_string(board);
         } else if (auto result = board.applyMove(move); result != cur_player) {
+			game_records << (cur_player == Player::Black ? ";B(" : ";W(") << move.x() << "," << move.y() << ")";
+
             printf("\n%d.%s's move: %s:\n\n", index, agent.name().data(), std::to_string(move).c_str());
             cout << std::to_string(board);
             cout << "\nDebug Messages:" << agent.debugMessage();
@@ -249,7 +289,7 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
     }
 
 
-    // æŒ‰èµ¢å®¶çš„è§†è§’è¾“å‡ºå¯è¢«botzoneè¯»å–çš„jsonæ•°æ®
+    // °´Ó®¼ÒµÄÊÓ½ÇÊä³ö¿É±»botzone¶ÁÈ¡µÄjsonÊı¾İ
     json records;
     for (int i = 0; i < board.m_moveRecord.size(); ++i) {
         if (i == 0 && board.m_winner == Player::Black) {
@@ -262,7 +302,8 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
         }
     }
     cout << records;
-
+    game_records << "}"<<endl;
+	game_records.close();
     return board.m_winner == Player::None;
 }
 
