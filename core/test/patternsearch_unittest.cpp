@@ -139,7 +139,7 @@ TEST_F(PatternSearchTest, DoubleArrayTrie) {
     builder.boundaryAugment();
     builder.sortPatterns();
     builder.buildNodeBasedTrie();
-    builder.buildDAT(&ps);
+    builder.buildDoubleArrayTrie(&ps);
     // 通过Trie树的前缀匹配进行测试
     string_view positives[] = {
         "x_ooo_x", "?_ooo_x", "?_xxx_?", "_~xxx^o"
@@ -174,7 +174,7 @@ TEST_F(PatternSearchTest, ACFailPointers) {
     builder.boundaryAugment();
     builder.sortPatterns();
     builder.buildNodeBasedTrie();
-    builder.buildDAT(&ps);
+    builder.buildDoubleArrayTrie(&ps);
     builder.buildACGraph(&ps);
     // 通过手动测试一些fail指针是否指向正确来测试
     const auto travel = [&](string_view target) {

@@ -147,8 +147,9 @@ void Evaluator::Updater::updatePatterns(Direction dir) {
         auto current = Shift(move, offset - TARGET_LEN / 2, dir);
         const auto multiplier = (dir == Direction::LeftDiag || dir == Direction::RightDiag ? 1.2 : 1); // 斜线分数更高
         const auto score = static_cast<int>(delta * multiplier * pattern.score);
+        ev.protoCounts(pattern.favour)[trace] += delta; // 修改该条pattern对应的计数
+        ev.protoScores(pattern.favour)[trace] += score; // 修改该条pattern对应的分数
         ev.m_patternDist.back()[pattern.type].set(delta, pattern.favour); // 修改分布总计数
-        ev.patternScores(pattern.favour)[trace] += score; // 修改该条pattern对应的分数
         for (int i = 0; i < pattern.str.length(); ++i, SelfShift(current, -1, dir)) { // 修改空位数据
             const auto piece = pattern.str.rbegin()[i];
             const auto update_pose = [&](int type, Player perspective, int score) {
@@ -386,9 +387,10 @@ void Evaluator::reset() {
     for (auto& distribution : m_compoundDist) {
         distribution.fill(Record{}); // 最后一个元素用于总计数
     }
-    for (auto& patternScores : m_patternScores) {
+    for (auto& [counts, scores] : m_protoDist) {
         // patternScores存储所有单模式与复合模式各自的分数
-        patternScores.setZero(Searcher.m_prototypes.size() + Compound::Size);
+        counts.setZero(Searcher.m_prototypes.size() + Compound::Size);
+        scores.setZero(Searcher.m_prototypes.size() + Compound::Size);
     }
 }
 
@@ -445,7 +447,7 @@ Compound::Compound(Evaluator& ev, Position pose, Player favour)
 }
 
 void Compound::locate() {
-    enum State { S0, L2, LD3, To33, To43, To44 } state = S0;
+    enum State { S0, L2, LD3, To33, To43, To44, LC, To433, ToLC } state = S0;
     for (auto comp_dir : Directions) {
         // 准备转移条件
         int cond = S0; // 初始转移条件
@@ -458,6 +460,11 @@ void Compound::locate() {
             }
             if (count != 0) {
                 switch (comp_type) {
+                case Pattern::LiveFour:
+                    // 再来一次
+                case Pattern::DeadFour:
+                    if (count != 2) continue;
+                    else state = LC;
                 case Pattern::LiveThree:
                     l3_count += 1;
                 case Pattern::DeadThree:
@@ -511,7 +518,8 @@ void Compound::update(int delta) {
         // 后置转移处理
         switch (2 * count + delta) {
             case 3:  // 1 <-> 2，该转移关系到复合模式的存在性
-                ev.patternScores(favour).tail<Type::Size>()[type] += delta * Scores[type];
+                ev.protoCounts(favour).tail<Type::Size>()[type] += delta;
+                ev.protoScores(favour).tail<Type::Size>()[type] += delta * Scores[type];
                 ev.m_compoundDist.back()[type].set(delta, favour); // 更新复合模式总计数
         }
 
@@ -559,6 +567,7 @@ void Compound::updatePose(int delta, Position pose, Component component, Player 
 
 /* ------------------- 数据区 ------------------- */
 
+// 将以逆序插入原型数组，以保证Pattern::Type随下标递增
 PatternSearch Evaluator::Searcher = {
     { "+xxxxx",    Pattern::Five,      9999 },
     { "-_oooo_",   Pattern::LiveFour,  9000 },

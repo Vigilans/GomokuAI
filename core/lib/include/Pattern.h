@@ -180,7 +180,11 @@ public:
     static std::tuple<Eigen::Array<int, BLOCK_SIZE, BLOCK_SIZE, Eigen::RowMajor>, int> BlockWeights;
 
     template<size_t Size>
-    using Distribution = std::array<std::array<Record, Size>, BOARD_SIZE + 1>; // 最后一个元素用于总计数
+    using BoardDist = std::array<std::array<Record, Size>, BOARD_SIZE + 1>; // 最后一个元素用于总计数
+
+    struct PrototypeDist {
+        Eigen::VectorXi counts, scores;
+    };
 
 public:
     Evaluator();
@@ -191,7 +195,9 @@ public:
 
     auto& scores(Player player, Player perspect) { return m_scores[Group(player, perspect)]; }
 
-    auto& patternScores(Player player) { return m_patternScores[Group(player)]; }
+    auto& protoCounts(Player player) { return m_protoDist[Group(player)].counts; }
+
+    auto& protoScores(Player player) { return m_protoDist[Group(player)].scores; }
 
     Player applyMove(Position move);
 
@@ -228,11 +234,11 @@ private:
 
 public:
     BoardMap m_boardMap; // 内部维护了一个Board, 避免受到外部的干扰
-    Distribution<Pattern::Size - 1> m_patternDist; // 不统计Pattern::Five分布
-    Distribution<Compound::Size> m_compoundDist;
+    BoardDist<Pattern::Size - 1> m_patternDist; // 不统计Pattern::Five分布
+    BoardDist<Compound::Size> m_compoundDist;
+    PrototypeDist m_protoDist[2];   // 与Searcher + Compounds同步的向量
+    Eigen::VectorXi m_scores[4];    // 按照Group函数分组
     Eigen::ArrayXi m_density[2][2]; // 第一维: { White, Black }, 第二维: { Σ1, Σweight }
-    Eigen::VectorXi m_scores[4]; // 按照Group函数分组
-    Eigen::VectorXi m_patternScores[2]; // 与Searcher + Compounds同步的向量，存储绝对分数（黑正/白负）
 };
 
 }

@@ -10,9 +10,6 @@ namespace Gomoku::Algorithms {
    
 struct Heuristic {
 
-    // w_self_worthy = self_worthy * normalize(self_density)
-    // w_rival_anti = rival_anti * normalize(rival_density)
-    // action_probs = normalize(w * w_self_worthy + (1-w) * w_rival_anti)
     static Eigen::VectorXf EvaluationProbs(Evaluator& ev, Player player) {
         using namespace Eigen;
         Position center(WIDTH / 2, HEIGHT / 2), second;
@@ -51,13 +48,39 @@ struct Heuristic {
         return action_probs;
     }
 
-    // ws_self_worthy = dot(self_worthy, normalize(self_density))
-    // ws_rival_worthy = dot(rival_worthy, normalize(rival_density))
-    // state_value = tanh((ws_self_worthy - ws_rival_worthy) / scale_factor)
     static float EvaluationValue(Evaluator& ev, Player player, float scale = 3000.0f) {
-        //auto self_worthy  = ev.scores(player, player).cast<float>().dot(DensityWeight(ev, player));
-        //auto rival_worthy = ev.scores(-player, -player).cast<float>().dot(DensityWeight(ev, -player));
-        return std::tanh((500 + ev.patternScores(player).sum() - ev.patternScores(-player).sum()) / scale);
+        auto score = 0.0f;
+        auto report = DecisiveAutomata(ev, [&](auto& candidates, auto is_antiMove) {
+            if (is_antiMove) { // 若要反击对方棋型，则将反击棋型的价值设得更高一些并求和
+                auto& protos = Evaluator::Searcher.m_prototypes;
+                std::sort(candidates.begin(), candidates.end()); // 保证类型顺序与原型同步
+                for (int type = 0; type < Pattern::Size + Compound::Size; ++type)
+                for (auto favour : { Player::Black, Player::White }) {
+                    auto local_score = 0.0f;
+                    if (type < Pattern::Size) { // 计算某种类型的单模式的所有实例的分数和
+                        auto check_type = [&](Pattern& pattern) { return pattern.type == type; };
+                        auto first = std::find_if(protos.begin(), protos.end(), check_type);
+                        auto last = std::find_if_not(first, protos.end(), check_type);
+                        local_score = ev.protoScores(favour).segment(first - protos.begin(), last - first).sum();
+                    } else { // 一个类型的复合模式的实例只有一种
+                        local_score = ev.protoScores(favour).tail<Compound::Size>()[type - Pattern::Size];
+                    }
+                    if (!candidates.empty() && candidates.front() == std::make_tuple(type, favour)) {
+                        local_score *= 1.5;
+                        candidates.pop_front();
+                    }
+                    score += CalcScore(player, local_score); // 计算相对于传入玩家的分数
+                }
+            }
+        });
+        switch (report.level) {
+        case report.Favour:
+            return 1.0f;
+        case report.None:
+            score = ev.protoScores(player).sum() - ev.protoScores(-player).sum();
+        case report.Anti:
+            return std::tanh((500.0f + score) / scale);
+        }
     }
 
     // weight = normalize(w/n * 1.5n/(0.5+n)) = normalize(3w/(1+2n))
@@ -69,40 +92,10 @@ struct Heuristic {
         return ((3 * W) / (1 + 2 * N)).matrix().normalized();
     }
 
-    template <typename Func>
-    static std::tuple<Player, int> EvaluatedRollout(Evaluator& ev, Func probs_to_move, bool revert = false) {
-        auto total_moves = 0;
-        auto& board = ev.board();  
-        for (; !ev.checkGameEnd(); ++total_moves) {
-            auto action_probs = EvaluationProbs(ev, board.m_curPlayer);
-            ev.applyMove(probs_to_move(board, action_probs));
-        }
-        auto winner = board.m_winner;
-        if (revert) {
-            ev.revertMove(total_moves);
-        }
-        return { winner, total_moves };
-    }
-
-    // 每一轮选取对当前玩家概率最大的点下棋，直到游戏结束。
-    static std::tuple<Player, int> MaxEvaluatedRollout(Evaluator& ev, bool revert = false) {
-        return EvaluatedRollout(ev, [](const Board& board, Eigen::Ref<Eigen::VectorXf> action_probs) {
-            Position next_move;
-            action_probs.maxCoeff(&next_move.id);
-            return next_move;
-        }, revert);
-    }
-
-    // 每一轮根据当前玩家的概率分布随机选点下棋，直到游戏结束。
-    static std::tuple<Player, int> RandomEvaluatedRollout(Evaluator& ev, bool revert = false) {
-        return EvaluatedRollout(ev, [](const Board& board, Eigen::Ref<Eigen::VectorXf> action_probs) {
-            float temperature = 1 - Stats::Sigmoid((board.m_moveRecord.size() - 40) / 20.0f);
-            return board.getRandomMove(action_probs);
-        }, revert);
-    }
-
+    // 处理必应局面的状态机，通过回调函数实现更新
     // 优先度：+4 > -4 > +L3 == +To44 > -L3 == -To44 >= +To43 > -To43 > +To33 > -To33
-    static auto DecisiveFilter(Evaluator& ev, Eigen::Ref<Eigen::VectorXf> probs) {
+    template <typename Callback>
+    static auto DecisiveAutomata(Evaluator& ev, Callback callback) {
         // 数据准备
         static std::deque<std::tuple<int, Player>> candidates;
         struct { enum { Anti, Favour, None } level = None; } report;
@@ -114,7 +107,7 @@ struct Heuristic {
         /*    0 */ { {_4, 1}, {To44, 0}, { L3, 1 }, {To43, 1}, {To33, 1}, { End, 0 } },
         /*    1 */ { {L3, 0}, {To44, 1}, {To43, 0}, {To33, 0}, { End, 0}, { End, 1 } }
         };
-        // 自动机范式编程
+        // 状态机范式编程
         while (state != State::End) {
             // 准备待检测模式
             switch (auto player = is_antiMove ? -cur_player : cur_player; state) {
@@ -156,20 +149,9 @@ struct Heuristic {
                 candidates.pop_front();
             }
             // 如果仍有候选者，则寻找成功
-            if (int i = -1; !candidates.empty()) {
+            if (!candidates.empty()) {
                 report.level = is_antiMove ? report.Anti : report.Favour;
-                // 将所有非Decisive点概率全部Mask为0
-                probs = probs.unaryExpr([&](float prob) { // 这个较别扭的写法是为了vectorize的性能……
-                    return ++i, std::any_of(candidates.begin(), candidates.end(), [&](auto candidate) {
-                        auto [pattern, player] = candidate;
-                        if (pattern < Pattern::Size) {
-                            return ev.m_patternDist[i][pattern].get(player, cur_player);
-                        } else {
-                            return ev.m_compoundDist[i][pattern % Pattern::Size].get(player, cur_player);
-                        }
-                    });
-                }).select(probs, Eigen::VectorXf::Zero(BOARD_SIZE)); 
-                probs.normalize(); // 重新标准化概率
+                callback(candidates, is_antiMove); // 调用外部回调应对函数
                 candidates.clear(); // 清空候选队列
                 state = State::End; // 状态直接跳转到结束
             } else { // 否则，状态沿正常路线转移
@@ -177,6 +159,55 @@ struct Heuristic {
             }
         }
         return report;
+    }
+
+    static auto DecisiveFilter(Evaluator& ev, Eigen::Ref<Eigen::VectorXf> probs) {
+        // 将所有非Decisive点概率全部mask为0
+        return DecisiveAutomata(ev, [&](auto& candidates, auto is_antiMove, int i = -1) {
+            probs = probs.unaryExpr([&](float prob) { // 这个较别扭的写法是为了vectorize的性能……
+                return ++i, std::any_of(candidates.begin(), candidates.end(), [&](auto candidate) {
+                    auto [type, player] = candidate;
+                    if (type < Pattern::Size) {
+                        return ev.m_patternDist[i][type].get(player, ev.board().m_curPlayer);
+                    } else {
+                        return ev.m_compoundDist[i][type - Pattern::Size].get(player, ev.board().m_curPlayer);
+                    }
+                });
+            }).select(probs, Eigen::VectorXf::Zero(BOARD_SIZE));
+            probs.normalize(); // 重新标准化概率
+        });
+    }
+
+    template <typename Callback>
+    static std::tuple<Player, int> EvaluatedRollout(Evaluator& ev, Callback probs_to_move, bool revert = false) {
+        auto total_moves = 0;
+        auto& board = ev.board();
+        for (; !ev.checkGameEnd(); ++total_moves) {
+            auto action_probs = EvaluationProbs(ev, board.m_curPlayer);
+            ev.applyMove(probs_to_move(board, action_probs));
+        }
+        auto winner = board.m_winner;
+        if (revert) {
+            ev.revertMove(total_moves);
+        }
+        return { winner, total_moves };
+    }
+
+    // 每一轮选取对当前玩家概率最大的点下棋，直到游戏结束。
+    static std::tuple<Player, int> MaxEvaluatedRollout(Evaluator& ev, bool revert = false) {
+        return EvaluatedRollout(ev, [](const Board& board, Eigen::Ref<Eigen::VectorXf> action_probs) {
+            Position next_move;
+            action_probs.maxCoeff(&next_move.id);
+            return next_move;
+        }, revert);
+    }
+
+    // 每一轮根据当前玩家的概率分布随机选点下棋，直到游戏结束。
+    static std::tuple<Player, int> RandomEvaluatedRollout(Evaluator& ev, bool revert = false) {
+        return EvaluatedRollout(ev, [](const Board& board, Eigen::Ref<Eigen::VectorXf> action_probs) {
+            float temperature = 1 - Stats::Sigmoid((board.m_moveRecord.size() - 40) / 20.0f);
+            return board.getRandomMove(action_probs);
+        }, revert);
     }
 
     // 利用缓存策略下棋。

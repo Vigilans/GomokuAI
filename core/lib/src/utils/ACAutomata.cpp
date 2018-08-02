@@ -25,6 +25,7 @@ void AhoCorasickBuilder::build(PatternSearch* searcher) {
 }
 
 void AhoCorasickBuilder::preparePatterns() {
+    std::reverse(ps->m_prototypes.begin(), ps->m_prototypes.end());
     m_patterns = ps->m_prototypes;
     m_trace.resize(ps->m_prototypes.size());
     std::iota(m_trace.begin(), m_trace.end(), 0);
