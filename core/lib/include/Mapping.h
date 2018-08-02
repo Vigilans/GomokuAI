@@ -5,6 +5,13 @@
 
 namespace Gomoku {
 
+inline namespace Config {
+enum MappingConfig {
+    // 行/列/斜线的总数量，为WIDTH + HEIGHT + 2*(WIDTH + HEIGHT - 1)
+    LINES_COUNT = 3 * (WIDTH + HEIGHT) - 2
+};
+}
+
 // 棋盘的四个方向的抽象封装
 enum class Direction : char {
     Horizontal, Vertical, LeftDiag, RightDiag
@@ -61,10 +68,14 @@ constexpr int EncodeCharset(char ch) {
 constexpr int Codeset[] = { 1, 2, 3, 4 };
 
 
-// 由编码后的各行/列/斜线构成的字符串集合
+// 由编码后的各行/列/斜线构成的字符串/位置ID集合
 class BoardLines {
 public:
-    
+    // 以线为元素保存线上所有点的ID的数组
+    static std::array<Eigen::VectorXi, LINES_COUNT> PoseIDs;
+
+    // 获取以某点为中心，沿某个方向，长度为TARGET_LEN的线段
+    static Eigen::VectorBlock<Eigen::VectorXi> TargetLine(Position pose, Direction dir);
 
     BoardLines();
 
@@ -75,7 +86,7 @@ public:
     void reset();
 
 private:
-    std::array<std::string, 3 * (WIDTH + HEIGHT) - 2> m_lines;
+    std::array<std::string, LINES_COUNT> m_lines;
 };
 
 

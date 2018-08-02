@@ -4,6 +4,7 @@
 #include <random>
 
 using namespace std;
+using namespace Eigen;
 
 namespace Gomoku {
 
@@ -25,12 +26,37 @@ constexpr tuple<int, int> ParseIndex(Position pose, Direction direction) {
     }
 }
 
+array<VectorXi, LINES_COUNT> BoardLines::PoseIDs = []() {
+    array<vector<int>, LINES_COUNT> pose_lines;
+    for (auto& line : pose_lines) {
+        line.resize(MAX_PATTERN_LEN - 1, Position::npos); // 线前填充越界位(npos)
+    }
+    for (auto i = 0; i < BOARD_SIZE; ++i)
+    for (auto direction : Directions) {
+        auto [index, _] = ParseIndex(i, direction);
+        pose_lines[index].push_back(i); // 按每个位置填充ID
+    }
+    for (auto& line : pose_lines) {
+        line.insert(line.end(), MAX_PATTERN_LEN - 1, Position::npos); // 线后填充越界位(npos)
+    }
+    decltype(PoseIDs) eigen_pose_lines;
+    for (int i = 0; i < LINES_COUNT; ++i) {
+        eigen_pose_lines[i] = Map<VectorXi>(&pose_lines[i][0], pose_lines[i].size());
+    }
+    return eigen_pose_lines;
+}();
+
+VectorBlock<VectorXi> BoardLines::TargetLine(Position pose, Direction dir) {
+    const auto [index, offset] = ParseIndex(pose, dir);
+    return PoseIDs[index].segment(offset - TARGET_LEN / 2, TARGET_LEN);
+}
+
 BoardLines::BoardLines() {
     this->reset();
 }
 
 string_view BoardLines::operator()(Position pose, Direction direction) {
-    const auto[index, offset] = ParseIndex(pose, direction);
+    const auto [index, offset] = ParseIndex(pose, direction);
     return string_view(&m_lines[index][offset - TARGET_LEN / 2], TARGET_LEN);
 }
 

@@ -28,7 +28,7 @@ Minimax::Minimax(
 };
 
 Position Minimax::getAction(Board& board) {
-    m_root->value = -alphaBeta(m_root.get(), 1, -1.0, 1.0);
+    m_root->value = -alphaBeta(m_root.get(), 1, -INFINITY, INFINITY);
     Eigen::MatrixXf values;
     values.setZero(15, 15);
     for (const auto& child : m_root->children) {
@@ -94,7 +94,6 @@ float Minimax::alphaBeta(Node* node, int depth, float alpha, float beta) {
     } else if (depth == 0) { // 以当前下棋玩家为标准返回价值评估
         return Heuristic::EvaluationValue(m_evaluator, -node->player);
     }
-
     //// 置换表搜索策略
     //if (m_transTable.count(m_boardMap)) {
     //    auto entry = m_transTable[m_boardMap];

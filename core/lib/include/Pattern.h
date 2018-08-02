@@ -205,6 +205,8 @@ public:
 
     bool checkGameEnd();  // 利用Evaluator，我们可以做到快速检查游戏是否结束。
 
+    Pattern::Type checkPattern(const Pattern& pattern); // 递归检查一个模式在当前局面下的真正类型
+
     void syncWithBoard(const Board& board); // 同步Evaluator至传入的Board状态。
 
     void reset();

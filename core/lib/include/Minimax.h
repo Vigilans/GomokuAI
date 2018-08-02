@@ -38,7 +38,7 @@ public:
         */
         Position position = Position::npos;
         Player   player   = Player::None;
-        float    value    = 0.0f;
+        float    value    = -INFINITY;
 
         /*
             树结构部分 - 子结点。

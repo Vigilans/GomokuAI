@@ -16,7 +16,7 @@ int main() {
 	MinimaxAgent agent8(3);
     //MCTSAgent agent7x(50000, new PoolRAVEPolicy(2, 0));
 
-    return ConsoleInterface(agent7, agent8);
+    return ConsoleInterface(agent6, agent7);
     //return KeepAliveBotzoneInterface(agent6);
     //return BotzoneInterface(agent6);
 }
