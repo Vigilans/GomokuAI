@@ -64,6 +64,16 @@ namespace Gomoku {
 		return Minimax.m_root.get();
 	}
 
+	Minimax::Minimax() : m_policy(new MinimaxPolicy())
+	{
+		m_root = m_policy->createNode(nullptr, { Config::GameConfig::WIDTH / 2, Config::GameConfig::HEIGHT / 2 }, Player::Black, 0.0, 0.0);
+		m_depth = 12;
+		c_constraint = Constraint::Depth;
+		m_alpha = -0xffff;
+		m_beta = 0xffff;
+		node_trace.push_back(m_root);
+	}
+
 	Minimax::Minimax(
 		short   c_depth = 12,
 		Position last_move ={ Config::GameConfig::WIDTH / 2 ,Config::GameConfig::HEIGHT / 2 } ,
@@ -80,6 +90,7 @@ namespace Gomoku {
 
 	Position Minimax::getAction(Board& board) {
 		float ans = runPlayouts(board);
+		//get_node_trace();
 		return Minimax::stepForward(ans)->position;
 	}
 
@@ -149,6 +160,7 @@ namespace Gomoku {
 		);
 		m_root = std::move(*iter);
 	}
+
 
 
 

@@ -8,8 +8,11 @@ public:
         eval_param = init_eval_param;
     }
     //users must make sure that the result is wrong before 
-    //sample: the samples selected from one episode, including the count for all types
+    //sample: the samples	 selected from one episode, including the count for all types
     //tag: the "correct" tag (not the predicted one)
+	void check_valid() {
+		cout << "check!" << endl;
+	}
     void train(vector<vector<int>> sample, int tag = 1){
         if(sample[0].size() != eval_param.size()){
             cout << "perceptron vector size invalid!" << endl;

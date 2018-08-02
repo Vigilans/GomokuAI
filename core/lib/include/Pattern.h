@@ -255,11 +255,11 @@ public:
     Eigen::ArrayXi m_density[2][2]; // 第一维: { White, Black }, 第二维: { Σ1, Σweight }
     Eigen::VectorXi m_scores[4]; // 按照Group函数分组
     Eigen::VectorXi m_patternScores[2]; // 与Searcher + Compounds同步的向量，存储绝对分数（黑正/白负）
-};
+};              
 /* ------------------- 数据区 ------------------- */
 
 static std::vector<Pattern> protos = {
-	{ "+xxxxx",    Pattern::Five,      9999 },
+{ "+xxxxx",    Pattern::Five,      9999 },
 { "-_oooo_",   Pattern::LiveFour,  9000 },
 { "-xoooo_",   Pattern::DeadFour,  2500 },
 { "-o_ooo",    Pattern::DeadFour,  3000 },

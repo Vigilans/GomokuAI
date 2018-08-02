@@ -63,14 +63,9 @@ inline int KeepAliveBotzoneInterface(Agent& agent) {
     return 0;
 }
 
-inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
+inline int ConsoleInterface(Agent& agent0, MinimaxAgent& agent1) {
     using namespace std;
-	/*
-    if(agent1.m_minimax) {
-        for(auto it = agent1.minimax.node_trace.begin(); it !=  agent1.minimax.node_trace.end(); it++){
-            cout << (*it)->position;
-        }
-    }*/
+
     Board board;
 
     srand(time(nullptr));
@@ -111,12 +106,7 @@ inline int ConsoleInterface(Agent& agent0, Agent& agent1) {
     }
 
     if (board.m_winner != Player::None) {
-		//if game has won: get and modify evaluator scores
-		for (auto it = protos.begin(); it != protos.end(); it++) {
-			cout << (*it).score << endl;
-			//(*it).score += 10;
-		}
-		
+
         auto [winner, idx] = get_agent(board.m_winner);
         printf("\nGame end. Winner: %d.%s\nRecord JSON:\n", idx, winner.name().data());
     } else {

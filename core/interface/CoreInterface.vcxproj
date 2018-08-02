@@ -189,6 +189,7 @@
     <ClInclude Include="src\Agent.h" />
     <ClInclude Include="src\Interface.h" />
     <ClInclude Include="src\pch.h" />
+    <ClInclude Include="src\perceptron.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\main.cpp" />

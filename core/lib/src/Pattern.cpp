@@ -308,7 +308,6 @@ void Evaluator::Updater::updateMove(Position move, Player src_player) {
 
 Evaluator::Evaluator() : m_updater(*this) {
     this->reset();
-
 }
 
 Player Evaluator::applyMove(Position move) {

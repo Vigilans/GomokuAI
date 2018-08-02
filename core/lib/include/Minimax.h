@@ -8,6 +8,8 @@
 #include <chrono>      // std::milliseconds
 #include <functional>  // std::function
 #include <Eigen/Dense> // Eigen::VectorXf
+#include <iostream> 
+using namespace std;
 
 namespace Gomoku {
 
@@ -132,6 +134,8 @@ public: // 共通属性
 class Minimax {//Minimax树
 public:
     // 通过深度控制模拟迭代。
+	Minimax();
+
 	Minimax(
 		short   c_depth,//=3,
 		Position last_move,// = { Config::GameConfig::WIDTH / 2 ,Config::GameConfig::HEIGHT / 2 },
@@ -161,6 +165,13 @@ private:
     // Minimax树的一轮迭代 
 
     float runPlayouts(Board& board);
+	std::vector<std::shared_ptr<MinimaxNode>> get_node_trace() {
+		return node_trace;
+		/*
+		for (auto it = node_trace.begin(); it != node_trace.end(); it++)
+			cout << "get node trace: Position -" << (*it)->position << endl;
+			*/
+	}
 
 
 public:
