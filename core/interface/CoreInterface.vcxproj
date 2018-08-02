@@ -116,6 +116,9 @@
     <PreBuildEvent>
       <Command>start $(ProjectDir)botzone\Amalgamate.exe -w "*.cpp;*.h;*.hpp" -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>cd $(TargetDir) &amp; if exist data(mkdir data)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -137,6 +140,9 @@
     <PreBuildEvent>
       <Command>start $(ProjectDir)botzone\Amalgamate.exe -w "*.cpp;*.h;*.hpp" -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>cd $(TargetDir) &amp; if exist data(mkdir data)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
@@ -158,6 +164,9 @@
     <PreBuildEvent>
       <Command>start $(ProjectDir)botzone\Amalgamate.exe -w "*.cpp;*.h;*.hpp" -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>cd $(TargetDir) &amp; if exist data(mkdir data)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -184,6 +193,9 @@
     <PreBuildEvent>
       <Command>start $(ProjectDir)botzone\Amalgamate.exe -w "*.cpp;*.h;*.hpp" -i $(SolutionDir)core\lib\include\ -i $(SolutionDir)core\lib\src\  $(ProjectDir)\botzone\template.cpp  $(ProjectDir)botzone\gomoku.cpp</Command>
     </PreBuildEvent>
+    <PostBuildEvent>
+      <Command>cd $(TargetDir) &amp; if exist data(mkdir data)</Command>
+    </PostBuildEvent>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClInclude Include="src\Agent.h" />

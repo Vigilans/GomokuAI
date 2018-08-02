@@ -2,7 +2,7 @@
 #include "utils/ACAutomata.h"
 #include <iostream>
 #include <bitset>
-#include <future>
+#include <set>
 
 using namespace std;
 using namespace Eigen;
@@ -126,9 +126,66 @@ Compound* Evaluator::Updater::findCompound(Position pose, Player player) {
     return nullptr;
 }
 
+/*
+	两个概念：
+	某个点的类型/某个模式的类型
+
+	举例：
+	活3中有一个点可以升成活4->活三
+	没有活4点，但有冲四点->眠三
+	连冲四点都没有->无类型
+	
+	判断某个点是否是活2:
+	  下这个点，判断是否出现了活3
+	  活3可下点里面只要出现了一个活4，就是活3，否则为眠3/无类型
+
+	判断某个点是否是眠2:
+	  下这个点，判断是否出现了眠3
+	  眠3可下点里面只要有一个出现了冲4，就是眠3，否则是无类型
+
+	判断某个点是否是活3:
+	  下这个点，判断是否出现了活4
+	  
+*/
+Pattern::Type Evaluator::Updater::checkPattern(Position move, Pattern::Type base, Direction dir) {
+	ev.m_boardMap.m_lineView.updateMove(move, ev.board().m_curPlayer);
+	const auto target = ev.m_boardMap.m_lineView(move, dir);
+	const auto line_view = BoardLines::TargetLine(move, dir);
+	auto exact_type = Pattern::None; // 当前点的真正类型，初始为无类型
+	for (auto entry : Searcher.execute(target)) { // 统计升级后模式的空位的棋型数据
+		const auto [pattern, offset, _] = entry;
+		if (!(PatternSearch::HasCovered(entry) && pattern.type == base + 2)) {
+			continue; // base + 2代表升一级
+		}
+		for (int i = 0; i < pattern.str.length(); ++i) {
+			const auto piece = pattern.str.rbegin()[i];
+			const auto current = line_view[offset - i];
+			if (piece != '_') { // 只统计关键点
+				continue;
+			}
+			if (base + 2 < Pattern::DeadFour) {
+				// Recursive Step: 判断base + 2的所有可下点里是否出现了base + 4点
+				auto type = checkPattern(current, base + 4, dir);
+				if (type == base + 4) {
+					exact_type = base;
+					break; // 找到完全升级的证据了，直接退出
+				} else if (type == base + 3) {
+					exact_type = base - 1; // 不完全升级，有待观望
+				}
+				// 若type == Pattern::None，则exact_type不更新
+			} else {
+				// Base case: 四连以上的棋型直接通过计数确定
+				
+			}
+		} 
+	}
+	ev.m_boardMap.m_lineView.updateMove(move, Player::None);
+	return exact_type;
+}
+
 void Evaluator::Updater::matchPatterns(Direction dir) {
     matchResults(delta, dir).clear();
-    auto target = ev.m_boardMap.m_lineView(move, dir);
+    const auto target = ev.m_boardMap.m_lineView(move, dir);
     for (auto&& entry : Searcher.execute(target)) {
         if (PatternSearch::HasCovered(entry, TARGET_LEN / 2)) {
             matchResults(delta, dir).push_back(std::move(entry));
@@ -176,8 +233,8 @@ void Evaluator::Updater::updateCompound(Direction dir) {
             auto current = view[i];
             if (current == Position::npos) {
                 continue;
-            } else if (ev.density(player)[0][current] < 4) {
-                continue; // 周围至少要有4个同色子
+            } else if (ev.density(player)[0][current] < 3) {
+                continue; // 周围至少要有2个同色子
             } else if (findCompound(current, player) != nullptr) {
                 continue; // 若找到复合模式记录，则代表已更新过，直接跳过
             }
@@ -282,13 +339,6 @@ Player Evaluator::applyMove(Position move) {
                     throw b;
                 }
             }
-        } else {
-            for (int j = 0; j < 4; ++j) {
-                if (m_scores[j][i] < 0) {
-                    auto b = board().toString();
-                    throw b;
-                }
-            }
         }
     }
     return board().m_curPlayer;
@@ -383,7 +433,7 @@ unsigned Evaluator::Record::get(Player player) const {
 /* ------------------- Compound类实现 ------------------- */
 
 constexpr const Pattern::Type CompTypes[] = {
-    Pattern::LiveThree, Pattern::DeadThree, Pattern::LiveTwo
+    Pattern::LiveFour, Pattern::DeadFour, Pattern::LiveThree, Pattern::DeadThree, Pattern::LiveTwo
 };
 
 bool Compound::Test(Evaluator& ev, Position pose, Player player) {
@@ -402,58 +452,153 @@ Compound::Compound(Evaluator& ev, Position pose, Player favour)
     this->locate();
 }
 
+//// 尝试性下一手，按照定义确定复合模式的类型
+//void Compound::locate() {
+//	// 状态定义
+//	enum State {
+//		S0, L3, LD4, S33, S43, S44, SLC, S433, S443
+//	} state = S0;
+//
+//	// 试探性下一手棋
+//	ev.m_boardMap.m_lineView.updateMove(position, favour);
+//
+//	// 定位状态机
+//	for (auto dir : Directions) {
+//		bitset<BOARD_SIZE> ld4_set(0);
+//		const auto target = ev.m_boardMap.m_lineView(position, dir);
+//		const auto line_view = BoardLines::TargetLine(position, dir);
+//		for (auto entry : ev.Searcher.execute(target)) {
+//			const auto [pattern, off, _] = entry;
+//			if (!ev.Searcher.HasCovered(entry)) {
+//				continue;
+//			}
+//			int cond = S0; // 初始转移条件
+//			switch (pattern.type) {
+//			case Pattern::LiveFour:
+//				l3_count += 1; // 棋型来源中有活三
+//			case Pattern::DeadFour:
+//				cond = LD4;
+//				for (int i = 0; i < pattern.str.length(); ++i) {
+//					const auto piece = pattern.str.rbegin()[i];
+//					const auto current = line_view[off - i];
+//					if (piece == '_') {
+//						if (ld4_set[current]) {
+//							state = SLC;
+//							goto Fallback;
+//						} else {
+//							ld4_set[current] = 1;
+//						}
+//					}
+//				}
+//				break;
+//			case Pattern::LiveThree:
+//				cond = L3; break;
+//			default:
+//				continue;
+//			}
+//
+//			components.push_back({ dir, pattern.type - 2 });
+//
+//			// 状态转移
+//			switch (int offset; state) {     //   SLC(6)          S44(5) ← S443(8)
+//			case S0:                         //                 ↗       ↗   ↑
+//				offset = 0; goto Transfer;   //          LD4(2) → S43(4) → S433(7)  
+//			case L3: case LD4:               //        ↗       ↗   	 ↗  
+//				offset = 1; goto Transfer;   //   S0(0) → L3(1) → S33(3)  
+//			case S33: case S43: 
+//				triple_cross = true;
+//				offset = 2; goto Transfer;
+//			case S433: 
+//				offset = -1; goto Transfer;
+//			case S44:
+//				triple_cross = true;
+//				offset = -cond; // To44为最终状态，只进不出
+//			Transfer:
+//				state = State(state + cond + offset);
+//			}
+//		}
+//	}
+//
+//	// 悔掉试探性下的棋
+//	ev.m_boardMap.m_lineView.updateMove(position, Player::None);
+//
+//	// 一些不稳定的状态在这里回退
+//Fallback:
+//	switch (state) {
+//	case S443:
+//		state = S44; break;
+//	case S433:
+//		state = IsForbidden[DoubleThree] && favour == Player::Black ? S33 : S43; break;
+//	case L3: case LD4:
+//		state = S0; break;
+//	}
+//
+//	// 根据定位结果更新成员
+//Update:
+//	type = state != S0 ? Compound::Type(state - State::S33) : Compound::None;
+//	count = bitset<8>(ev.m_compoundDist[position][type].get(favour, favour)).count();
+//}
+
 void Compound::locate() {
-    enum State { S0, L2, LD3, To33, To43, To44, LC, To433, ToLC } state = S0;
-    for (auto comp_dir : Directions) {
-        // 准备转移条件
-        int cond = S0; // 初始转移条件
-        int count = 0; // 当前方向上模式计数
-        for (auto comp_type : CompTypes) {
-            switch (ev.m_patternDist[position][comp_type].get(favour, favour, comp_dir)) {
-                case 0b00: count = 0; break;
-                case 0b01: count = 1; break;
-                case 0b11: count = 2; break;
-            }
-            if (count != 0) {
-                switch (comp_type) {
-                case Pattern::LiveFour:
-                    // 再来一次
-                case Pattern::DeadFour:
-                    if (count != 2) continue;
-                    else state = LC;
-                case Pattern::LiveThree:
-                    l3_count += 1;
-                case Pattern::DeadThree:
-                    cond = LD3; break;
-                case Pattern::LiveTwo:
-                    cond = L2;  break;
-                }
-                components.insert(components.end(), count, { comp_dir, comp_type });
-                break; // 找到第一个符合条件的Pattern就退出。因此Pattern有优先级之分。
-            }
-        }
+	enum State { S0, L2, LD3, To33, To43, To44, LC, To433, ToLC } state = S0;
+	for (auto comp_dir : Directions) {
+		// 准备转移条件
+		int cond = S0; // 初始转移条件
+		int count = 0; // 当前方向上模式计数
+		int ld4_count = 0; // 用于长连的计数
+		for (auto comp_type : CompTypes) {
+			switch (ev.m_patternDist[position][comp_type].get(favour, favour, comp_dir)) {
+			case 0b00: count = 0; break;
+			case 0b01: count = 1; break;
+			case 0b11: count = 2; break;
+			}
+			if (count != 0) {
+				switch (comp_type) {
+				case Pattern::LiveFour:
+					ld4_count += count; continue;
+				case Pattern::DeadFour:
+					ld4_count += count; break;
+				case Pattern::LiveThree:
+					l3_count += count;
+				case Pattern::DeadThree:
+					cond = LD3; break;
+				case Pattern::LiveTwo:
+					cond = L2;  break;
+				}
+				components.insert(components.end(), count, { comp_dir, comp_type });
+				break; // 找到第一个符合条件的Pattern就退出。因此Pattern有优先级之分。
+			}
+		}
 
-        // 没有在该方向上匹配到模式时，状态无需转移
-        if (cond == S0) continue;
+		// 找到了长连棋型
+		if (ld4_count >= 2) {
+			state = LC;
+			break;
+		}
 
-        // 状态转移
-        for (int i = 0; i < count; ++i) {
-            switch (int offset; state) {
-            case S0:                           //                    To44(5)
-                offset = 0; goto Transfer;     //                 ↗   ↑
-            case L2: case LD3:                 //          LD3(2) → To43(4)  状态转移图（有缩减）
-                offset = 1; goto Transfer;     //        ↗       ↗   ↑
-            case To33: case To43: case To44:    //  S0(0) → L2(1) → To33(3)
-                triple_cross = true;
-                offset = (state == To44 ? -cond : -1); // To44为最终状态，只进不出
-            Transfer:
-                state = State(state + cond + offset);
-            }
-        }
-    }
-    type = Compound::Type(state - State::To33);
-    count = bitset<8>(ev.m_compoundDist[position][type].get(favour, favour)).count();
+		// 没有在该方向上匹配到模式时，状态无需转移
+		if (cond == S0) continue;
+
+
+		// 状态转移
+		for (int i = 0; i < count; ++i) {
+			switch (int offset; state) {
+			case S0:                           //                   To44(5)
+				offset = 0; goto Transfer;     //                 ↗   ↑
+			case L2: case LD3:                 //          LD3(2) → To43(4)  状态转移图（有缩减）
+				offset = 1; goto Transfer;     //        ↗       ↗   ↑
+			case To33: case To43: case To44:    //  S0(0) → L2(1) → To33(3)
+				triple_cross = true;
+				offset = (state == To44 ? -cond : -1); // To44为最终状态，只进不出
+			Transfer:
+				state = State(state + cond + offset);
+			}
+		}
+	}
+	type = Compound::Type(state - State::To33);
+	count = bitset<8>(ev.m_compoundDist[position][type].get(favour, favour)).count();
 }
+
 
 void Compound::update(int delta) {
     for (auto base : components) {
@@ -577,8 +722,8 @@ tuple<Array<int, BLOCK_SIZE, BLOCK_SIZE, RowMajor>, int> Evaluator::BlockWeights
     return make_tuple(weight, score);
 }();
 
-array<const int, Compound::Size> Compound::Scores = { 600, 800, 700 };
+array<const int, Compound::Size> Compound::Scores = { 600, 800, 700, 0 };
 
-array<bool, Compound::Size> Compound::IsForbidden = { false, false, false };
+array<bool, Compound::Size> Compound::IsForbidden = { false, false, false, false };
 
 }

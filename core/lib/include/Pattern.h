@@ -35,7 +35,7 @@ struct Pattern {
         DeadTwo, LiveTwo,
         DeadThree, LiveThree,
         DeadFour, LiveFour,
-        Five, Size
+        Five, Size, None = -1
     } type;
     
     // 对当前模式的空位的评分
@@ -100,7 +100,7 @@ private:
 
 struct Compound {
     // 复合模式的类型
-    enum Type { DoubleThree, FourThree, DoubleFour, Size };
+    enum Type { DoubleThree, FourThree, DoubleFour, LongConnect, Size, None = -1 };
 
     // 一个复合模式的组件由{ 该组件所在方向, 该组件棋型 }组成。
     using Component = std::tuple<Direction, Pattern::Type>;
@@ -205,25 +205,25 @@ public:
 
     bool checkGameEnd();  // 利用Evaluator，我们可以做到快速检查游戏是否结束。
 
-    Pattern::Type checkPattern(const Pattern& pattern); // 递归检查一个模式在当前局面下的真正类型
-
     void syncWithBoard(const Board& board); // 同步Evaluator至传入的Board状态。
 
     void reset();
 
-private:
+public:
     class Updater {
+		friend class Compound; // Compound中的更新逻辑与updater共享
     public:
         explicit Updater(Evaluator& ev) : ev(ev) { }
         void updateMove(Position move, Player src_player);
     private:
         void reset(int delta, Position move, Player player);
-        void matchPatterns(Direction dir);
+		void matchPatterns(Direction dir);
         void updatePatterns(Direction dir);
         void updateCompound(Direction dir);
         void updateBlock(int delta, Player src_player);
         auto& matchResults(int delta, Direction dir) { return results[delta == 1][int(dir)]; }
         Compound* findCompound(Position pose, Player player);
+		Pattern::Type checkPattern(Position move, Pattern::Type base, Direction dir); // 递归检查一个点在当前局面下的真正类型
     private:
         int delta; // 变化量，取值为 { 1, -1 }
         Position move; // 更新的中心位置
@@ -242,6 +242,18 @@ public:
     Eigen::VectorXi m_scores[4];    // 按照Group函数分组
     Eigen::ArrayXi m_density[2][2]; // 第一维: { White, Black }, 第二维: { Σ1, Σweight }
 };
+
+
+// 为模式类型绑定加减运算符，因其代数运算可以代表等级的升降。
+
+template <typename type>
+constexpr bool is_type_v = std::is_same_v<type, Pattern::Type> || std::is_same_v<type, Compound::Type>;
+
+template <typename Type, typename = std::enable_if_t<is_type_v<Type>>>
+constexpr Type operator+(Type type, int delta) { return Type(int(type) + delta); }
+
+template <typename Type, typename = std::enable_if_t<is_type_v<Type>>>
+constexpr Type operator-(Type type, int delta) { return Type(int(type) - delta); }
 
 }
 

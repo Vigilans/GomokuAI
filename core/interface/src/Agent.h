@@ -25,13 +25,13 @@ public:
 
     virtual Position getAction(Board& board) = 0;
 
-    //virtual int queryProposalCount() { return 2; }
+    virtual int queryProposalCount() { return 2; }
 
-    //virtual bool querySwap(Board& board) { return false; }
+    virtual bool querySwap(Board& board) { return false; }
 
-    //virtual std::vector<Position> requestProposals(Board& board, int N) = 0;
+	virtual std::vector<Position> requestProposals(Board& board, int n) { return std::vector<Position>(Position::npos, n); };
 
-    //virtual Position respondProposals(std::vector<Position> proposal) = 0;
+	virtual Position respondProposals(Board& board, std::vector<Position> proposal) { return Position::npos; };
 
     virtual json debugMessage() { return json(); };
 
@@ -49,13 +49,59 @@ public:
         return "HumanAgent";
     }
 
+	virtual void syncWithBoard(Board& board) { 
+		m_evaluator.syncWithBoard(board);
+	};
+
     virtual Position getAction(Board& board) {
         std::cout << "\nInput your move({-1 -1} to revert): ";
         std::cin >> std::hex >> m_move.first >> m_move.second;
-        m_evaluator.syncWithBoard(board);
-        
         return m_move;
     }
+
+	virtual int queryProposalCount() {
+		int count;
+		std::cout << "\nInput proposal count: ";
+		std::cin >> count;
+		return count; 
+	}
+
+	virtual bool querySwap(Board& board) {
+		char do_swap;
+		std::cout << "\nSwap?(y/n): ";
+		std::cin >> do_swap;
+		switch (do_swap) {
+		case 'Y': case 'y':
+			return true;
+		case 'N': case 'n':
+			return false;
+		default:
+			return false;
+		}
+	}
+
+	virtual std::vector<Position> requestProposals(Board& board, int n) {
+		std::cout << "\nInput " << n << " proposals:\n";
+		std::vector<Position> proposals;
+		for (int i = 0; i < n; ++i) {
+			int x, y;
+			std::cout << i + 1 << ": ";
+			std::cin >> x >> y;
+			proposals.emplace_back(x, y);
+		}
+		return proposals;
+	};
+
+	virtual Position respondProposals(Board& board, std::vector<Position> proposals) {
+		Position choice;
+		while (std::find(proposals.begin(), proposals.end(), choice) == proposals.end()) {
+			int x, y;
+			std::cout << "\nYour choice: ";
+			std::cin >> x >> y;
+			choice = Position(x, y);
+		}
+		return choice;
+	};
 
     virtual json debugMessage() {
         if (c_output) {
@@ -73,8 +119,25 @@ public:
             Heuristic::DecisiveFilter(m_evaluator, m_probs);
             std::cout << "after:\n" << reshaped_probs() << std::endl;
         }
-        return {};
+		json message;
+		message["before"] = patternMessage();
+		m_evaluator.applyMove(m_move);
+		message["current"] = patternMessage();
+		return message;
     }
+
+	json patternMessage() {
+		json message;
+		for (auto player : { Player::Black, Player::White })
+			for (int i = 0; i < Pattern::Size - 1; ++i) {
+				message[std::to_string(player)][0][i] = m_evaluator.m_patternDist.back()[i].get(player);
+			}
+		for (auto player : { Player::Black, Player::White })
+			for (int i = 0; i < Compound::Size; ++i) {
+				message[std::to_string(player)][1][i] = m_evaluator.m_compoundDist.back()[i].get(player);
+			}
+		return message;
+	}
 
     Evaluator m_evaluator;
     std::pair<int, int> m_move;
@@ -104,15 +167,42 @@ public:
         return "MCTSAgent:" + std::to_string(c_duration.count()) + "ms";
     }
 
+	auto popCandidates(Board& board) {
+		auto[state_value, action_probs] = m_mcts->evalState(board);
+		Eigen::Map<const Eigen::Array<float, 15, 15, Eigen::RowMajor>> probs_2d(action_probs.data());
+		//std::cout << state_value << std::endl;
+		std::cout << probs_2d << std::endl;
+		std::vector<Position> candidates(BOARD_SIZE);
+		std::iota(candidates.begin(), candidates.end(), 0);
+		std::sort(candidates.begin(), candidates.end(), [&](auto lhs, auto rhs) {
+			return action_probs[lhs] > action_probs[rhs];
+		});
+		for (int i = 0; i < 10; ++i) {
+			std::cout << std::to_string(candidates[i]) << " ";
+		}
+		return candidates;
+	}
+
     virtual Position getAction(Board& board) {
-        auto [state_value, action_probs] = m_mcts->evalState(board);
-        Eigen::Map<const Eigen::Array<float, 15, 15, Eigen::RowMajor>> probs_2d(action_probs.data());
-        std::cout << state_value << std::endl;
-        //std::cout << probs_2d << std::endl;
-        Position next_move;
-        action_probs.maxCoeff(&next_move.id);
-        return next_move;
+		auto candidates = popCandidates(board);
+		return candidates.front();
     }
+
+	virtual bool querySwap(Board& board) { 
+		return -m_mcts->m_root->state_value < 0;
+	}
+
+	virtual std::vector<Position> requestProposals(Board& board, int n) {
+		auto candidates = popCandidates(board);
+		return std::vector<Position>(candidates.begin(), candidates.begin() + n);
+	};
+
+	virtual Position respondProposals(Board& board, std::vector<Position> proposals) { 
+		auto [state_value, action_probs] = m_mcts->evalState(board);
+		return *std::min_element(proposals.begin(), proposals.end(), [&](auto lhs, auto rhs) {
+			return action_probs[lhs] < action_probs[rhs];
+		});
+	};
 
     virtual json debugMessage() {
         return {
