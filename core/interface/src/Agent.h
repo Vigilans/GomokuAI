@@ -171,7 +171,7 @@ public:
 		auto[state_value, action_probs] = m_mcts->evalState(board);
 		Eigen::Map<const Eigen::Array<float, 15, 15, Eigen::RowMajor>> probs_2d(action_probs.data());
 		//std::cout << state_value << std::endl;
-		std::cout << probs_2d << std::endl;
+		//std::cout << probs_2d << std::endl;
 		std::vector<Position> candidates(BOARD_SIZE);
 		std::iota(candidates.begin(), candidates.end(), 0);
 		std::sort(candidates.begin(), candidates.end(), [&](auto lhs, auto rhs) {

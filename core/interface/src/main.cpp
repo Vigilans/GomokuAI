@@ -17,7 +17,7 @@ int main() {
     //MCTSAgent agent7x(50000, new PoolRAVEPolicy(2, 0));
 
 #ifndef _DEBUG
-    return NewConsoleInterface(agent1, agent1, false);
+    return NewConsoleInterface(agent1, agent6, true);
 #else
 	return NewConsoleInterface(agent1, agent1, false);
 #endif
